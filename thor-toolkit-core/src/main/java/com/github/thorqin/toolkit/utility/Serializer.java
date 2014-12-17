@@ -3,9 +3,13 @@ package com.github.thorqin.toolkit.utility;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -21,18 +25,81 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.net.URLDecoder;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 
 public class Serializer {
+	public static class DateTimeAdapter extends TypeAdapter<DateTime>
+			implements InstanceCreator<DateTime>,
+			JsonSerializer<DateTime>, JsonDeserializer<DateTime> {
+
+		@Override
+		public void write(JsonWriter out, DateTime value) throws IOException {
+			out.value(StringHelper.toISO8601(value));
+		}
+
+		@Override
+		public DateTime read(JsonReader in) throws IOException {
+			return StringHelper.parseISO8601(in.nextString());
+		}
+
+		@Override
+		public DateTime createInstance(Type type) {
+			return new DateTime();
+		}
+
+		@Override
+		public JsonElement serialize(DateTime src, Type typeOfSrc, JsonSerializationContext context) {
+			return context.serialize(src);
+		}
+
+		@Override
+		public DateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			return context.deserialize(json, typeOfT);
+		}
+	}
+
+	public static class DateAdapter extends TypeAdapter<Date>
+			implements InstanceCreator<Date>,
+			JsonSerializer<Date>, JsonDeserializer<Date> {
+
+		@Override
+		public void write(JsonWriter out, Date value) throws IOException {
+			out.value(StringHelper.toISO8601(new DateTime(value.getTime(), DateTimeZone.getDefault())));
+		}
+
+		@Override
+		public Date read(JsonReader in) throws IOException {
+			return StringHelper.parseISO8601(in.nextString()).toDate();
+		}
+
+		@Override
+		public Date createInstance(Type type) {
+			return new Date();
+		}
+
+		@Override
+		public JsonElement serialize(Date src, Type typeOfSrc, JsonSerializationContext context) {
+			return context.serialize(src);
+		}
+
+		@Override
+		public Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			return context.deserialize(json, typeOfT);
+		}
+	}
+
 	private static final ThreadLocal<Kryo> localKryo = 
 			new ThreadLocal<>();
 	private static final Gson gson = new GsonBuilder()
-			.setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+			.registerTypeAdapter(Date.class, new DateAdapter())
+			.registerTypeAdapter(DateTime.class, new DateTimeAdapter())
 			.create();
 	private static final Gson gsonPrettyPrinting = new GsonBuilder()
-			.setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+			.registerTypeAdapter(Date.class, new DateAdapter())
+			.registerTypeAdapter(DateTime.class, new DateTimeAdapter())
 			.setPrettyPrinting()
 			.create();
 	
@@ -285,6 +352,15 @@ public class Serializer {
 	}
 	public static <T> T fromJson(Reader reader, Type type) throws IOException, ClassCastException {
 		T obj = gson.fromJson(reader, type);
+		return obj;
+	}
+	public static <T> T fromJson(JsonElement jsonElement, Class<T> type) throws IOException, ClassCastException {
+		T obj = gson.fromJson(jsonElement, type);
+		return obj;
+	}
+
+	public static <T> T fromJson(JsonElement jsonElement, Type type) throws IOException, ClassCastException {
+		T obj = gson.fromJson(jsonElement, type);
 		return obj;
 	}
 	public static <T> T loadJsonResource(String resource, Class<T> type) throws IOException, ClassCastException {

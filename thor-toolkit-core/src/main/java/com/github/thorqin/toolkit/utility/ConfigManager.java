@@ -24,40 +24,10 @@ public class ConfigManager {
         void onChanged(ConfigManager config);
     }
 
-    private static class DateTimeAdapter extends TypeAdapter<DateTime>
-            implements InstanceCreator<DateTime>,
-            JsonSerializer<DateTime>, JsonDeserializer<DateTime> {
-
-        @Override
-        public void write(JsonWriter out, DateTime value) throws IOException {
-            out.value(StringHelper.toISO8601(value));
-        }
-
-        @Override
-        public DateTime read(JsonReader in) throws IOException {
-            return StringHelper.parseISO8601(in.nextString());
-        }
-
-        @Override
-        public DateTime createInstance(Type type) {
-            return new DateTime();
-        }
-
-        @Override
-        public JsonElement serialize(DateTime src, Type typeOfSrc, JsonSerializationContext context) {
-            return context.serialize(src);
-        }
-
-        @Override
-        public DateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-            return context.deserialize(json, typeOfT);
-        }
-    }
-
     private static WatchService monitorService = null;
     private static final Map<WatchKey, ConfigManager> monitoredMap = new HashMap<>();
     private static final Gson gson = new GsonBuilder()
-            .registerTypeAdapter(DateTime.class, new DateTimeAdapter())
+            .registerTypeAdapter(DateTime.class, new Serializer.DateTimeAdapter())
             .create();
 
     private File _file = null;
