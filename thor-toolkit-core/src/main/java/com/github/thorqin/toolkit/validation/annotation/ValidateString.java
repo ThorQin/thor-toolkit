@@ -46,14 +46,19 @@ public @interface ValidateString {
 	public final static String EMAIL = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$";
 	public final static String CHINESE_CHARACTER = "^[\u4e00-\u9fa5]{0,}$";
 	public final static String URL = "^https?://([\\w-]+\\.)+[\\w-]+(:[0-9]{1,5})?(/[\\w-./?%&=]*)?$";
-	public final static String MONTH = "^(0?[1-9]|1[0-2])$";
-	public final static String DAY = "^((0?[1-9])|((1|2)[0-9])|30|31)$";
-	public final static String YEAR = "^19[7-9][0-9]|[2-9][0-9]{0,3}$";
 	public final static String HTML_TAG = "<(.*)>(.*)<\\/(.*)>|<(.*)\\/>";
-	public final static String DATE = "^19[7-9][0-9]|[2-9][0-9]{0,3}-(0?[1-9]|1[0-2])-((0?[1-9])|((1|2)[0-9])|30|31)$";
-	public final static String TIME = "^(?:[0-1]?[0-9]|2[0-3])(?::[0-5]?[0-9]){2}(?:\\.[0-9]{1,3})?$";
-	public final static String DATE_TIME = "^19[7-9][0-9]|[2-9][0-9]{0,3}-(0?[1-9]|1[0-2])-((0?[1-9])|((1|2)[0-9])|30|31)\\s+(?:[0-1]?[0-9]|2[0-3])(?::[0-5]?[0-9]){2}(?:\\.[0-9]{1,3})?$";
-	
+	public final static String DATE = "^[0-9]{4}-(0?[1-9]|1[0-2])-((0?[1-9])|((1|2)[0-9])|30|31)$";
+	public final static String TIME = "^([0-1]?[0-9]|2[0-3])(:[0-5]?[0-9]){2}(\\.[0-9]{1,3})?$";
+	public final static String DATE_TIME = "^[0-9]{4}-(0?[1-9]|1[0-2])-((0?[1-9])|((1|2)[0-9])|30|31)\\s+(?:[0-1]?[0-9]|2[0-3])(?::[0-5]?[0-9]){2}(\\.[0-9]{1,3})?$";
+	public final static String DATE_TIME_WITHOUT_MILLI = "^[0-9]{4}-(0?[1-9]|1[0-2])-((0?[1-9])|((1|2)[0-9])|30|31)\\s+(?:[0-1]?[0-9]|2[0-3])(?::[0-5]?[0-9]){2}$";
+	public final static String FULL_DATE = "^[0-9]{4}-(0[1-9]|1[0-2])-((0[1-9])|((1|2)[0-9])|30|31)$";
+	public final static String FULL_TIME = "^([0-1][0-9]|2[0-3])(:[0-5][0-9]){2}(\\.[0-9]{3})?$";
+	public final static String FULL_TIME_WITHOUT_MILLI = "^([0-1][0-9]|2[0-3])(:[0-5][0-9]){2}$";
+	public final static String FULL_DATE_TIME = "^[0-9]{4}-(0[1-9]|1[0-2])-((0[1-9])|((1|2)[0-9])|30|31)\\s+([0-1][0-9]|2[0-3])(:[0-5][0-9]){2}(\\.[0-9]{3})?$";
+	public final static String FULL_DATE_TIME_WITHOUT_MILLI = "^[0-9]{4}-(0[1-9]|1[0-2])-((0[1-9])|((1|2)[0-9])|30|31)\\s+([0-1][0-9]|2[0-3])(:[0-5][0-9]){2}$";
+	public final static String ISO8601 = "^[0-9]{4}-(0[1-9]|1[0-2])-((0[1-9])|((1|2)[0-9])|30|31)T([0-1][0-9]|2[0-3])(:[0-5][0-9]){2}(\\.[0-9]{3})?(Z|[+-](0[0-9]|1[0-2])(:?([0-5][0-9]))?)$";
+	public final static String ISO8601_UTC = "^[0-9]{4}-(0[1-9]|1[0-2])-((0[1-9])|((1|2)[0-9])|30|31)T([0-1][0-9]|2[0-3])(:[0-5][0-9]){2}(\\.[0-9]{3})?Z$";
+
 	boolean allowNull() default false;
 	boolean allowEmpty() default false;
 	String format() default "";
