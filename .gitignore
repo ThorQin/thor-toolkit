@@ -1,0 +1,5 @@
+*.iml
+/.idea
+/target
+/thor-toolkit-core/target
+/thor-toolkit-web/target
