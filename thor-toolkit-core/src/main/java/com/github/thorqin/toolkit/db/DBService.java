@@ -320,6 +320,12 @@ public class DBService {
 	public @interface UDTSkip {
 	}
 
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface DBField {
+		String value() default "";
+	}
+
 	public static class DBOut<T> {
 		protected T value;
 		protected Class<T> type;
@@ -524,22 +530,112 @@ public class DBService {
 	
 	public static class DBCursor implements AutoCloseable {
 		private ResultSet resultSet;
-		
+		private String[] columns = new String[0];
+
+		private String[] buildColumnMap() throws SQLException {
+			if (resultSet == null) {
+				return new String[0];
+			}
+			ResultSetMetaData mataData = resultSet.getMetaData();
+			int columnCount = resultSet.getMetaData().getColumnCount();
+			String[] columns = new String[columnCount];
+			for (int i = 1; i <= columnCount; i++) {
+				columns[i - 1] = mataData.getColumnLabel(i);
+			}
+			return columns;
+		}
+
 		public DBCursor() {
 			resultSet = null;
 		}
-		public DBCursor(ResultSet resultSet) {
+		public DBCursor(ResultSet resultSet) throws SQLException {
 			this.resultSet = resultSet;
+			columns = buildColumnMap();
 		}
+		public String[] getColumns() {
+			return columns;
+		}
+		public boolean next() throws SQLException {
+			if (resultSet == null)
+				return false;
+			return resultSet.next();
+		}
+		public boolean previous() throws SQLException {
+			if (resultSet == null)
+				return false;
+			return resultSet.previous();
+		}
+		public void beforeFirst() throws SQLException {
+			resultSet.beforeFirst();
+		}
+		public void afterLast() throws SQLException {
+			resultSet.afterLast();
+		}
+		public boolean absolute(int row) throws SQLException {
+			return resultSet.absolute(row);
+		}
+		public <T> T getValue(int column) throws SQLException {
+			return (T)fromSqlObject(resultSet.getObject(column), null);
+		}
+		public <T> T getValue(int column, Map<String, Class<?>> udtMapping) throws SQLException {
+			return (T)fromSqlObject(resultSet.getObject(column), udtMapping);
+		}
+		public <T> T getValue(String columnName) throws SQLException {
+			return (T)getValue(columnName, null);
+		}
+		public <T> T getValue(String columnName, Map<String, Class<?>> udtMapping) throws SQLException {
+			Integer idx = null;
+			for (int i = 0; i < columns.length; i++) {
+				if (columns[i].equalsIgnoreCase(columnName))
+					idx = i + 1;
+			}
+			if (idx == null)
+				return null;
+			return (T)fromSqlObject(resultSet.getObject(idx), udtMapping);
+		}
+
 		public ResultSet getResultSet() {
 			return resultSet;
 		}
-		public void setResultSet(ResultSet resultSet) {
+		public void setResultSet(ResultSet resultSet) throws SQLException {
 			this.resultSet = resultSet;
+			columns = buildColumnMap();
 		}
 		public void perform(DBResultHanlder handler) throws Exception {
 			if (resultSet != null)
 				handler.handle(resultSet);
+		}
+		public <T> List<T> getList(Class<T> type) throws IllegalAccessException, SQLException, InstantiationException {
+			return getList(type, null);
+		}
+
+		public <T> List<T> getList(Class<T> type, Map<String, Class<?>> udtMapping) throws IllegalAccessException, InstantiationException, SQLException {
+			List<T> list = new LinkedList<>();
+			if (resultSet == null)
+				return list;
+			while (resultSet.next()) {
+				T obj = type.newInstance();
+				for (Field field : type.getDeclaredFields()) {
+					DBField anno = field.getAnnotation(DBField.class);
+					if (anno == null)
+						continue;
+					String colName = anno.value();
+					if (colName.isEmpty())
+						colName = field.getName();
+					Integer col = null;
+					for (int i = 0; i < columns.length; i++) {
+						if (columns[i].equalsIgnoreCase(colName)) {
+							col = i + 1;
+							break;
+						}
+					}
+					if (col != null) {
+						field.set(obj, fromSqlObject(resultSet.getObject(col), udtMapping));
+					}
+				}
+				list.add(obj);
+			}
+			return list;
 		}
 		public DBTable getTable() throws SQLException {
 			return getTable(null);
@@ -547,18 +643,12 @@ public class DBService {
 		public DBTable getTable(Map<String, Class<?>> udtMapping) throws SQLException {
 			if (resultSet == null)
 				return null;
-			ResultSetMetaData mataData = resultSet.getMetaData();
-			int columns = resultSet.getMetaData().getColumnCount();
 			DBTable table = new DBTable();
-			String[] head = new String[columns];
-			for (int i = 1; i <= columns; i++) {
-				head[i - 1] = mataData.getColumnLabel(i);
-			}
-			table.head = head;
+			table.head = Arrays.copyOf(columns, columns.length);
 			LinkedList<Object[]> list = new LinkedList<>();
 			while (resultSet.next()) {
-				Object[] line = new Object[columns];
-				for (int i = 1; i <= columns; i++) {
+				Object[] line = new Object[table.head.length];
+				for (int i = 1; i <= table.head.length; i++) {
 					line[i - 1] = fromSqlObject(resultSet.getObject(i), udtMapping);
 				}
 				list.add(line);
