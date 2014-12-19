@@ -7,6 +7,12 @@ import com.github.thorqin.toolkit.validation.annotation.ValidateNumber;
 import com.github.thorqin.toolkit.validation.annotation.ValidateString;
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
+import org.joda.time.DateTime;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -14,16 +20,11 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.security.InvalidParameterException;
-import java.sql.Array;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Struct;
+import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.logging.Level;
 
 /**********************************************************
@@ -527,30 +528,45 @@ public class DBService {
 	public static interface DBResultHanlder {
 		void handle(ResultSet result) throws Exception;
 	}
-	
+
+	public static interface RowTypeAdapter<T> {
+		public void make(T obj) throws SQLException;
+	}
+
 	public static class DBCursor implements AutoCloseable {
+		private Statement statement;
 		private ResultSet resultSet;
 		private String[] columns = new String[0];
+		private Map<String, Integer> columnMap = new HashMap<>();
 
-		private String[] buildColumnMap() throws SQLException {
+		private void buildColumnMap() throws SQLException {
+			columnMap.clear();
 			if (resultSet == null) {
-				return new String[0];
+				columns = new String[0];
 			}
 			ResultSetMetaData mataData = resultSet.getMetaData();
 			int columnCount = resultSet.getMetaData().getColumnCount();
-			String[] columns = new String[columnCount];
+			columns = new String[columnCount];
 			for (int i = 1; i <= columnCount; i++) {
-				columns[i - 1] = mataData.getColumnLabel(i);
+				String colName = mataData.getColumnLabel(i);
+				columns[i - 1] = colName;
+				if (!columnMap.containsKey(colName.toLowerCase()))
+					columnMap.put(colName.toLowerCase(), i);
 			}
-			return columns;
 		}
 
 		public DBCursor() {
 			resultSet = null;
+			statement = null;
+		}
+		public DBCursor(ResultSet resultSet, Statement statement) throws SQLException {
+			this.resultSet = resultSet;
+			this.statement = statement;
+			buildColumnMap();
 		}
 		public DBCursor(ResultSet resultSet) throws SQLException {
 			this.resultSet = resultSet;
-			columns = buildColumnMap();
+			buildColumnMap();
 		}
 		public String[] getColumns() {
 			return columns;
@@ -584,11 +600,7 @@ public class DBService {
 			return (T)getValue(columnName, null);
 		}
 		public <T> T getValue(String columnName, Map<String, Class<?>> udtMapping) throws SQLException {
-			Integer idx = null;
-			for (int i = 0; i < columns.length; i++) {
-				if (columns[i].equalsIgnoreCase(columnName))
-					idx = i + 1;
-			}
+			Integer idx = columnMap.get(columnName.toLowerCase());
 			if (idx == null)
 				return null;
 			return (T)fromSqlObject(resultSet.getObject(idx), udtMapping);
@@ -599,17 +611,22 @@ public class DBService {
 		}
 		public void setResultSet(ResultSet resultSet) throws SQLException {
 			this.resultSet = resultSet;
-			columns = buildColumnMap();
+			statement = null;
+			buildColumnMap();
 		}
 		public void perform(DBResultHanlder handler) throws Exception {
 			if (resultSet != null)
 				handler.handle(resultSet);
 		}
 		public <T> List<T> getList(Class<T> type) throws IllegalAccessException, SQLException, InstantiationException {
-			return getList(type, null);
+			return getList(type, null, null);
 		}
 
-		public <T> List<T> getList(Class<T> type, Map<String, Class<?>> udtMapping) throws IllegalAccessException, InstantiationException, SQLException {
+		public <T> List<T> getList(Class<T> type, RowTypeAdapter<T> adapter) throws IllegalAccessException, SQLException, InstantiationException {
+			return getList(type, adapter, null);
+		}
+
+		public <T> List<T> getList(Class<T> type, RowTypeAdapter<T> adapter, Map<String, Class<?>> udtMapping) throws IllegalAccessException, InstantiationException, SQLException {
 			List<T> list = new LinkedList<>();
 			if (resultSet == null)
 				return list;
@@ -630,8 +647,41 @@ public class DBService {
 						}
 					}
 					if (col != null) {
-						field.set(obj, fromSqlObject(resultSet.getObject(col), udtMapping));
+						Class<?> fieldType = field.getType();
+						if (fieldType.equals(String.class)) {
+							field.set(obj, resultSet.getString(col));
+						} else if (fieldType.equals(int.class) || fieldType.equals(Integer.class)) {
+							field.set(obj, resultSet.getInt(col));
+						} else if (fieldType.equals(long.class) || fieldType.equals(Long.class)) {
+							field.set(obj, resultSet.getLong(col));
+						} else if (fieldType.equals(boolean.class) || fieldType.equals(Boolean.class)) {
+							field.set(obj, resultSet.getBoolean(col));
+						} else if (fieldType.equals(Date.class)) {
+							Date date = new Date();
+							date.setTime(resultSet.getTimestamp(col).getTime());
+							field.set(obj, date);
+						} else if (fieldType.equals(DateTime.class)) {
+							long time = resultSet.getTimestamp(col).getTime();
+							DateTime dateTime = new DateTime(time);
+							field.set(obj, dateTime);
+						} else if (fieldType.equals(float.class) || fieldType.equals(Float.class)) {
+							field.set(obj, resultSet.getFloat(col));
+						} else if (fieldType.equals(double.class) || fieldType.equals(Double.class)) {
+							field.set(obj, resultSet.getDouble(col));
+						} else if (fieldType.equals(short.class) || fieldType.equals(Short.class)) {
+							field.set(obj, resultSet.getShort(col));
+						} else if (fieldType.equals(byte.class) || fieldType.equals(Byte.class)) {
+							field.set(obj, resultSet.getByte(col));
+						} else if (fieldType.equals(BigDecimal.class)) {
+							field.set(obj, resultSet.getBigDecimal(col));
+						} else if (fieldType.equals(byte[].class)) {
+							field.set(obj, resultSet.getBytes(col));
+						} else
+							field.set(obj, fromSqlObject(resultSet.getObject(col), udtMapping));
 					}
+				}
+				if (adapter != null) {
+					adapter.make(obj);
 				}
 				list.add(obj);
 			}
@@ -663,6 +713,12 @@ public class DBService {
 			if (resultSet != null) {
 				try {
 					resultSet.close();
+				} catch (SQLException ex) {
+				}
+			}
+			if (statement != null) {
+				try {
+					statement.close();
 				} catch (SQLException ex) {
 				}
 			}
@@ -709,7 +765,6 @@ public class DBService {
 			BoneCPConfig boneCPConfig = new BoneCPConfig();
 			//boneCP = new BoneCPDataSource();
 			//boneCP.setDriverClass(setting.driver);
-			
 			boneCPConfig.setDefaultAutoCommit(true);
 			boneCPConfig.setJdbcUrl(setting.uri);
 			boneCPConfig.setJdbcUrl(setting.uri);
@@ -894,10 +949,7 @@ public class DBService {
 			}
 		}
 
-		public int execute(String queryString) throws SQLException {
-			return execute(queryString, null);
-		}
-		public int execute(String queryString, Object[] args) throws SQLException {
+		public int execute(String queryString, Object... args) throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;
 			try (PreparedStatement stmt = conn.prepareStatement(queryString)){
@@ -919,26 +971,35 @@ public class DBService {
 				}
 			}
 		}
-		public DBCursor query(String queryString) throws SQLException {
-			return query(queryString, (Map<String, Class<?>>)null, null);
-		}
-		
+
 		public DBCursor query(String queryString,
-				Object[] args) throws SQLException {
+				Object... args) throws SQLException {
 			return query(queryString, (Map<String, Class<?>>)null, args);
 		}
 		
 		public DBCursor query(String queryString,
 				Map<String, Class<?>> udtMapping,
-				Object[] args) throws SQLException {
+				Object... args) throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;
-			try (PreparedStatement stmt = conn.prepareStatement(queryString)) {
+			PreparedStatement stmt = conn.prepareStatement(queryString);
+			ResultSet rs = null;
+			try {
 				bindParameter(stmt, args, 1);
-				ResultSet rs = stmt.executeQuery();
-				return new DBCursor(rs);
+				rs = stmt.executeQuery();
+				return new DBCursor(rs, stmt);
 			} catch (Exception ex) {
 				success = false;
+				if (rs != null) {
+					try {
+						rs.close();
+					} catch (SQLException e) {}
+				}
+				if (stmt != null) {
+					try {
+						stmt.close();
+					} catch (SQLException e) {}
+				}
 				throw ex;
 			} finally {
 				if (!loggerSet.isEmpty()) {
@@ -953,12 +1014,8 @@ public class DBService {
 				}
 			}
 		}
-		public void query(String queryString, DBResultHanlder handler)
-				throws Exception {
-			query(queryString, handler, null);
-		}
 
-		public void query(String queryString, DBResultHanlder handler, Object[] args) throws Exception {
+		public void query(String queryString, DBResultHanlder handler, Object... args) throws Exception {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;			
 			try (PreparedStatement stmt = conn.prepareStatement(queryString)) {
@@ -983,16 +1040,14 @@ public class DBService {
 				}
 			}
 		}
-		public <T> T invoke(String procName, Class<T> returnType) throws SQLException {
-			return invoke(procName, returnType, null, null);
-		}
-		public <T> T invoke(String procName, Class<T> returnType, Object[] args)
+
+		public <T> T invoke(String procName, Class<T> returnType, Object... args)
 				throws SQLException {
 			return invoke(procName, returnType, null, args);
 		}
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public <T> T invoke(String procName, Class<T> returnType, Map<String, Class<?>> udtMapping,
-				Object[] args) throws SQLException {
+				Object... args) throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;		
 			StringBuilder sqlString = new StringBuilder();
@@ -1044,14 +1099,11 @@ public class DBService {
 				}
 			}
 		}
-		public void perform(String procName) throws SQLException {
-			perform(procName, null, null);
-		}
-		public void perform(String procName, Object[] args) throws SQLException {
+		public void perform(String procName, Object... args) throws SQLException {
 			perform(procName, null, args);
 		}
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		public void perform(String procName, Map<String, Class<?>> udtMapping, Object[] args) 
+		public void perform(String procName, Map<String, Class<?>> udtMapping, Object... args)
 				throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;			

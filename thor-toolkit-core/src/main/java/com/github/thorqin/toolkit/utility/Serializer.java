@@ -309,6 +309,10 @@ public class Serializer {
 		Type typeOfT = new TypeToken<T>(){}.getType();
 		gson.toJson(obj, typeOfT, writer);
 	}
+
+	public static <T> JsonElement toJsonElement(T obj) throws IOException {
+		return gson.toJsonTree(obj);
+	}
 	
 	public static <T> T fromJson(byte[] bytes) throws IOException, ClassCastException {
 		try (ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
