@@ -26,15 +26,13 @@ public class ConfigManager {
 
     private static WatchService monitorService = null;
     private static final Map<WatchKey, ConfigManager> monitoredMap = new HashMap<>();
-    private static final Gson gson = new GsonBuilder()
-            .registerTypeAdapter(DateTime.class, new Serializer.DateTimeAdapter())
-            .create();
 
     private File _file = null;
     private boolean monitorFileChange = false;
     private Set<ChangeListener> listenerSet = new HashSet<>();
     private WatchKey watchKey = null;
     private JsonElement rootObj = null;
+    private String rawContent = null;
 
     private static synchronized void setWatchConfig(WatchKey key, ConfigManager config) {
         monitoredMap.put(key, config);
@@ -165,13 +163,8 @@ public class ConfigManager {
         }
     }
 
-    private void load(InputStreamReader inputReader) throws IOException {
-        rootObj = null;
-        rootObj = gson.fromJson(inputReader, JsonElement.class);
-        if (rootObj == null)
-            System.out.println("Load stream failed.");
-    }
     public void clear() {
+        rawContent = null;
         rootObj = null;
     }
 
@@ -182,6 +175,7 @@ public class ConfigManager {
 
     private void reloadFile() {
         try {
+            // If did not sleep a while then it maybe will load failed.
             Thread.sleep(100);
             loadFile(_file);
         } catch (Exception ex) {
@@ -220,44 +214,30 @@ public class ConfigManager {
     }
 
     public void loadResource(String resource) throws IOException {
-        try (InputStream inputStream = ConfigManager.class.getClassLoader().getResourceAsStream(resource)) {
-            if (inputStream == null)
-                throw new IOException("Resource not found: " + resource);
-            InputStreamReader reader = new InputStreamReader(inputStream, "utf-8");
-            load(reader);
-        }
+        rawContent = null;
+        rootObj = null;
+        rawContent = Serializer.loadTextResource(resource);
     }
 
     public void loadFile(File file) throws IOException {
         setMonitorFileChange(false);
-        try (FileInputStream inputStream = new FileInputStream(file)) {
-            if (inputStream == null)
-                throw new IOException("Fint not found: " + file.toString());
-            FileLock lock = inputStream.getChannel().lock(0, Long.MAX_VALUE, true);
-            try {
-                InputStreamReader reader = new InputStreamReader(inputStream, "utf-8");
-                load(reader);
-            } finally {
-                lock.release();
-            }
+        rawContent = null;
+        rootObj = null;
+        try {
+            rawContent = Serializer.loadTextFile(file);
         } finally {
             _file = file;
         }
     }
 
     public void loadURL(URL url) throws IOException {
-        URLConnection conn = url.openConnection();
-        conn.setUseCaches(false);
-        String contentType = conn.getContentType();
-        if (contentType == null)
-            return;
-        if (contentType.toLowerCase().startsWith("application/json") ||
-                contentType.toLowerCase().startsWith("text/plain")) {
-            try (InputStream inputStream = conn.getInputStream();
-                 InputStreamReader reader = new InputStreamReader(inputStream, "utf-8")) {
-                load(reader);
-            }
-        }
+        rawContent = null;
+        rootObj = null;
+        rawContent = Serializer.loadTextURL(url);
+    }
+
+    public String getRawContent() {
+        return rawContent;
     }
 
     /**
@@ -266,6 +246,10 @@ public class ConfigManager {
      * @return JsonElement depends on which type of the JSON path pointed to.
      */
     public JsonElement get(String jsonPath) {
+        if (rawContent == null)
+            return null;
+        if (rootObj == null)
+            rootObj = Serializer.fromJson(rawContent, JsonElement.class);
         String[] paths = jsonPath.split("(?<!\\\\)/");
         JsonElement obj = rootObj;
         for (String p : paths) {
@@ -291,7 +275,7 @@ public class ConfigManager {
     public <T> T get(String jsonPath, Class<T> type) {
         JsonElement obj = get(jsonPath);
         if (obj != null)
-            return gson.fromJson(obj, type);
+            return Serializer.fromJson(obj, type);
         else
             return null;
     }
@@ -447,7 +431,7 @@ public class ConfigManager {
                 JsonArray array = (JsonArray)obj;
                 List<T> result = new ArrayList<>(array.size());
                 for (int i = 0; i <array.size(); i++) {
-                    result.add(gson.fromJson(array.get(i), type));
+                    result.add(Serializer.fromJson(array.get(i), type));
                 }
                 return result;
             } else
@@ -462,7 +446,7 @@ public class ConfigManager {
                 JsonObject jsonObj = (JsonObject)obj;
                 Map<String, T> result = new HashMap<>();
                 for (Map.Entry<String, JsonElement> entry: jsonObj.entrySet()) {
-                    result.put(entry.getKey(), gson.fromJson(entry.getValue(), type));
+                    result.put(entry.getKey(), Serializer.fromJson(entry.getValue(), type));
                 }
                 return result;
             } else

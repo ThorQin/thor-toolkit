@@ -10,21 +10,13 @@ import com.google.gson.stream.JsonWriter;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLDecoder;
+import java.nio.channels.FileLock;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -295,10 +287,10 @@ public class Serializer {
 				gson.toJson(obj, writer);
 		}
 	}
-	public static <T> String toJsonString(T obj) throws IOException {
+	public static <T> String toJsonString(T obj) {
 		return toJsonString(obj, false);
 	}
-	public static <T> String toJsonString(T obj, boolean prettyPrint) throws IOException {
+	public static <T> String toJsonString(T obj, boolean prettyPrint) {
 		if (prettyPrint)
 			return gsonPrettyPrinting.toJson(obj);
 		else
@@ -310,7 +302,7 @@ public class Serializer {
 		gson.toJson(obj, typeOfT, writer);
 	}
 
-	public static <T> JsonElement toJsonElement(T obj) throws IOException {
+	public static <T> JsonElement toJsonElement(T obj) {
 		return gson.toJsonTree(obj);
 	}
 	
@@ -336,17 +328,17 @@ public class Serializer {
 			return obj;
 		}
 	}
-	public static <T> T fromJson(String json) throws IOException, ClassCastException {
+	public static <T> T fromJson(String json) throws ClassCastException {
 		Type typeOfT = new TypeToken<T>(){}.getType();
 		T obj = gson.fromJson(json, typeOfT);
 		return obj;
 	}
-	public static <T> T fromJson(String json, Class<T> type) throws IOException, ClassCastException {
+	public static <T> T fromJson(String json, Class<T> type) throws ClassCastException {
 		T obj = gson.fromJson(json, type);
 		return obj;
 	}
 	
-	public static <T> T fromJson(String json, Type type) throws IOException, ClassCastException {
+	public static <T> T fromJson(String json, Type type) throws ClassCastException {
 		T obj = gson.fromJson(json, type);
 		return obj;
 	}
@@ -358,12 +350,12 @@ public class Serializer {
 		T obj = gson.fromJson(reader, type);
 		return obj;
 	}
-	public static <T> T fromJson(JsonElement jsonElement, Class<T> type) throws IOException, ClassCastException {
+	public static <T> T fromJson(JsonElement jsonElement, Class<T> type) throws ClassCastException {
 		T obj = gson.fromJson(jsonElement, type);
 		return obj;
 	}
 
-	public static <T> T fromJson(JsonElement jsonElement, Type type) throws IOException, ClassCastException {
+	public static <T> T fromJson(JsonElement jsonElement, Type type) throws ClassCastException {
 		T obj = gson.fromJson(jsonElement, type);
 		return obj;
 	}
@@ -445,5 +437,53 @@ public class Serializer {
 			}
 		}
 		return obj;
+	}
+
+	public static String loadTextResource(String resourceName) throws IOException {
+		try (InputStream in = Serializer.class.getClassLoader().getResourceAsStream(resourceName)) {
+			return loadTextStream(in);
+		}
+	}
+
+	public static String loadTextFile(File file) throws IOException {
+		try (FileInputStream in = new FileInputStream(file)) {
+			try (FileLock lock = in.getChannel().lock()) {
+				return loadTextStream(in);
+			}
+		}
+	}
+
+	public static String loadTextURL(URL url) throws IOException {
+		URLConnection conn = url.openConnection();
+		conn.setUseCaches(false);
+		try (InputStream in = conn.getInputStream()) {
+			return loadTextStream(in);
+		}
+	}
+
+	private static String loadTextStream(InputStream in) throws IOException {
+		PushbackInputStream pIn = new PushbackInputStream(in, 3);
+		byte[] bom = new byte[3];
+		pIn.read(bom);
+		String encoding;
+		if (bom[0] == (byte)0xEF && bom[1] == (byte)0xBB && bom[2] == (byte)0xBF) {
+			encoding = "utf-8";
+		} else if (bom[0] == (byte)0xFE && bom[1] == (byte)0xFF) {
+			encoding = "utf-16";
+			pIn.unread(bom[2]);
+		} else if (bom[0] == (byte)0xFF && bom[1] == (byte)0xFE) {
+			encoding = "utf-16le";
+			pIn.unread(bom[2]);
+		} else {
+			encoding = "utf-8";
+			pIn.unread(bom);
+		}
+		InputStreamReader reader = new InputStreamReader(pIn, encoding);
+		StringBuilder sb = new StringBuilder();
+		char[] buffer = new char[1024];
+		int size;
+		while ((size = reader.read(buffer)) > 0)
+			sb.append(buffer, 0, size);
+		return sb.toString();
 	}
 }
