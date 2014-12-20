@@ -262,8 +262,8 @@ public class ConfigManager {
 
     /**
      * Get the value which is indicated by the json path.
-     * @param jsonPath
-     * @return
+     * @param jsonPath JSON path to indicate where we should extract info from the configuration.
+     * @return JsonElement depends on which type of the JSON path pointed to.
      */
     public JsonElement get(String jsonPath) {
         String[] paths = jsonPath.split("(?<!\\\\)/");

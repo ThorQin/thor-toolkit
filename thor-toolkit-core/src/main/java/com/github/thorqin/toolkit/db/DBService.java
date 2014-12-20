@@ -590,15 +590,19 @@ public class DBService {
 		public boolean absolute(int row) throws SQLException {
 			return resultSet.absolute(row);
 		}
+		@SuppressWarnings("unchecked")
 		public <T> T getValue(int column) throws SQLException {
 			return (T)fromSqlObject(resultSet.getObject(column), null);
 		}
+		@SuppressWarnings("unchecked")
 		public <T> T getValue(int column, Map<String, Class<?>> udtMapping) throws SQLException {
 			return (T)fromSqlObject(resultSet.getObject(column), udtMapping);
 		}
+		@SuppressWarnings("unchecked")
 		public <T> T getValue(String columnName) throws SQLException {
 			return (T)getValue(columnName, null);
 		}
+		@SuppressWarnings("unchecked")
 		public <T> T getValue(String columnName, Map<String, Class<?>> udtMapping) throws SQLException {
 			Integer idx = columnMap.get(columnName.toLowerCase());
 			if (idx == null)
