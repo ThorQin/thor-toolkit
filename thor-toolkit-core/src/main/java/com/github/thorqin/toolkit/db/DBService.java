@@ -18,6 +18,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -54,7 +55,9 @@ public class DBService {
 	private static final Map<Class<?>, Integer> typeMapping;
 	// This type very depends on which database are you using.
 	private static final Map<Class<?>, String> arrayType;
-	
+
+	private static final Map<Class<?>, String> stmtGetMapping;
+
 	static {
 		typeMapping = new HashMap<>();
 		typeMapping.put(List.class, java.sql.Types.ARRAY);
@@ -63,6 +66,7 @@ public class DBService {
 		typeMapping.put(void.class, java.sql.Types.JAVA_OBJECT);
 		typeMapping.put(Date.class, java.sql.Types.TIMESTAMP);
 		typeMapping.put(Calendar.class, java.sql.Types.TIMESTAMP);
+		typeMapping.put(DateTime.class, java.sql.Types.TIMESTAMP);
 		typeMapping.put(Byte.class, java.sql.Types.TINYINT);
 		typeMapping.put(byte.class, java.sql.Types.TINYINT);
 		typeMapping.put(Short.class, java.sql.Types.SMALLINT);
@@ -102,6 +106,25 @@ public class DBService {
 		arrayType.put(BigDecimal[].class, "numeric");
 		arrayType.put(Date[].class, "timestamp with time zone");
 		arrayType.put(Calendar[].class, "timestamp with time zone");
+
+		stmtGetMapping = new HashMap<>();
+		stmtGetMapping.put(String.class, "getString");
+		stmtGetMapping.put(int.class, "getInt");
+		stmtGetMapping.put(Integer.class, "getInt");
+		stmtGetMapping.put(long.class, "getLong");
+		stmtGetMapping.put(Long.class, "getLong");
+		stmtGetMapping.put(short.class, "getShort");
+		stmtGetMapping.put(Short.class, "getShort");
+		stmtGetMapping.put(byte.class, "getByte");
+		stmtGetMapping.put(Byte.class, "getByte");
+		stmtGetMapping.put(double.class, "getDouble");
+		stmtGetMapping.put(Double.class, "getDouble");
+		stmtGetMapping.put(float.class, "getFloat");
+		stmtGetMapping.put(Float.class, "getFloat");
+		stmtGetMapping.put(boolean.class, "getBoolean");
+		stmtGetMapping.put(Boolean.class, "getBoolean");
+		stmtGetMapping.put(BigDecimal.class, "getBigDecimal");
+		stmtGetMapping.put(byte[].class, "getBytes");
 	}
 	
 	private static int toSqlType(Class<?> type) {
@@ -123,15 +146,148 @@ public class DBService {
 	private static java.sql.Timestamp toSqlDate(Calendar calendar) {
 		return new java.sql.Timestamp(calendar.getTimeInMillis());
 	}
-	
-	private static Date fromSqlDate(java.sql.Time time) {
-		return new Date(time.getTime());
+	private static java.sql.Timestamp toSqlDate(DateTime dateTime) {
+		return new java.sql.Timestamp(dateTime.getMillis());
 	}
-	private static Date fromSqlDate(java.sql.Date time) {
-		return new Date(time.getTime());
+
+	private static Object toSqlObject(Connection conn, Object obj) throws SQLException {
+		Struct udt;
+		if (obj == null) {
+			return null;
+		} else if (obj.getClass().equals(Date.class)) {
+			return toSqlDate((Date)obj);
+		} else if (obj.getClass().equals(Calendar.class)) {
+			return toSqlDate((Calendar)obj);
+		} else if (obj.getClass().equals(DateTime.class)) {
+			return toSqlDate((DateTime) obj);
+		} else if (obj.getClass().equals(DBCursor.class)) {
+			return ((DBCursor)obj).getResultSet();
+		} else if ((udt = toSqlStruct(conn, obj)) != null) {
+			return udt;
+		} else {
+			return obj;
+		}
 	}
-	private static Date fromSqlDate(java.sql.Timestamp time) {
-		return new Date(time.getTime());
+
+	private static Struct toSqlStruct(Connection conn, Object obj) throws SQLException {
+		if (obj == null)
+			return null;
+		Class<?> clazz = obj.getClass();
+		UDT udt = clazz.getAnnotation(UDT.class);
+		if (udt == null) {
+			return null;
+		}
+		ArrayList<Object> attributes = new ArrayList<>(clazz.getFields().length);
+		for (Field field : clazz.getDeclaredFields()) {
+			if (field.isAnnotationPresent(UDTField.class)) {
+				try {
+					attributes.add(toSqlObject(conn, field.get(obj)));
+				} catch (IllegalArgumentException
+						| IllegalAccessException e) {
+					throw new SQLException("Convert object to java.sql.Struct failed.", e);
+				}
+			}
+		}
+		return conn.createStruct(udt.udtName(), attributes.toArray());
+	}
+
+	/**
+	 * Currently only support postgresQL
+	 * @param conn
+	 * @param obj
+	 * @return
+	 * @throws SQLException
+	 */
+	private static Array toSqlArray(Connection conn, Object[] obj) throws SQLException {
+		if (obj.getClass().isArray()) {
+			String type = arrayType.get(obj.getClass());
+			if (type != null)
+				return conn.createArrayOf(type, obj);
+			else
+				return null;
+		} else
+			return null;
+	}
+
+	private static DateTime toDateTime(long time) {
+		return new DateTime(time);
+	}
+
+	private static Date toDate(long time) {
+		return new Date(time);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> T stmtGet(Object stmt,
+											Class<T> valueType,
+											int offset,
+											Map<String, Class<?>> udtMapping)
+			throws SQLException {
+		Class<?> cls = stmt.getClass();
+		try {
+			String methodName = stmtGetMapping.get(valueType);
+			if (methodName != null) {
+				return (T) cls.getDeclaredMethod(methodName, int.class)
+						.invoke(stmt, offset);
+			} else if (valueType.equals(DateTime.class)) {
+				Timestamp timestamp = (Timestamp)cls.getDeclaredMethod("getTimestamp", int.class)
+					.invoke(stmt, offset);
+				return (T)new DateTime(timestamp.getTime());
+			} else if (valueType.equals(Date.class)) {
+				Timestamp timestamp = (Timestamp)cls.getDeclaredMethod("getTimestamp", int.class)
+						.invoke(stmt, offset);
+				return (T)new Date(timestamp.getTime());
+			} else if (valueType.equals(DBTable.class)) {
+				DBCursor cursor = (DBCursor) fromSqlObject(cls.getDeclaredMethod("getObject", int.class)
+						.invoke(stmt, offset), udtMapping);
+				if (cursor == null)
+					return null;
+				return (T) cursor.getTable();
+			} else if (valueType.equals(DBCursor.class)) {
+				return (T) fromSqlObject(cls.getDeclaredMethod("getObject", int.class)
+						.invoke(stmt, offset), udtMapping);
+			} else {
+				return (T) fromSqlObject(cls.getDeclaredMethod("getObject", int.class)
+						.invoke(stmt, offset), valueType, udtMapping);
+			}
+		} catch (Exception ex) {
+			throw new SQLException(ex);
+		}
+	}
+	private static <T> void stmtSet(Object stmt,
+									Connection conn,
+									Class<T> paramType,
+									int offset,
+									Object value) throws SQLException {
+		Class<?> cls = stmt.getClass();
+		try {
+			Struct udt;
+			if (paramType.equals(DateTime.class)) {
+				cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class)
+						.invoke(stmt, offset, toSqlDate((DateTime) value));
+			} else if (paramType.equals(Date.class)) {
+				cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class)
+						.invoke(stmt, offset, toSqlDate((Date) value));
+			} else if (paramType.equals(Calendar.class)) {
+				cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class)
+						.invoke(stmt, offset, toSqlDate((Calendar) value));
+			} else if (paramType.equals(DBCursor.class)) {
+				cls.getDeclaredMethod("setObject", int.class, Object.class)
+						.invoke(stmt, offset, ((DBCursor) value).getResultSet());
+			} else if (paramType.isArray()) {
+				Array array = toSqlArray(conn, (Object[]) value);
+				cls.getDeclaredMethod("setArray", int.class, Array.class)
+						.invoke(stmt, offset, array);
+			} else if ((udt = toSqlStruct(conn, value)) != null) {
+				cls.getDeclaredMethod("setObject", int.class, Object.class, int.class)
+						.invoke(stmt, offset, udt, java.sql.Types.STRUCT);
+			} else {
+				cls.getDeclaredMethod("setObject", int.class, Object.class)
+						.invoke(stmt, offset, value);
+			}
+		} catch (Exception ex) {
+			throw new SQLException(ex);
+		}
 	}
 
 	private static Object fromSqlObject(Object obj, Class<?> destType, Map<String, Class<?>> udtMapping) throws SQLException {
@@ -139,11 +295,17 @@ public class DBService {
 			return null;
 		Class<?> type = obj.getClass();
 		if (destType.equals(Date.class) && type.equals(java.sql.Timestamp.class)) {
-			return fromSqlDate((java.sql.Timestamp)obj);
+			return toDate(((java.sql.Timestamp)obj).getTime());
 		} else if (destType.equals(Date.class) && type.equals(java.sql.Date.class)) {
-			return fromSqlDate((java.sql.Date)obj);
+			return toDate(((java.sql.Date)obj).getTime());
 		} else if (destType.equals(Date.class) && type.equals(java.sql.Time.class)) {
-			return fromSqlDate((java.sql.Time)obj);
+			return toDate(((java.sql.Time)obj).getTime());
+		} else if (destType.equals(DateTime.class) && type.equals(java.sql.Timestamp.class)) {
+			return toDateTime(((java.sql.Timestamp)obj).getTime());
+		} else if (destType.equals(DateTime.class) && type.equals(java.sql.Date.class)) {
+			return toDateTime(((java.sql.Date)obj).getTime());
+		} else if (destType.equals(DateTime.class) && type.equals(java.sql.Time.class)) {
+			return toDateTime(((java.sql.Time) obj).getTime());
 		} else if (destType.equals(List.class) && type.equals(Array.class)) {
 			Array array = (Array)obj;
 			List<Object> list = new LinkedList<>();
@@ -170,20 +332,20 @@ public class DBService {
 				throw new SQLException("Cannot map UDT object");
 			Struct struct = (Struct)obj;
 			if (!udt.udtName().equals(struct.getSQLTypeName())) {
-				throw new SQLException("Cannot convert UDT object from " 
+				throw new SQLException("Cannot convert UDT object from "
 						+ struct.getSQLTypeName() + " to " + udt.udtName());
 			}
 			Object[] attributes = struct.getAttributes();
-			Object instance = null;
+			Object instance;
 			try {
 				instance = destType.newInstance();
 			} catch (InstantiationException
 					| IllegalAccessException e) {
 				throw new SQLException("Parse java.sql.Struct failed.", e);
 			}
-			Field[] fields = destType.getFields();
+			Field[] fields = destType.getDeclaredFields();
 			for (int i = 0, j = 0; i < fields.length && j < attributes.length; i++) {
-				if (!fields[i].isAnnotationPresent(UDTSkip.class)) {
+				if (fields[i].isAnnotationPresent(UDTField.class)) {
 					try {
 						fields[i].set(instance, fromSqlObject(attributes[j], fields[i].getType(), udtMapping));
 					} catch (IllegalArgumentException | IllegalAccessException e) {
@@ -197,32 +359,21 @@ public class DBService {
 			return obj;
 		}
 	}
-	
-	private static Array toSqlArray(Connection conn, Object[] obj) throws SQLException {
-		if (obj.getClass().isArray()) {
-			String type = arrayType.get(obj.getClass());
-			if (type != null)
-				return conn.createArrayOf(type, obj);
-			else
-				return null;
-		} else
-			return null;
-	}
 
-	private static Object fromSqlObject(Object obj, Map<String, Class<?>> udtMapping) throws SQLException {
-		if (obj == null)
+	private static Object fromSqlObject(Object sqlObj, Map<String, Class<?>> udtMapping) throws SQLException {
+		if (sqlObj == null)
 			return null;
-		Class<?> type = obj.getClass();
+		Class<?> type = sqlObj.getClass();
 		if (type.equals(java.sql.Timestamp.class)) {
-			return fromSqlDate((java.sql.Timestamp)obj);
+			return toDateTime(((java.sql.Timestamp)sqlObj).getTime());
 		} else if (type.equals(java.sql.Date.class)) {
-			return fromSqlDate((java.sql.Date)obj);
+			return toDateTime(((java.sql.Date)sqlObj).getTime());
 		} else if (type.equals(java.sql.Time.class)) {
-			return fromSqlDate((java.sql.Time)obj);
-		} else if (obj instanceof ResultSet) {
-			return new DBCursor((ResultSet)obj);
-		} else if (obj instanceof Array) {
-			Array array = (Array)obj;
+			return toDateTime(((java.sql.Time)sqlObj).getTime());
+		} else if (sqlObj instanceof ResultSet) {
+			return new DBCursor((ResultSet)sqlObj);
+		} else if (sqlObj instanceof Array) {
+			Array array = (Array)sqlObj;
 			List<Object> list = new LinkedList<>();
 			try (ResultSet arrayResult = array.getResultSet()) {
 				while (arrayResult.next()) {
@@ -230,8 +381,8 @@ public class DBService {
 				}
 				return list;
 			} 
-		} else if (obj instanceof Struct) {
-			Struct struct = (Struct)obj;
+		} else if (sqlObj instanceof Struct) {
+			Struct struct = (Struct)sqlObj;
 			Class<?> clazz = udtMapping.get(struct.getSQLTypeName());
 			if (clazz != null) {
 				Object[] attributes = struct.getAttributes();
@@ -244,7 +395,7 @@ public class DBService {
 				}
 				Field[] fields = clazz.getFields();
 				for (int i = 0, j = 0; i < fields.length && j < attributes.length; i++) {
-					if (!fields[i].isAnnotationPresent(UDTSkip.class)) {
+					if (fields[i].isAnnotationPresent(UDTField.class)) {
 						try {
 							fields[i].set(instance, fromSqlObject(attributes[j], fields[i].getType(), udtMapping));
 						} catch (IllegalArgumentException | IllegalAccessException e) {
@@ -262,7 +413,7 @@ public class DBService {
 				return list;
 			}
 		} else {
-			return obj;
+			return sqlObj;
 		}
 	}
 			
@@ -309,7 +460,7 @@ public class DBService {
 				throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
 		}
 	}
-	
+
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.TYPE)
 	public static @interface UDT {
@@ -318,7 +469,7 @@ public class DBService {
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.FIELD)
-	public @interface UDTSkip {
+	public @interface UDTField {
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
@@ -392,6 +543,11 @@ public class DBService {
 	public static class DBOutDate extends DBOut<Date> {
 		public DBOutDate() {
 			super(Date.class);
+		}
+	}
+	public static class DBOutDateTime extends DBOut<DateTime> {
+		public DBOutDateTime() {
+			super(DateTime.class);
 		}
 	}
 	public static class DBOutBoolean extends DBOut<Boolean> {
@@ -482,6 +638,14 @@ public class DBService {
 		}
 		public DBRefDate() {
 			super(null, Date.class);
+		}
+	}
+	public static class DBRefDateTime extends DBRef<DateTime> {
+		public DBRefDateTime(DateTime value) {
+			super(value, DateTime.class);
+		}
+		public DBRefDateTime() {
+			super(null, DateTime.class);
 		}
 	}
 	public static class DBRefBoolean extends DBRef<Boolean> {
@@ -600,7 +764,7 @@ public class DBService {
 		}
 		@SuppressWarnings("unchecked")
 		public <T> T getValue(String columnName) throws SQLException {
-			return (T)getValue(columnName, null);
+			return (T)getValue(columnName, (Map<String, Class<?>>)null);
 		}
 		@SuppressWarnings("unchecked")
 		public <T> T getValue(String columnName, Map<String, Class<?>> udtMapping) throws SQLException {
@@ -608,6 +772,25 @@ public class DBService {
 			if (idx == null)
 				return null;
 			return (T)fromSqlObject(resultSet.getObject(idx), udtMapping);
+		}
+		@SuppressWarnings("unchecked")
+		public <T> T getValue(int column, Class<T> type) throws SQLException {
+			return stmtGet(resultSet, type, column, null);
+		}
+		@SuppressWarnings("unchecked")
+		public <T> T getValue(int column, Class<T> type, Map<String, Class<?>> udtMapping) throws SQLException {
+			return stmtGet(resultSet, type, column, udtMapping);
+		}
+		@SuppressWarnings("unchecked")
+		public <T> T getValue(String columnName, Class<T> type) throws SQLException {
+			return (T)getValue(columnName, type, null);
+		}
+		@SuppressWarnings("unchecked")
+		public <T> T getValue(String columnName, Class<T> type, Map<String, Class<?>> udtMapping) throws SQLException {
+			Integer idx = columnMap.get(columnName.toLowerCase());
+			if (idx == null)
+				return null;
+			return stmtGet(resultSet, type, idx, udtMapping);
 		}
 
 		public ResultSet getResultSet() {
@@ -652,36 +835,7 @@ public class DBService {
 					}
 					if (col != null) {
 						Class<?> fieldType = field.getType();
-						if (fieldType.equals(String.class)) {
-							field.set(obj, resultSet.getString(col));
-						} else if (fieldType.equals(int.class) || fieldType.equals(Integer.class)) {
-							field.set(obj, resultSet.getInt(col));
-						} else if (fieldType.equals(long.class) || fieldType.equals(Long.class)) {
-							field.set(obj, resultSet.getLong(col));
-						} else if (fieldType.equals(boolean.class) || fieldType.equals(Boolean.class)) {
-							field.set(obj, resultSet.getBoolean(col));
-						} else if (fieldType.equals(Date.class)) {
-							Date date = new Date();
-							date.setTime(resultSet.getTimestamp(col).getTime());
-							field.set(obj, date);
-						} else if (fieldType.equals(DateTime.class)) {
-							long time = resultSet.getTimestamp(col).getTime();
-							DateTime dateTime = new DateTime(time);
-							field.set(obj, dateTime);
-						} else if (fieldType.equals(float.class) || fieldType.equals(Float.class)) {
-							field.set(obj, resultSet.getFloat(col));
-						} else if (fieldType.equals(double.class) || fieldType.equals(Double.class)) {
-							field.set(obj, resultSet.getDouble(col));
-						} else if (fieldType.equals(short.class) || fieldType.equals(Short.class)) {
-							field.set(obj, resultSet.getShort(col));
-						} else if (fieldType.equals(byte.class) || fieldType.equals(Byte.class)) {
-							field.set(obj, resultSet.getByte(col));
-						} else if (fieldType.equals(BigDecimal.class)) {
-							field.set(obj, resultSet.getBigDecimal(col));
-						} else if (fieldType.equals(byte[].class)) {
-							field.set(obj, resultSet.getBytes(col));
-						} else
-							field.set(obj, fromSqlObject(resultSet.getObject(col), udtMapping));
+						field.set(obj, stmtGet(resultSet, fieldType, col, udtMapping));
 					}
 				}
 				if (adapter != null) {
@@ -823,45 +977,6 @@ public class DBService {
 			return (T)instance;
 		}
 
-		private Struct toUdt(Object obj) throws SQLException {
-			if (obj == null)
-				return null;
-			Class<?> clazz = obj.getClass();
-			UDT udt = clazz.getAnnotation(UDT.class);
-			if (udt == null) {
-				return null;
-			}
-			ArrayList<Object> attributes = new ArrayList<>(clazz.getFields().length);
-			for (Field field : clazz.getFields()) {
-				if (!field.isAnnotationPresent(UDTSkip.class)) {
-					try {
-						attributes.add(toSqlObj(field.get(obj)));
-					} catch (IllegalArgumentException
-							| IllegalAccessException e) {
-						throw new SQLException("Convert object to java.sql.Struct failed.", e);
-					}
-				}
-			}
-			return conn.createStruct(udt.udtName(), attributes.toArray());
-		}
-		
-		private Object toSqlObj(Object obj) throws SQLException {
-			Struct udt;
-			if (obj == null) {
-				return null;
-			} else if (obj.getClass().equals(Date.class)) {
-				return toSqlDate((Date)obj);
-			} else if (obj.getClass().equals(Calendar.class)) {
-				return toSqlDate((Calendar)obj);
-			} else if (obj.getClass().equals(DBCursor.class)) {
-				return ((DBCursor)obj).getResultSet(); 
-			} else if ((udt = toUdt(obj)) != null) {
-				return udt;
-			} else {
-				return obj;
-			}
-		}
-
 		@SuppressWarnings("rawtypes")
 		private void bindParameter(PreparedStatement stmt, Object[] args, int offset) throws SQLException {
 			if (args == null)
@@ -872,37 +987,7 @@ public class DBService {
 					stmt.setNull(offset++, java.sql.Types.NULL);
 				} else {
 					Class<?> paramType = obj.getClass();
-					if (DBRef.class.isAssignableFrom(paramType)) {
-						obj = ((DBRef)obj).getValue();
-						if (obj == null)
-							stmt.setNull(offset++, java.sql.Types.NULL);
-						else if (obj.getClass().equals(Date.class)) {
-							stmt.setTimestamp(offset++, toSqlDate((Date)obj));
-						} else if (obj.getClass().equals(Calendar.class)) {
-							stmt.setTimestamp(offset++, toSqlDate((Calendar)obj));
-						} else if (obj.getClass().equals(DBCursor.class)) {
-							stmt.setObject(offset++, ((DBCursor)obj).getResultSet());
-						} else if ((udt = toUdt(obj)) != null) {
-							stmt.setObject(offset++, udt, java.sql.Types.STRUCT);
-						} else {
-							stmt.setObject(offset++, obj);
-						}
-					} else if (DBOut.class.isAssignableFrom(paramType)) {
-						stmt.setNull(offset++, java.sql.Types.NULL);
-					} else if (paramType.equals(Date.class)) {
-						stmt.setTimestamp(offset++, toSqlDate((Date)obj));
-					} else if (paramType.equals(Calendar.class)) {
-						stmt.setTimestamp(offset++, toSqlDate((Calendar)obj));
-					} else if ((udt = toUdt(obj)) != null) {
-						stmt.setObject(offset++, udt, java.sql.Types.STRUCT);
-					} else if (paramType.equals(DBCursor.class)) {
-						stmt.setObject(offset++, ((DBCursor)obj).getResultSet());
-					} else if (paramType.isArray()) {
-						Array array = toSqlArray(stmt.getConnection(), (Object[])obj);
-						stmt.setArray(offset++, array);
-					} else {
-						stmt.setObject(offset++, obj);
-					}
+					stmtSet(stmt, conn, paramType, offset++, obj);
 				}
 			}
 		}
@@ -922,32 +1007,12 @@ public class DBService {
 						obj = ((DBOut)obj).getValue();
 						if (obj == null)
 							stmt.setNull(offset++, java.sql.Types.NULL);
-						else if (obj.getClass().equals(Date.class)) {
-							stmt.setTimestamp(offset++, toSqlDate((Date)obj));
-						} else if (obj.getClass().equals(Calendar.class)) {
-							stmt.setTimestamp(offset++, toSqlDate((Calendar)obj));
-						} else if (obj.getClass().equals(DBCursor.class)) {
-							stmt.setObject(offset++, ((DBCursor)obj).getResultSet());
-						} else if ((udt = toUdt(obj)) != null) {
-							stmt.setObject(offset++, udt, java.sql.Types.STRUCT);
-						} else {
-							stmt.setObject(offset++, obj);
-						}
+						Class<?> refType = obj.getClass();
+						stmtSet(stmt, conn, refType, offset++, obj);
 					} else if (DBOut.class.isAssignableFrom(paramType)) {
 						stmt.registerOutParameter(offset++, toSqlType(((DBOut)obj).getType()));
-					} else if (paramType.equals(Date.class)) {
-						stmt.setTimestamp(offset++, toSqlDate((Date)obj));
-					} else if (paramType.equals(Calendar.class)) {
-						stmt.setTimestamp(offset++, toSqlDate((Calendar)obj));
-					} else if (paramType.equals(DBCursor.class)) {
-						stmt.setObject(offset++, ((DBCursor)obj).getResultSet());
-					} else if ((udt = toUdt(obj)) != null) {
-						stmt.setObject(offset++, udt, java.sql.Types.STRUCT);
-					}  else if (paramType.isArray()) {
-						Array array = toSqlArray(stmt.getConnection(), (Object[])obj);
-						stmt.setArray(offset++, array);
 					} else {
-						stmt.setObject(offset++, obj);
+						stmtSet(stmt, conn, paramType, offset++, obj);
 					}
 				}
 			}
@@ -1073,20 +1138,11 @@ public class DBService {
 					for (int i = 0; i < args.length; i++) {
 						if (args[i] instanceof DBOut) {
 							DBOut param = (DBOut)args[i];
-							if (param.getType().equals(DBTable.class)) {
-								DBCursor cursor = (DBCursor)fromSqlObject(stmt.getObject(i + 2), udtMapping);
-								param.setValue(cursor.getTable());
-							} else {
-								param.setValue(fromSqlObject(stmt.getObject(i + 2), udtMapping));
-							}
+							param.setValue(stmtGet(stmt, param.getType(), i + 2, udtMapping));
 						}
 					}
 				}
-				if (returnType.equals(DBTable.class)) {
-					DBCursor cursor = (DBCursor)fromSqlObject(stmt.getObject(1), udtMapping);
-					return (T)cursor.getTable();
-				} else
-					return (T)fromSqlObject(stmt.getObject(1), udtMapping);
+				return stmtGet(stmt, returnType, 1, udtMapping);
 			} catch (Exception ex) {
 				success = false;
 				throw ex;
@@ -1129,12 +1185,7 @@ public class DBService {
 					for (int i = 0; i < args.length; i++) {
 						if (args[i] instanceof DBOut) {
 							DBOut param = (DBOut)args[i];
-							if (param.getType().equals(DBTable.class)) {
-								DBCursor cursor = (DBCursor)fromSqlObject(stmt.getObject(i + 1), udtMapping);
-								param.setValue(cursor.getTable());
-							} else {
-								param.setValue(fromSqlObject(stmt.getObject(i + 1), udtMapping));
-							}
+							param.setValue(stmtGet(stmt, param.getType(), i + 1, udtMapping));
 						}
 					}
 				}
