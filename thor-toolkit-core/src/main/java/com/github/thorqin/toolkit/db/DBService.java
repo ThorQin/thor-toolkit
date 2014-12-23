@@ -19,6 +19,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -227,28 +228,34 @@ public class DBService {
 		try {
 			String methodName = stmtGetMapping.get(valueType);
 			if (methodName != null) {
-				return (T) cls.getDeclaredMethod(methodName, int.class)
-						.invoke(stmt, offset);
+				Method method = cls.getDeclaredMethod(methodName, int.class);
+				method.setAccessible(true);
+				return (T) method.invoke(stmt, offset);
 			} else if (valueType.equals(DateTime.class)) {
-				Timestamp timestamp = (Timestamp)cls.getDeclaredMethod("getTimestamp", int.class)
-					.invoke(stmt, offset);
+				Method method =cls.getDeclaredMethod("getTimestamp", int.class);
+				method.setAccessible(true);
+				Timestamp timestamp = (Timestamp)method.invoke(stmt, offset);
 				return (T)new DateTime(timestamp.getTime());
 			} else if (valueType.equals(Date.class)) {
-				Timestamp timestamp = (Timestamp)cls.getDeclaredMethod("getTimestamp", int.class)
-						.invoke(stmt, offset);
+				Method method =cls.getDeclaredMethod("getTimestamp", int.class);
+				method.setAccessible(true);
+				Timestamp timestamp = (Timestamp)method.invoke(stmt, offset);
 				return (T)new Date(timestamp.getTime());
 			} else if (valueType.equals(DBTable.class)) {
-				DBCursor cursor = (DBCursor) fromSqlObject(cls.getDeclaredMethod("getObject", int.class)
-						.invoke(stmt, offset), udtMapping);
+				Method method =cls.getDeclaredMethod("getObject", int.class);
+				method.setAccessible(true);
+				DBCursor cursor = (DBCursor)fromSqlObject(method.invoke(stmt, offset), udtMapping);
 				if (cursor == null)
 					return null;
 				return (T) cursor.getTable();
 			} else if (valueType.equals(DBCursor.class)) {
-				return (T) fromSqlObject(cls.getDeclaredMethod("getObject", int.class)
-						.invoke(stmt, offset), udtMapping);
+				Method method =cls.getDeclaredMethod("getObject", int.class);
+				method.setAccessible(true);
+				return (T) fromSqlObject(method.invoke(stmt, offset), udtMapping);
 			} else {
-				return (T) fromSqlObject(cls.getDeclaredMethod("getObject", int.class)
-						.invoke(stmt, offset), valueType, udtMapping);
+				Method method =cls.getDeclaredMethod("getObject", int.class);
+				method.setAccessible(true);
+				return (T) fromSqlObject(method.invoke(stmt, offset), valueType, udtMapping);
 			}
 		} catch (Exception ex) {
 			throw new SQLException(ex);
@@ -263,27 +270,33 @@ public class DBService {
 		try {
 			Struct udt;
 			if (paramType.equals(DateTime.class)) {
-				cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class)
-						.invoke(stmt, offset, toSqlDate((DateTime) value));
+				Method method = cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, toSqlDate((DateTime) value));
 			} else if (paramType.equals(Date.class)) {
-				cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class)
-						.invoke(stmt, offset, toSqlDate((Date) value));
+				Method method = cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, toSqlDate((Date) value));
 			} else if (paramType.equals(Calendar.class)) {
-				cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class)
-						.invoke(stmt, offset, toSqlDate((Calendar) value));
+				Method method = cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, toSqlDate((Calendar) value));
 			} else if (paramType.equals(DBCursor.class)) {
 				cls.getDeclaredMethod("setObject", int.class, Object.class)
 						.invoke(stmt, offset, ((DBCursor) value).getResultSet());
 			} else if (paramType.isArray()) {
 				Array array = toSqlArray(conn, (Object[]) value);
-				cls.getDeclaredMethod("setArray", int.class, Array.class)
-						.invoke(stmt, offset, array);
+				Method method = cls.getDeclaredMethod("setArray", int.class, Array.class);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, array);
 			} else if ((udt = toSqlStruct(conn, value)) != null) {
-				cls.getDeclaredMethod("setObject", int.class, Object.class, int.class)
-						.invoke(stmt, offset, udt, java.sql.Types.STRUCT);
+				Method method = cls.getDeclaredMethod("setObject", int.class, Object.class, int.class);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, udt, java.sql.Types.STRUCT);
 			} else {
-				cls.getDeclaredMethod("setObject", int.class, Object.class)
-						.invoke(stmt, offset, value);
+				Method method = cls.getDeclaredMethod("setObject", int.class, Object.class);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, value);
 			}
 		} catch (Exception ex) {
 			throw new SQLException(ex);
@@ -347,6 +360,7 @@ public class DBService {
 			for (int i = 0, j = 0; i < fields.length && j < attributes.length; i++) {
 				if (fields[i].isAnnotationPresent(UDTField.class)) {
 					try {
+						fields[i].setAccessible(true);
 						fields[i].set(instance, fromSqlObject(attributes[j], fields[i].getType(), udtMapping));
 					} catch (IllegalArgumentException | IllegalAccessException e) {
 						throw new SQLException("Parse java.sql.Struct failed.", e);
@@ -397,6 +411,7 @@ public class DBService {
 				for (int i = 0, j = 0; i < fields.length && j < attributes.length; i++) {
 					if (fields[i].isAnnotationPresent(UDTField.class)) {
 						try {
+							fields[i].setAccessible(true);
 							fields[i].set(instance, fromSqlObject(attributes[j], fields[i].getType(), udtMapping));
 						} catch (IllegalArgumentException | IllegalAccessException e) {
 							throw new SQLException("Parse java.sql.Struct failed.", e);
@@ -835,6 +850,7 @@ public class DBService {
 					}
 					if (col != null) {
 						Class<?> fieldType = field.getType();
+						field.setAccessible(true);
 						field.set(obj, stmtGet(resultSet, fieldType, col, udtMapping));
 					}
 				}
