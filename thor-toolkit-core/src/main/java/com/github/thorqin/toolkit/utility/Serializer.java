@@ -30,12 +30,12 @@ public class Serializer {
 
 		@Override
 		public void write(JsonWriter out, DateTime value) throws IOException {
-			out.value(StringHelper.toISO8601(value));
+			out.value(StringUtils.toISO8601(value));
 		}
 
 		@Override
 		public DateTime read(JsonReader in) throws IOException {
-			return StringHelper.parseISO8601(in.nextString());
+			return StringUtils.parseISO8601(in.nextString());
 		}
 
 		@Override
@@ -60,12 +60,12 @@ public class Serializer {
 
 		@Override
 		public void write(JsonWriter out, Date value) throws IOException {
-			out.value(StringHelper.toISO8601(new DateTime(value.getTime(), DateTimeZone.getDefault())));
+			out.value(StringUtils.toISO8601(new DateTime(value.getTime(), DateTimeZone.getDefault())));
 		}
 
 		@Override
 		public Date read(JsonReader in) throws IOException {
-			return StringHelper.parseISO8601(in.nextString()).toDate();
+			return StringUtils.parseISO8601(in.nextString()).toDate();
 		}
 
 		@Override

@@ -14,9 +14,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.Files;
 import java.util.Date;
@@ -31,7 +28,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import com.github.thorqin.toolkit.utility.Serializer;
-import com.github.thorqin.toolkit.utility.UserAgentUtil;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
@@ -350,41 +346,7 @@ public class DownloadManager {
 			ServletUtils.send(response, HttpServletResponse.SC_NOT_FOUND);
 			return;
 		}
-
-		String filename;
-		try {
-			if (info.fileName != null) {
-				filename = URLEncoder.encode(info.fileName, "utf-8").replace("+", "%20");
-			} else {
-				filename = "download.dat";
-			}
-		} catch (UnsupportedEncodingException e1) {
-			filename = "download.dat";
-			e1.printStackTrace();
-		}
-		response.setHeader("Cache-Control", "no-store");
-		response.setHeader("Pragma", "no-cache");
-		response.setDateHeader("Expires", 0);
-		response.setContentType(info.mimeType == null ? unknowMimeType : info.mimeType);
-
-		String userAgent = request.getHeader("User-Agent").toLowerCase();
-		UserAgentUtil.UserAgentInfo uaInfo = UserAgentUtil.parse(userAgent);
-		if (uaInfo.browser == UserAgentUtil.BrowserType.FIREFOX) {
-			response.addHeader("Content-Disposition", "attachment; filename*=\"utf-8''"
-					+ filename + "\"");
-		} else {
-			response.addHeader("Content-Disposition", "attachment; filename=\""
-					+ filename + "\"");
-		}
-		try (OutputStream os = response.getOutputStream()) {
-			try (InputStream is = new FileInputStream(dataFile)) {
-				int length;
-				byte[] buffer = new byte[4096];
-				while ((length = is.read(buffer)) != -1) {
-					os.write(buffer, 0, length);
-				}
-			}
-		}
+		ServletUtils.download(request, response, dataFile, info.fileName);
 	}
 
 	private String getFileMIME(String ext) {

@@ -13,7 +13,7 @@ import com.github.thorqin.toolkit.db.DBService.DBRef;
 import com.github.thorqin.toolkit.db.DBService.DBSession;
 import com.github.thorqin.toolkit.db.annotation.DBInterface;
 import com.github.thorqin.toolkit.db.annotation.DBMethod;
-import com.github.thorqin.toolkit.utility.StringHelper;
+import com.github.thorqin.toolkit.utility.StringUtils;
 import java.sql.SQLException;
 
 /**
@@ -42,7 +42,7 @@ public class DBProxy implements InvocationHandler {
 		if (dbMethod != null) {
 			procName = dbMethod.value();
 		} else {
-			procName = (prefix.isEmpty() ? "" : prefix + "_") + StringHelper.camelToUnderline(method.getName());
+			procName = (prefix.isEmpty() ? "" : prefix + "_") + StringUtils.camelToUnderline(method.getName());
 		}
 		Class<?>[] paramTypes = method.getParameterTypes();
 		return invokeCall(args, paramTypes, method, session, procName);

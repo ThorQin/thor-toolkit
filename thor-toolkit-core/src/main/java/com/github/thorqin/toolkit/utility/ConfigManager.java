@@ -1,16 +1,11 @@
 package com.github.thorqin.toolkit.utility;
 
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import org.joda.time.DateTime;
 import java.io.*;
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
-import java.net.URLConnection;
-import java.nio.channels.FileLock;
 import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Level;
@@ -410,7 +405,7 @@ public class ConfigManager {
     public DateTime getDateTime(String jsonPath) {
         JsonElement obj = get(jsonPath);
         if (obj != null)
-            return StringHelper.parseISO8601(obj.getAsString());
+            return StringUtils.parseISO8601(obj.getAsString());
         else
             return null;
     }

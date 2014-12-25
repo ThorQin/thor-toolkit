@@ -1,10 +1,13 @@
 package com.github.thorqin.toolkit.web.utility;
 
+import com.github.thorqin.toolkit.utility.MimeUtils;
 import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.utility.UserAgentUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
+import java.net.URLEncoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,6 +76,58 @@ public class ServletUtils {
             Serializer.toJson(obj, w);
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Send message to client failed!", ex);
+        }
+    }
+
+    public static void download(HttpServletRequest req,
+                                HttpServletResponse resp,
+                                File file,
+                                String fileName) throws IOException {
+        try (FileInputStream inputStream = new FileInputStream(file)) {
+            download(req, resp, inputStream, fileName);
+        }
+    }
+
+    public static void download(HttpServletRequest req,
+                                    HttpServletResponse resp,
+                                    InputStream inputStream,
+                                    String fileName) throws IOException {
+        try {
+            if (fileName != null) {
+                fileName = URLEncoder.encode(fileName, "utf-8").replace("+", "%20");
+            } else {
+                fileName = "download.dat";
+            }
+        } catch (UnsupportedEncodingException e1) {
+            fileName = "download.dat";
+            e1.printStackTrace();
+        }
+        String extName = "";
+        if (fileName.lastIndexOf(".") > 0)
+            extName = fileName.substring(fileName.lastIndexOf(".") + 1);
+        String mimeType = MimeUtils.getFileMime(extName);
+        if (mimeType == null)
+            mimeType = "application/octet-stream";
+        resp.setHeader("Cache-Control", "no-store");
+        resp.setHeader("Pragma", "no-cache");
+        resp.setDateHeader("Expires", 0);
+        resp.setContentType(mimeType);
+
+        String userAgent = req.getHeader("User-Agent").toLowerCase();
+        UserAgentUtils.UserAgentInfo uaInfo = UserAgentUtils.parse(userAgent);
+        if (uaInfo.browser == UserAgentUtils.BrowserType.FIREFOX) {
+            resp.addHeader("Content-Disposition", "attachment; filename*=\"utf-8''"
+                    + fileName + "\"");
+        } else {
+            resp.addHeader("Content-Disposition", "attachment; filename=\""
+                    + fileName + "\"");
+        }
+        try (OutputStream outputStream = resp.getOutputStream()) {
+            int length;
+            byte[] buffer = new byte[4096];
+            while ((length = inputStream.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
+            }
         }
     }
 }
