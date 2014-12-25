@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.gson.*;
+import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -417,23 +418,30 @@ public class Serializer {
 			return null;
 		T obj = type.newInstance();
 		String[] parts = formData.split("&");
+		Map<String, String> map = new HashMap<>();
 		for (String part : parts) {
 			String[] pair = part.split("=");
 			if (pair.length != 2)
 				continue;
-			try {
-				String key = URLDecoder.decode(pair[0], "utf-8");
-				Field field = type.getField(key);
-				if (field == null) 
-					continue;
-				String val = URLDecoder.decode(pair[1], "utf-8");
-				Class<?> fieldType = field.getType();
-				StringConvertor convertor = convertMapping.get(fieldType);
-				if (convertor != null) {
-					field.setAccessible(true);
-					convertor.setValue(obj, field, val);
-				}
-			} catch (NoSuchFieldException err) {
+			String key = URLDecoder.decode(pair[0], "utf-8");
+			String val = URLDecoder.decode(pair[1], "utf-8");
+			map.put(key, val);
+		}
+		for (Field field: type.getDeclaredFields()) {
+			String key;
+			SerializedName name = field.getAnnotation(SerializedName.class);
+			if (name == null)
+				key = field.getName();
+			else
+				key = name.value();
+			String val = map.get(key);
+			if (val == null)
+				continue;
+			Class<?> fieldType = field.getType();
+			StringConvertor convertor = convertMapping.get(fieldType);
+			if (convertor != null) {
+				field.setAccessible(true);
+				convertor.setValue(obj, field, val);
 			}
 		}
 		return obj;
