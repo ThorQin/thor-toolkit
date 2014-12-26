@@ -920,15 +920,7 @@ public class DBService {
 	public synchronized void removeLogger(Logger logger) {
 		loggerSet.remove(logger);
 	}
-	private synchronized void log(Logger.LogInfo info) {
-		for (Logger lg: loggerSet) {
-			try {
-				lg.log(info);
-			} catch (Exception ex) {
-				DBService.logger.log(Level.WARNING, "Record log failed.", ex);
-			}
-		}
-	}
+
 	
 	public DBService(DBSetting dbSetting) throws ValidateException {
 		Validator validator = new Validator();
@@ -961,11 +953,27 @@ public class DBService {
 		}
 	}
 	
-	public class DBSession implements AutoCloseable {
+	public static class DBSession implements AutoCloseable {
 		private final Connection conn;
+		final private Set<Logger> loggerSet;
 		public DBSession(Connection conn) throws SQLException {
 			this.conn = conn;
 			this.conn.setAutoCommit(true);
+			loggerSet = new HashSet<>();
+		}
+		public DBSession(Connection conn, Set<Logger> loggerSet) throws SQLException {
+			this.conn = conn;
+			this.conn.setAutoCommit(true);
+			this.loggerSet = loggerSet;
+		}
+		private void log(Logger.LogInfo info) {
+			for (Logger lg: loggerSet) {
+				try {
+					lg.log(info);
+				} catch (Exception ex) {
+					DBService.logger.log(Level.WARNING, "Record log failed.", ex);
+				}
+			}
 		}
 		public void setAutoCommit(boolean autoCommit) throws SQLException {
 			conn.setAutoCommit(autoCommit);

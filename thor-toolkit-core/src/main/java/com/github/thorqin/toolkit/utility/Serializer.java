@@ -455,9 +455,7 @@ public class Serializer {
 
 	public static String loadTextFile(File file) throws IOException {
 		try (FileInputStream in = new FileInputStream(file)) {
-			try (FileLock lock = in.getChannel().lock()) {
-				return loadTextStream(in);
-			}
+			return loadTextStream(in);
 		}
 	}
 
