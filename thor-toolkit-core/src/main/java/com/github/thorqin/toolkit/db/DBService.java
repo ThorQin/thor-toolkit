@@ -261,37 +261,37 @@ public class DBService {
 		try {
 			String methodName = stmtGetMapping.get(valueType);
 			if (methodName != null) {
-				Method method = cls.getDeclaredMethod(methodName, int.class);
+				Method method = cls.getMethod(methodName, int.class);
 				method.setAccessible(true);
 				return (T) method.invoke(stmt, offset);
 			} else if (valueType.equals(DateTime.class)) {
-				Method method =cls.getDeclaredMethod("getTimestamp", int.class);
+				Method method =cls.getMethod("getTimestamp", int.class);
 				method.setAccessible(true);
 				Timestamp timestamp = (Timestamp)method.invoke(stmt, offset);
 				return (T)new DateTime(timestamp.getTime());
 			} else if (valueType.equals(Date.class)) {
-				Method method =cls.getDeclaredMethod("getTimestamp", int.class);
+				Method method =cls.getMethod("getTimestamp", int.class);
 				method.setAccessible(true);
 				Timestamp timestamp = (Timestamp)method.invoke(stmt, offset);
 				return (T)new Date(timestamp.getTime());
 			} else if (valueType.equals(DBTable.class)) {
-				Method method =cls.getDeclaredMethod("getObject", int.class);
+				Method method =cls.getMethod("getObject", int.class);
 				method.setAccessible(true);
 				DBCursor cursor = (DBCursor)fromSqlObject(method.invoke(stmt, offset), udtMapping);
 				if (cursor == null)
 					return null;
 				return (T) cursor.getTable();
 			} else if (valueType.equals(DBCursor.class)) {
-				Method method =cls.getDeclaredMethod("getObject", int.class);
+				Method method =cls.getMethod("getObject", int.class);
 				method.setAccessible(true);
 				return (T) fromSqlObject(method.invoke(stmt, offset), udtMapping);
 			} else if (InputStream.class.isAssignableFrom(valueType)) {
-				Method method = cls.getDeclaredMethod("getBlob", int.class);
+				Method method = cls.getMethod("getBlob", int.class);
 				method.setAccessible(true);
 				Blob blob = (Blob)method.invoke(stmt, offset);
 				return (T)blob.getBinaryStream();
 			} else {
-				Method method =cls.getDeclaredMethod("getObject", int.class);
+				Method method =cls.getMethod("getObject", int.class);
 				method.setAccessible(true);
 				return (T) fromSqlObject(method.invoke(stmt, offset), valueType, udtMapping);
 			}
@@ -309,39 +309,39 @@ public class DBService {
 			StmtSet stmtInfo = stmtSetMapping.get(paramType);
 			Struct udt;
 			if (stmtInfo != null) {
-				Method method = cls.getDeclaredMethod(stmtInfo.name, int.class, stmtInfo.type);
+				Method method = cls.getMethod(stmtInfo.name, int.class, stmtInfo.type);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, value);
 			} else if (paramType.equals(DateTime.class)) {
-				Method method = cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class);
+				Method method = cls.getMethod("setTimestamp", int.class, Timestamp.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, toSqlDate((DateTime) value));
 			} else if (paramType.equals(Date.class)) {
-				Method method = cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class);
+				Method method = cls.getMethod("setTimestamp", int.class, Timestamp.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, toSqlDate((Date) value));
 			} else if (paramType.equals(Calendar.class)) {
-				Method method = cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class);
+				Method method = cls.getMethod("setTimestamp", int.class, Timestamp.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, toSqlDate((Calendar) value));
 			} else if (paramType.equals(DBCursor.class)) {
-				cls.getDeclaredMethod("setObject", int.class, Object.class)
+				cls.getMethod("setObject", int.class, Object.class)
 						.invoke(stmt, offset, ((DBCursor) value).getResultSet());
 			} else if (paramType.isArray()) {
 				Array array = toSqlArray(conn, (Object[]) value);
-				Method method = cls.getDeclaredMethod("setArray", int.class, Array.class);
+				Method method = cls.getMethod("setArray", int.class, Array.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, array);
 			} else if (InputStream.class.isAssignableFrom(paramType)) {
-				Method method = cls.getDeclaredMethod("setBlob", int.class, InputStream.class);
+				Method method = cls.getMethod("setBlob", int.class, InputStream.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, value);
 			} else if ((udt = toSqlStruct(conn, value)) != null) {
-				Method method = cls.getDeclaredMethod("setObject", int.class, Object.class, int.class);
+				Method method = cls.getMethod("setObject", int.class, Object.class, int.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, udt, java.sql.Types.STRUCT);
 			} else  {
-				Method method = cls.getDeclaredMethod("setObject", int.class, Object.class);
+				Method method = cls.getMethod("setObject", int.class, Object.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, value);
 			}
