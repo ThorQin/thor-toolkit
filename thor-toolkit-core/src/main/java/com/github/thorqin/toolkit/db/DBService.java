@@ -9,10 +9,7 @@ import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
 import org.joda.time.DateTime;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -58,9 +55,20 @@ public class DBService {
 	private static final Map<Class<?>, String> arrayType;
 
 	private static final Map<Class<?>, String> stmtGetMapping;
+	private static class StmtSet {
+		public String name;
+		public Class<?> type;
+		public StmtSet(String name, Class<?> type) {
+			this.name = name;
+			this.type = type;
+		}
+	}
+	private static final Map<Class<?>, StmtSet> stmtSetMapping;
 
 	static {
 		typeMapping = new HashMap<>();
+		typeMapping.put(Blob.class, Types.BLOB);
+		typeMapping.put(Clob.class, Types.CLOB);
 		typeMapping.put(List.class, java.sql.Types.ARRAY);
 		typeMapping.put(byte[].class, java.sql.Types.VARBINARY);
 		typeMapping.put(Void.class, java.sql.Types.JAVA_OBJECT);
@@ -126,6 +134,29 @@ public class DBService {
 		stmtGetMapping.put(Boolean.class, "getBoolean");
 		stmtGetMapping.put(BigDecimal.class, "getBigDecimal");
 		stmtGetMapping.put(byte[].class, "getBytes");
+		stmtGetMapping.put(Blob.class, "getBlob");
+		stmtGetMapping.put(Clob.class, "getClob");
+
+		stmtSetMapping = new HashMap<>();
+		stmtSetMapping.put(String.class, new StmtSet("setString", String.class));
+		stmtSetMapping.put(int.class, new StmtSet("setInt", int.class));
+		stmtSetMapping.put(Integer.class, new StmtSet("setInt", int.class));
+		stmtSetMapping.put(long.class, new StmtSet("setLong", long.class));
+		stmtSetMapping.put(Long.class, new StmtSet("setLong", long.class));
+		stmtSetMapping.put(short.class, new StmtSet("setShort", short.class));
+		stmtSetMapping.put(Short.class, new StmtSet("setShort", short.class));
+		stmtSetMapping.put(byte.class, new StmtSet("setByte", byte.class));
+		stmtSetMapping.put(Byte.class, new StmtSet("setByte", byte.class));
+		stmtSetMapping.put(double.class, new StmtSet("setDouble", double.class));
+		stmtSetMapping.put(Double.class, new StmtSet("setDouble", double.class));
+		stmtSetMapping.put(float.class, new StmtSet("setFloat", float.class));
+		stmtSetMapping.put(Float.class, new StmtSet("setFloat", float.class));
+		stmtSetMapping.put(boolean.class, new StmtSet("setBoolean", boolean.class));
+		stmtSetMapping.put(Boolean.class, new StmtSet("setBoolean", boolean.class));
+		stmtSetMapping.put(BigDecimal.class, new StmtSet("setBigDecimal", BigDecimal.class));
+		stmtSetMapping.put(byte[].class, new StmtSet("setBytes", byte[].class));
+		stmtSetMapping.put(Blob.class, new StmtSet("setBlob", Blob.class));
+		stmtSetMapping.put(Clob.class, new StmtSet("setClob", Clob.class));
 	}
 	
 	private static int toSqlType(Class<?> type) {
@@ -135,6 +166,8 @@ public class DBService {
 				return java.sql.Types.ARRAY; 
 			else if (type.isAnnotationPresent(UDT.class))
 				return java.sql.Types.STRUCT;
+			else if (InputStream.class.isAssignableFrom(type))
+				return java.sql.Types.BLOB;
 			else
 				return java.sql.Types.OTHER;
 		} else
@@ -196,7 +229,7 @@ public class DBService {
 	 * Currently only support postgresQL
 	 * @param conn
 	 * @param obj
-	 * @return
+	 * @return SqlType
 	 * @throws SQLException
 	 */
 	private static Array toSqlArray(Connection conn, Object[] obj) throws SQLException {
@@ -252,6 +285,11 @@ public class DBService {
 				Method method =cls.getDeclaredMethod("getObject", int.class);
 				method.setAccessible(true);
 				return (T) fromSqlObject(method.invoke(stmt, offset), udtMapping);
+			} else if (InputStream.class.isAssignableFrom(valueType)) {
+				Method method = cls.getDeclaredMethod("getBlob", int.class);
+				method.setAccessible(true);
+				Blob blob = (Blob)method.invoke(stmt, offset);
+				return (T)blob.getBinaryStream();
 			} else {
 				Method method =cls.getDeclaredMethod("getObject", int.class);
 				method.setAccessible(true);
@@ -268,8 +306,13 @@ public class DBService {
 									Object value) throws SQLException {
 		Class<?> cls = stmt.getClass();
 		try {
+			StmtSet stmtInfo = stmtSetMapping.get(paramType);
 			Struct udt;
-			if (paramType.equals(DateTime.class)) {
+			if (stmtInfo != null) {
+				Method method = cls.getDeclaredMethod(stmtInfo.name, int.class, stmtInfo.type);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, value);
+			} else if (paramType.equals(DateTime.class)) {
 				Method method = cls.getDeclaredMethod("setTimestamp", int.class, Timestamp.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, toSqlDate((DateTime) value));
@@ -289,11 +332,15 @@ public class DBService {
 				Method method = cls.getDeclaredMethod("setArray", int.class, Array.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, array);
+			} else if (InputStream.class.isAssignableFrom(paramType)) {
+				Method method = cls.getDeclaredMethod("setBlob", int.class, InputStream.class);
+				method.setAccessible(true);
+				method.invoke(stmt, offset, value);
 			} else if ((udt = toSqlStruct(conn, value)) != null) {
 				Method method = cls.getDeclaredMethod("setObject", int.class, Object.class, int.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, udt, java.sql.Types.STRUCT);
-			} else {
+			} else  {
 				Method method = cls.getDeclaredMethod("setObject", int.class, Object.class);
 				method.setAccessible(true);
 				method.invoke(stmt, offset, value);
@@ -1005,7 +1052,6 @@ public class DBService {
 		private void bindParameter(PreparedStatement stmt, Object[] args, int offset) throws SQLException {
 			if (args == null)
 				return;
-			Struct udt;
 			for (Object obj : args) {
 				if (obj == null) {
 					stmt.setNull(offset++, java.sql.Types.NULL);
@@ -1020,7 +1066,6 @@ public class DBService {
 		private void bindParameter(CallableStatement stmt, Object[] args, int offset) throws SQLException {
 			if (args == null)
 				return;
-			Struct udt;
 			for (Object obj : args) {
 				if (obj == null) {
 					stmt.setNull(offset++, java.sql.Types.NULL);
@@ -1031,8 +1076,10 @@ public class DBService {
 						obj = ((DBOut)obj).getValue();
 						if (obj == null)
 							stmt.setNull(offset++, java.sql.Types.NULL);
-						Class<?> refType = obj.getClass();
-						stmtSet(stmt, conn, refType, offset++, obj);
+						else {
+							Class<?> refType = obj.getClass();
+							stmtSet(stmt, conn, refType, offset++, obj);
+						}
 					} else if (DBOut.class.isAssignableFrom(paramType)) {
 						stmt.registerOutParameter(offset++, toSqlType(((DBOut)obj).getType()));
 					} else {
@@ -1065,13 +1112,30 @@ public class DBService {
 			}
 		}
 
-		public DBCursor query(String queryString,
-				Object... args) throws SQLException {
-			return query(queryString, (Map<String, Class<?>>)null, args);
+		public int execute(PreparedStatement stmt, Object... args) throws SQLException {
+			long beginTime = System.currentTimeMillis();
+			boolean success = true;
+			try {
+				bindParameter(stmt, args, 1);
+				return stmt.executeUpdate();
+			} catch (Exception ex) {
+				success = false;
+				throw ex;
+			} finally {
+				if (!loggerSet.isEmpty()) {
+					Logger.LogInfo info = new Logger.LogInfo();
+					info.catalog = "database";
+					info.name = "execute";
+					info.put("statement", "PreparedStatement");
+					info.put("success", success);
+					info.put("startTime", beginTime);
+					info.put("runningTime", System.currentTimeMillis() - beginTime);
+					log(info);
+				}
+			}
 		}
 		
 		public DBCursor query(String queryString,
-				Map<String, Class<?>> udtMapping,
 				Object... args) throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;
