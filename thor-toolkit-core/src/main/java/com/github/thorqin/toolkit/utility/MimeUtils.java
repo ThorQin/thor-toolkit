@@ -51,6 +51,7 @@ public class MimeUtils {
         mimeMap.put("dot", "application/msword");
         mimeMap.put("dvi", "application/x-dvi");
         mimeMap.put("dxr", "application/x-director");
+        mimeMap.put("emf", "image/x-emf");
         mimeMap.put("eps", "application/postscript");
         mimeMap.put("etx", "text/x-setext");
         mimeMap.put("evy", "application/envoy");
@@ -208,6 +209,9 @@ public class MimeUtils {
     }
 
     public static String getFileMime(String suffix) {
+        int dotPos = suffix.lastIndexOf('.');
+        if (dotPos >= 0)
+            suffix = suffix.substring(dotPos+1);
         return mimeMap.get(suffix.toLowerCase());
     }
 }
