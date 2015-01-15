@@ -449,4 +449,25 @@ public class ConfigManager {
         } else
             return new HashMap<>();
     }
+
+
+    /**
+     * Get application data directory path, it's combined by
+     * system environment variable 'APP_DATA_DIR' and plus application name.
+     * @param appName Application name
+     * @return App data dir path if env variable exists.
+     */
+    public static String getAppDataDir(String appName) {
+        String dataDir = System.getenv().get("APP_DATA_DIR");
+        if (dataDir != null) {
+            while (appName.startsWith("/") || appName.startsWith("\\"))
+                appName = appName.substring(1);
+            if (dataDir.endsWith("/") || dataDir.endsWith("\\"))
+                dataDir += appName;
+            else
+                dataDir += ("/" + appName);
+            return dataDir;
+        } else
+            return null;
+    }
 }
