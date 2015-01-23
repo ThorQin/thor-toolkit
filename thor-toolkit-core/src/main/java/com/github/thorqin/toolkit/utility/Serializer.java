@@ -467,7 +467,17 @@ public class Serializer {
 		}
 	}
 
-	private static String loadTextStream(InputStream in) throws IOException {
+	public static byte[] readStreamBytes(InputStream in) throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		byte[] buffer = new byte[1024];
+		int readSize;
+		while ((readSize = in.read(buffer)) > 0) {
+			out.write(buffer, 0, readSize);
+		}
+		return out.toByteArray();
+	}
+
+	public static String loadTextStream(InputStream in) throws IOException {
 		PushbackInputStream pIn = new PushbackInputStream(in, 3);
 		byte[] bom = new byte[3];
 		pIn.read(bom);
