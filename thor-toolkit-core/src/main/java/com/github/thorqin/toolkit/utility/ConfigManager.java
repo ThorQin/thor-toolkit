@@ -248,8 +248,11 @@ public class ConfigManager {
         String[] paths = jsonPath.split("(?<!\\\\)/");
         JsonElement obj = rootObj;
         for (String p : paths) {
-            p = p.replace("\\/", "/");
             if (obj != null) {
+                p = p.replace("\\/", "/");
+                if (p == null || p.isEmpty()) {
+                    continue;
+                }
                 if (obj.isJsonObject()) {
                     obj = ((JsonObject)obj).get(p);
                 } else if (obj.isJsonArray()) {
@@ -276,7 +279,8 @@ public class ConfigManager {
     }
     public <T> T get(String jsonPath, Class<T> type, T defaultValue) {
         try {
-            return get(jsonPath, type);
+            T value = get(jsonPath, type);
+            return (value != null ? value : defaultValue);
         } catch (Exception e) {
             return defaultValue;
         }
@@ -455,7 +459,7 @@ public class ConfigManager {
      * Get application data directory path, it's combined by
      * system environment variable 'APP_DATA_DIR' and plus application name.
      * @param appName Application name
-     * @return App data dir path if env variable exists.
+     * @return App data dir path or null if env variable not exists.
      */
     public static String getAppDataDir(String appName) {
         String dataDir = System.getenv().get("APP_DATA_DIR");

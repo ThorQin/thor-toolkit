@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package com.github.thorqin.toolkit.log;
+package com.github.thorqin.toolkit.trace;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -12,26 +12,26 @@ import java.util.concurrent.LinkedBlockingQueue;
  *
  * @author nuo.qin
  */
-public abstract class LogService implements Logger {
+public abstract class TraceService implements Tracer {
 	private boolean alive = false;
 	private Thread thread = null;
-	private final LinkedBlockingQueue<Logger.LogInfo> logQueue = new LinkedBlockingQueue<>();
-	private static final Logger.LogInfo stopSignal = new Logger.LogInfo();
+	private final LinkedBlockingQueue<Info> queue = new LinkedBlockingQueue<>();
+	private static final Info stopSignal = new Info();
 
-	protected abstract void onLog(Logger.LogInfo info);
+	protected abstract void onTraceInfo(Info info);
 
-	public synchronized void start() {
+	public final synchronized void start() {
 		if (alive)
 			return;
 		alive = true;
 		thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while (alive || !logQueue.isEmpty()) {
+				while (alive || !queue.isEmpty()) {
 					try {
-						Logger.LogInfo info = logQueue.take();
+						Info info = queue.take();
 						if (info != stopSignal)
-							onLog(info);
+							onTraceInfo(info);
 						else
 							alive = false;
 					} catch (Exception ex) {
@@ -44,15 +44,15 @@ public abstract class LogService implements Logger {
 		thread.setDaemon(false);
 		thread.start();
 	}
-	public synchronized void stop() {
+	public final synchronized void stop() {
 		if (!alive)
 			return;
 		alive = false;
-		logQueue.offer(stopSignal);
+		queue.offer(stopSignal);
 	}
 
 	@Override
-	public final void log(Logger.LogInfo info) {
-		logQueue.offer(info);
+	public final void trace(Info info) {
+		queue.offer(info);
 	}
 }

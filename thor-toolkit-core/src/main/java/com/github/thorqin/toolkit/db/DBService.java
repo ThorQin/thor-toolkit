@@ -1,6 +1,6 @@
 package com.github.thorqin.toolkit.db;
 
-import com.github.thorqin.toolkit.log.*;
+import com.github.thorqin.toolkit.trace.*;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.validation.annotation.ValidateNumber;
@@ -15,16 +15,15 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.security.InvalidParameterException;
 import java.sql.*;
 import java.util.*;
 import java.util.Date;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**********************************************************
  * DBStore implementation
@@ -47,9 +46,10 @@ public class DBService {
 		public int maxConnectionsPerPartition = 20;
 		@ValidateNumber(min = 1)
 		public int partitionCount = 1;
+		public boolean trace = false;
 	}
-	private static final java.util.logging.Logger logger =
-			java.util.logging.Logger.getLogger(DBService.class.getName());
+	private static final Logger logger =
+			Logger.getLogger(DBService.class.getName());
 	private static final Map<Class<?>, Integer> typeMapping;
 	// This type very depends on which database are you using.
 	private static final Map<Class<?>, String> arrayType;
@@ -958,16 +958,19 @@ public class DBService {
 	//final private BoneCPDataSource boneCP;
 	final private BoneCP boneCP;
 	final private DBSetting setting;
-	final private Set<Logger> loggerSet = new HashSet<>();
+	final private Set<Tracer> tracerSet = new HashSet<>();
 
-	public synchronized void addLogger(Logger logger) {
-		loggerSet.add(logger);
+	public synchronized void addTracer(Tracer tracer) {
+		tracerSet.add(tracer);
 	}
 
-	public synchronized void removeLogger(Logger logger) {
-		loggerSet.remove(logger);
+	public synchronized void removeTracer(Tracer tracer) {
+		tracerSet.remove(tracer);
 	}
 
+	public synchronized void clearTracer() {
+		tracerSet.clear();
+	}
 	
 	public DBService(DBSetting dbSetting) throws ValidateException {
 		Validator validator = new Validator();
@@ -1002,23 +1005,23 @@ public class DBService {
 	
 	public static class DBSession implements AutoCloseable {
 		private final Connection conn;
-		final private Set<Logger> loggerSet;
+		final private Set<Tracer> tracerSet;
 		public DBSession(Connection conn) throws SQLException {
 			this.conn = conn;
 			this.conn.setAutoCommit(true);
-			loggerSet = new HashSet<>();
+			tracerSet = new HashSet<>();
 		}
-		public DBSession(Connection conn, Set<Logger> loggerSet) throws SQLException {
+		public DBSession(Connection conn, Set<Tracer> tracerSet) throws SQLException {
 			this.conn = conn;
 			this.conn.setAutoCommit(true);
-			this.loggerSet = loggerSet;
+			this.tracerSet = tracerSet;
 		}
-		private void log(Logger.LogInfo info) {
-			for (Logger lg: loggerSet) {
+		private void trace(Tracer.Info info) {
+			for (Tracer tracer: tracerSet) {
 				try {
-					lg.log(info);
+					tracer.trace(info);
 				} catch (Exception ex) {
-					DBService.logger.log(Level.WARNING, "Record log failed.", ex);
+					logger.log(Level.WARNING, "Record trace info failed.", ex);
 				}
 			}
 		}
@@ -1099,15 +1102,15 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!loggerSet.isEmpty()) {
-					Logger.LogInfo info = new Logger.LogInfo();
+				if (!tracerSet.isEmpty()) {
+					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "execute";
 					info.put("statement", queryString);
 					info.put("success", success);
 					info.put("startTime", beginTime);
 					info.put("runningTime", System.currentTimeMillis() - beginTime);
-					log(info);
+					trace(info);
 				}
 			}
 		}
@@ -1122,15 +1125,15 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!loggerSet.isEmpty()) {
-					Logger.LogInfo info = new Logger.LogInfo();
+				if (!tracerSet.isEmpty()) {
+					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "execute";
 					info.put("statement", "PreparedStatement");
 					info.put("success", success);
 					info.put("startTime", beginTime);
 					info.put("runningTime", System.currentTimeMillis() - beginTime);
-					log(info);
+					trace(info);
 				}
 			}
 		}
@@ -1159,15 +1162,15 @@ public class DBService {
 				}
 				throw ex;
 			} finally {
-				if (!loggerSet.isEmpty()) {
-					Logger.LogInfo info = new Logger.LogInfo();
+				if (!tracerSet.isEmpty()) {
+					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "query";
 					info.put("statement", queryString);
 					info.put("success", success);
 					info.put("startTime", beginTime);
 					info.put("runningTime", System.currentTimeMillis() - beginTime);
-					log(info);
+					trace(info);
 				}
 			}
 		}
@@ -1185,15 +1188,15 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!loggerSet.isEmpty()) {
-					Logger.LogInfo info = new Logger.LogInfo();
+				if (!tracerSet.isEmpty()) {
+					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "query";
 					info.put("statement", queryString);
 					info.put("success", success);
 					info.put("startTime", beginTime);
 					info.put("runningTime", System.currentTimeMillis() - beginTime);
-					log(info);
+					trace(info);
 				}
 			}
 		}
@@ -1235,15 +1238,15 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!loggerSet.isEmpty()) {
-					Logger.LogInfo info = new Logger.LogInfo();
+				if (!tracerSet.isEmpty()) {
+					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "invoke";
 					info.put("statement", sqlString.toString());
 					info.put("success", success);
 					info.put("startTime", beginTime);
 					info.put("runningTime", System.currentTimeMillis() - beginTime);
-					log(info);
+					trace(info);
 				}
 			}
 		}
@@ -1281,15 +1284,15 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!loggerSet.isEmpty()) {
-					Logger.LogInfo info = new Logger.LogInfo();
+				if (!tracerSet.isEmpty()) {
+					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "perform";
 					info.put("statement", sqlString.toString());
 					info.put("success", success);
 					info.put("startTime", beginTime);
 					info.put("runningTime", System.currentTimeMillis() - beginTime);
-					log(info);
+					trace(info);
 				}
 			}
 		}

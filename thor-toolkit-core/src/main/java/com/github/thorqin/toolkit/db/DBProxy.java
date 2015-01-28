@@ -17,12 +17,20 @@ import com.github.thorqin.toolkit.utility.StringUtils;
 import java.sql.SQLException;
 
 /**
- *
+ * DBProxy object.
+ * <b>Once obtain a DBProxy object session's autoCommit will be set to false.</b>
  * @author nuo.qin
  */
 public class DBProxy implements InvocationHandler {
 	private DBSession session;
 	private boolean autoCommit;
+
+	/**
+	 * Obtain a DBProxy object
+	 * @param session DBSession object
+	 * @param autoCommit whether or not commit when after invoke a call.
+	 * @throws SQLException
+	 */
 	public DBProxy(DBSession session, boolean autoCommit) throws SQLException {
 		this.session = session;
 		this.session.setAutoCommit(false);

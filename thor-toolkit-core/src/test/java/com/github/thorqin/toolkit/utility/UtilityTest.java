@@ -1,6 +1,6 @@
 package com.github.thorqin.toolkit.utility;
 
-import com.github.thorqin.toolkit.log.LogService;
+import com.github.thorqin.toolkit.trace.TraceService;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
@@ -13,9 +13,9 @@ import java.util.List;
  * Created by nuo.qin on 12/12/2014.
  */
 public class UtilityTest {
-    public static class MyLogger extends LogService {
+    public static class MyTracer extends TraceService {
         @Override
-        protected void onLog(LogInfo info) {
+        protected void onTraceInfo(Info info) {
         }
     }
     public static class MyType {
@@ -29,5 +29,11 @@ public class UtilityTest {
 			System.out.println(dateTime);
 		}
 		System.out.println(myObj.size());
+    }
+
+    @Test
+    public void testSplit() {
+        String[] strings = "".split("/");
+        System.out.println(strings.length);
     }
 }
