@@ -1,8 +1,14 @@
 package com.github.thorqin.toolkit.web;
 
+import com.github.thorqin.toolkit.db.DBService;
+import com.github.thorqin.toolkit.trace.Tracer;
+import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.validation.ValidateException;
+import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.web.annotation.WebModule;
 import com.github.thorqin.toolkit.web.annotation.Entity;
-import com.github.thorqin.toolkit.web.annotation.Entity.*;
+import com.github.thorqin.toolkit.web.annotation.Entity.ParseEncoding;
+import com.github.thorqin.toolkit.web.annotation.Entity.SourceType;
 import com.github.thorqin.toolkit.web.annotation.*;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -32,10 +38,10 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.SessionGenerator;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.RuleMatcher;
+import com.github.thorqin.toolkit.web.utility.ServletUtils;
 import javassist.bytecode.AnnotationsAttribute;
 import javassist.bytecode.ClassFile;
 import javax.servlet.ServletConfig;
@@ -57,9 +63,10 @@ public final class WebBasicRouter extends WebRouterBase {
 	}
 	
 	private RuleMatcher<MappingInfo> mapping = null;
-	private List<MappingInfo> startup = null;
-	private List<MappingInfo> cleanups = null;
+	private List<MappingInfo> startup = new LinkedList<>();
+	private List<MappingInfo> cleanups = new LinkedList<>();
 	private SessionGenerator sessionGenerator = new SessionGenerator();
+
 
 	public WebBasicRouter(WebApplication application) {
 		super(application);
@@ -91,36 +98,31 @@ public final class WebBasicRouter extends WebRouterBase {
 				throw new ServletException("Initialize dispatcher servlet error.", ex);
 			}
 		}
-		if (startup != null && startup.size() > 0) {
-			for (MappingInfo info : startup) {
-				try {
-					info.method.invoke(info.instance);
-				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-					logger.log(Level.SEVERE, "Invoke startup failed", ex);
-				}
+		for (MappingInfo info : startup) {
+			try {
+				info.method.invoke(info.instance);
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+				logger.log(Level.SEVERE, "Invoke startup failed", ex);
 			}
-			startup.clear();
 		}
+		startup.clear();
 	}
 
 	@Override
 	public void destroy() {
 		// Servlet destroy
-		if (cleanups != null && cleanups.size() > 0) {
-			for (MappingInfo info : cleanups) {
-				try {
-					info.method.invoke(info.instance);
-				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-					logger.log(Level.SEVERE, "Invoke cleanup failed", ex);
-				}
+		for (MappingInfo info : cleanups) {
+			try {
+				info.method.invoke(info.instance);
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+				logger.log(Level.SEVERE, "Invoke cleanup failed", ex);
 			}
-			cleanups.clear();
 		}
+		cleanups.clear();
 		super.destroy();
 	}
 
-	public void crossSiteOptions(HttpServletRequest request,
-			HttpServletResponse response) {
+	public void setCrossSiteHeaders(HttpServletResponse response) {
 		response.setHeader("Access-Control-Allow-Origin", "*");
 		response.setHeader("Access-Control-Allow-Credentials", "true");
 		response.setHeader("P3P","CP=CAO PSA OUR");
@@ -129,37 +131,34 @@ public final class WebBasicRouter extends WebRouterBase {
 		response.setHeader("Access-Control-Allow-Headers",
 				"Content-Type,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control");
 	}
-	
-	private Object addStartup(Class<?> clazz, Method method, Object inst) {
-		try {
-			if (inst == null) {
-				inst = clazz.newInstance();
-			}
-			MappingInfo info = new MappingInfo();
-			info.instance = inst;
-			info.method = method;
-			method.setAccessible(true);
-			startup.add(info);
-		} catch (IllegalAccessException | InstantiationException | SecurityException ex) {
-			logger.log(Level.SEVERE,
-					"New instance failed: " + clazz.getName() + "." + method.getName(), ex);
+
+	private Object createInstance(Class<?> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+		Constructor<?> constructor = clazz.getConstructor(WebApplication.class);
+		if (constructor != null) {
+			constructor.setAccessible(true);
+			return constructor.newInstance(application);
 		}
-		return inst;
+		constructor = clazz.getConstructor();
+		if (constructor != null) {
+			constructor.setAccessible(true);
+			return constructor.newInstance();
+		}
+		throw new NoSuchMethodException("Does not provide valid constructor.");
 	}
 	
-	private Object addCleanup(Class<?> clazz, Method method, Object inst) {
+	private Object addMapping(List<MappingInfo> collection, Class<?> clazz, Method method, Object inst) {
 		try {
 			if (inst == null) {
-				inst = clazz.newInstance();
+				inst = createInstance(clazz);
 			}
 			MappingInfo info = new MappingInfo();
 			info.instance = inst;
 			info.method = method;
 			method.setAccessible(true);
-			cleanups.add(info);
-		} catch (IllegalAccessException | InstantiationException | SecurityException ex) {
+			collection.add(info);
+		} catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException | SecurityException ex) {
 			logger.log(Level.SEVERE,
-					"New instance failed: " + clazz.getName() + method.getName(), ex);
+					"New instance failed: " + clazz.getName() + "." + method.getName(), ex);
 		}
 		return inst;
 	}
@@ -177,8 +176,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			Class<?> paramType = parameterTypes[i];
 			if (paramType.equals(HttpServletRequest.class) ||
 					paramType.equals(HttpServletResponse.class) ||
-					paramType.equals(HttpSession.class) ||
-					paramType.equals(ClientSession.class)) {
+					paramType.equals(WebSession.class)) {
 				continue;
 			}
 			Annotation[] annotations = parameterAnnotations[i];
@@ -191,20 +189,22 @@ public final class WebBasicRouter extends WebRouterBase {
 				}
 			}
 			logger.log(Level.WARNING,
-				"Method ''{0}.{1}'' has unknow parameter type: {2}, method ignored.",
+				"Method ''{0}.{1}'' has unknown(or unsupported) parameter type: {2}, method ignored.",
 				new Object[]{clazz.getName(), method.getName(), paramType.getName()});
 			return null;
 		}
 		return entry;
 	}
-	
-	
 
 	private void analyzeClass(Class<?> clazz) throws Exception {
 		if (!clazz.isAnnotationPresent(WebModule.class)) {
 			return;
 		}
 		WebModule classAnno = clazz.getAnnotation(WebModule.class);
+		if (application != null) {
+			if (!classAnno.application().equals(application.getName()) && !application.getName().isEmpty())
+				return;
+		}
 		boolean crossSite = classAnno.crossSite();
 		String path = clazz.getAnnotation(WebModule.class).path();
 		if (!path.startsWith("/")) {
@@ -213,64 +213,35 @@ public final class WebBasicRouter extends WebRouterBase {
 		if (!path.endsWith("/")) {
 			path += "/";
 		}
-		Object inst;
-		inst = clazz.newInstance();
-		
+		Object inst = createInstance(clazz);
+
 		for (Field field : clazz.getDeclaredFields()) {
 			Class<?> fieldType = field.getType();
-			DBInstance db = field.getAnnotation(DBInstance.class);
-			AMQInstance amq = field.getAnnotation(AMQInstance.class);
-			MailInstance mail = field.getAnnotation(MailInstance.class);
-			App app = field.getAnnotation(App.class);
-			if (app != null) {
-				if (WebApplication.class.isAssignableFrom(fieldType)) {
-					field.setAccessible(true);
-					field.set(inst, application);
-				}
-			} else if (db != null) {
+			DBInstance dbAnno = field.getAnnotation(DBInstance.class);
+			if (dbAnno != null && application != null) {
 				if (fieldType.equals(DBService.class)) {
 					field.setAccessible(true);
-					field.set(inst, application.getDBService(db.value()));
-					continue;
-				}
-				if (!fieldType.isInterface())
-					continue;
-				if (!fieldType.isAnnotationPresent(DBInterface.class))
-					continue;
-				field.setAccessible(true);
-				Object proxyInstance = application.getDBProxy(db.value(), fieldType);
-				field.set(inst, proxyInstance);
-			} else if (amq != null) { 
-				if (fieldType.equals(AMQ.class)) {
-					field.setAccessible(true);
-					field.set(inst, application.getAMQ(amq.value()));
-				} else if (fieldType.equals(AMQService.class)) {
-					field.setAccessible(true);
-					field.set(inst, new AMQService(application.getAMQ(amq.value())));
-				} else {
-					if (!fieldType.isInterface())
-						continue;
-					field.setAccessible(true);
-					Object proxyInstance = application.getAMQProxy(amq.value(), fieldType);
-					field.set(inst, proxyInstance);
-				}
-			} else if (mail != null) {
-				if (fieldType.equals(MailService.class)) {
-					field.setAccessible(true);
-					field.set(inst, application.getMailService(mail.value()));
+					if (dbAnno.value().isEmpty())
+						field.set(inst, application.getDBService());
+					else
+						field.set(inst, application.getDBService(dbAnno.value()));
 				}
 			}
 		}
-		
+
+		if (LifeCycleListener.class.isAssignableFrom(clazz)) {
+			Method onStartup = clazz.getMethod("onStartup");
+			if (onStartup != null)
+				addMapping(startup, clazz, onStartup, inst);
+			Method onShutdown = clazz.getMethod("onShutdown");
+			if (onShutdown != null)
+				addMapping(cleanups, clazz, onShutdown, inst);
+		}
+
+		if (mapping == null) {
+			return;
+		}
 		for (Method method : clazz.getDeclaredMethods()) {
-			if (startup != null && method.isAnnotationPresent(WebStartup.class)) {
-				addStartup(clazz, method, inst);
-			} else if (cleanups != null && method.isAnnotationPresent(WebCleanup.class)) {
-				addCleanup(clazz, method, inst);
-			}
-			if (mapping == null) {
-				continue;
-			}
 			WebEntry entry = checkMethodParametersAndAnnotation(clazz, method);
 			if (entry == null)
 				continue;
@@ -285,19 +256,19 @@ public final class WebBasicRouter extends WebRouterBase {
 			Map<String, Integer> paramInfo = new HashMap<>();
 			String fullPath = RuleMatcher.formatUrlRule(path + name, paramInfo);
 			if (crossSite || entry.crossSite()) {
-				String key = "^" + HttpMethod.OPTIONS + ":" + fullPath.substring(1);
+				String key = "^" + WebEntry.HttpMethod.OPTIONS + ":" + fullPath.substring(1);
 				System.out.println("Add Mapping: " + key);
 				MappingInfo info = new MappingInfo();
 				info.instance = this;
-				info.method = this.getClass().getMethod("crossSiteOptions",
-						HttpServletRequest.class, HttpServletResponse.class);
+				info.method = this.getClass().getMethod(
+						"setCrossSiteHeaders", HttpServletResponse.class);
 				info.method.setAccessible(true);
 				info.parameters = paramInfo;
 				info.pattern = Pattern.compile(key);
 				mapping.addRule(key, info);
 			}
 			String methodPrefix = "";
-			for (HttpMethod httpMethod : entry.method()) {
+			for (WebEntry.HttpMethod httpMethod : entry.method()) {
 				if (!methodPrefix.isEmpty())
 					methodPrefix += "|";
 				methodPrefix += httpMethod;
@@ -353,8 +324,6 @@ public final class WebBasicRouter extends WebRouterBase {
 			return;
 		}
 		mapping = new RuleMatcher<>();
-		startup = new LinkedList<>();
-		cleanups = new LinkedList<>();
 		File file = new File(getClassPath("/"));
 		scanClasses(file);
 		mapping.build();
@@ -392,10 +361,12 @@ public final class WebBasicRouter extends WebRouterBase {
 	
 	private Object parseFromBody(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
 		try {
-			if ((annoEntity.encoding() == JSON || annoEntity.encoding() == EITHER) && 
+			if ((annoEntity.encoding() == ParseEncoding.JSON ||
+					annoEntity.encoding() == ParseEncoding.EITHER) &&
 					mInfo.postType == RequestPostType.JSON) {
 				return Serializer.fromJson(mInfo.httpBody, paramType);
-			} else if ((annoEntity.encoding() == HTTP_FORM || annoEntity.encoding() == EITHER) && 
+			} else if ((annoEntity.encoding() == ParseEncoding.HTTP_FORM ||
+					annoEntity.encoding() == ParseEncoding.EITHER) &&
 					mInfo.postType == RequestPostType.HTTP_FORM) {
 				return Serializer.fromUrlEncoding(mInfo.httpBody, paramType);
 			} else {
@@ -472,17 +443,17 @@ public final class WebBasicRouter extends WebRouterBase {
 	private Object makeParam(
 			Class<?> paramType, 
 			Annotation[] annos,
-			MethodRuntimeInfo mInfo) throws ValidateException {
+			MethodRuntimeInfo mInfo) throws ValidateException, ServletException {
 		if (paramType.equals(HttpServletRequest.class)) {
 			return mInfo.request;
 		} else if (paramType.equals(HttpServletResponse.class)) {
 			return mInfo.response;
 		} else if (paramType.equals(HttpSession.class)) {
 			return mInfo.request.getSession();
-		} else if (paramType.equals(ClientSession.class)) {
-			if (mInfo.clientSession == null)
-				mInfo.clientSession = ClientSession.newSession(mInfo.request, mInfo.response);
-			return mInfo.clientSession;
+		} else if (paramType.equals(WebSession.class)) {
+			if (mInfo.session == null)
+				mInfo.session = sessionGenerator.getSession(application, mInfo.request, mInfo.response);
+			return mInfo.session;
 		} else {
 			for (Annotation ann : annos) {
 				if (ann instanceof UrlParam) {
@@ -528,13 +499,15 @@ public final class WebBasicRouter extends WebRouterBase {
 		public String httpBody;
 		public HttpServletRequest request;
 		public HttpServletResponse response;
-		public ClientSession clientSession;
+		public WebSession session;
 		public Map<String, String> urlParams = new HashMap<>();
 	}
 
 	private boolean dispatch(HttpServletRequest request,
 			HttpServletResponse response)
 			throws ServletException, IOException {
+		long beginTime = System.currentTimeMillis();
+
 		String httpMethod = request.getMethod().toUpperCase();
 		String requestPath = request.getServletPath();
 		if (request.getPathInfo() != null) {
@@ -546,7 +519,6 @@ public final class WebBasicRouter extends WebRouterBase {
 			return false;
 		}
 		// Handler has been found then route the input request to appropriate routine to do a further processing.
-		long beginTime = System.currentTimeMillis();
 		try {
 			MethodRuntimeInfo mInfo = new MethodRuntimeInfo();
 			mInfo.request = request;
@@ -580,22 +552,14 @@ public final class WebBasicRouter extends WebRouterBase {
 				mInfo.postType = RequestPostType.UNKNOW;
 			if (mInfo.postType != RequestPostType.UNKNOW)
 				mInfo.httpBody = readHttpBody(request);
-			// Obtain Client Session From Cookie
-			mInfo.clientSession = ClientSession.fromCookie(request, response);
-			if (mInfo.clientSession != null) {
-				if (mInfo.clientSession.isExpired()) {
-					mInfo.clientSession = null;
-				} else
-					mInfo.clientSession.touch();
+			// Obtain session object
+			mInfo.session = sessionGenerator.getSession(application, request, response);
+			if (mInfo.session != null) {
+				mInfo.session.touch();
 			}
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
 			if (entryAnno != null && entryAnno.crossSite()) {
-				response.setHeader("Access-Control-Allow-Origin", "*");
-				response.setHeader("Access-Control-Allow-Credentials", "true");
-				response.setHeader("Access-Control-Allow-Methods",
-						"GET,POST,OPTIONS");
-				response.setHeader("Access-Control-Allow-Headers",
-						"Content-Type,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control");
+				setCrossSiteHeaders(response);
 			}
 			Object inst = info.instance;
 			Class<?>[] params = info.method.getParameterTypes();
@@ -605,29 +569,28 @@ public final class WebBasicRouter extends WebRouterBase {
 				realParameters.add(makeParam(params[i], annos[i], mInfo));
 			}
 			Object result = info.method.invoke(inst, realParameters.toArray());
-			ClientSession s = ClientSession.existSession(request);
-			if (s != null && !s.isSaved())
-				s.save();
+			if (mInfo.session != null && !mInfo.session.isSaved())
+				mInfo.session.save();
 			if (!info.method.getReturnType().equals(Void.class) && 
 					!info.method.getReturnType().equals(void.class) && 
 					(entryAnno != null && entryAnno.toJson() || result != null)) {
-				sendJson(response, result);
+				ServletUtils.sendJsonObject(response, result);
 			}
 			return true;
 		} catch (ValidateException ex) {
-			send(response, HttpServletResponse.SC_BAD_REQUEST, "Bad request: invalid parameters!");
+			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, "Bad request: invalid parameters!");
 			logger.log(Level.WARNING, "Bad request: {0}", ex.getMessage());
 			return true;
 		} catch (HttpException ex) {
 			if (ex.getMessage() != null) {
 				if (ex.getJsonObject() != null)
-					sendJson(response, ex.getHttpStatus(), ex.getJsonObject());
+					ServletUtils.sendJsonObject(response, ex.getHttpStatus(), ex.getJsonObject());
 				else if (ex.isJsonString())
-					sendJsonString(response, ex.getHttpStatus(), ex.getMessage());
+					ServletUtils.sendJsonString(response, ex.getHttpStatus(), ex.getMessage());
 				else
-					send(response, ex.getHttpStatus(), ex.getMessage());
+					ServletUtils.sendText(response, ex.getHttpStatus(), ex.getMessage());
 			} else
-				send(response, ex.getHttpStatus());
+				ServletUtils.send(response, ex.getHttpStatus());
 			if (ex.getCause() != null)
 				logger.log(Level.WARNING, ex.getMessage(), ex.getCause());
 			else
@@ -639,33 +602,36 @@ public final class WebBasicRouter extends WebRouterBase {
 				HttpException httpEx = (HttpException)realEx;
 				if (httpEx.getMessage() != null) {
 					if (httpEx.getJsonObject() != null)
-						sendJson(response, httpEx.getHttpStatus(), httpEx.getJsonObject());
+						ServletUtils.sendJsonObject(response, httpEx.getHttpStatus(), httpEx.getJsonObject());
 					else if (httpEx.isJsonString())
-						sendJsonString(response, httpEx.getHttpStatus(), httpEx.getMessage());
+						ServletUtils.sendJsonString(response, httpEx.getHttpStatus(), httpEx.getMessage());
 					else
-						send(response, httpEx.getHttpStatus(), httpEx.getMessage());
+						ServletUtils.sendText(response, httpEx.getHttpStatus(), httpEx.getMessage());
 				} else
-					send(response, httpEx.getHttpStatus());
+					ServletUtils.send(response, httpEx.getHttpStatus());
 				if (httpEx.getCause() != null)
 					logger.log(Level.WARNING, httpEx.getMessage(), httpEx.getCause());
 				else
 					logger.log(Level.WARNING, httpEx.getMessage());
 			} else {
-				send(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
+				ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
 				logger.log(Level.SEVERE, "Error processing", ex);
 			}
 			return true;
 		} catch (Exception ex) {
-			send(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
+			ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
 			logger.log(Level.SEVERE, "Error processing", ex);
 			return true;
 		} finally {
-			if (routerInfo.trace) {
-				WebSecurityManager.LoginInfo loginInfo =  application.getSecurityManager()
-						.getLoginInfo((HttpServletRequest)request, (HttpServletResponse)response);
-				RequestInfo reqInfo = MonitorService.buildRequestInfo(
-						request, response, loginInfo, "Dispatcher", beginTime);
-				MonitorService.record(reqInfo);
+			if (application != null && application.getSetting().traceRouter) {
+				Tracer.Info traceInfo = new Tracer.Info();
+				traceInfo.catalog = "router";
+				traceInfo.name = "access";
+				traceInfo.put("url", requestPath);
+				traceInfo.put("method", httpMethod);
+				traceInfo.put("startTime", beginTime);
+				traceInfo.put("runningTime", System.currentTimeMillis() - beginTime);
+				application.trace(traceInfo);
 			}
 		}
 	}
@@ -724,17 +690,5 @@ public final class WebBasicRouter extends WebRouterBase {
 		if (!dispatch(request, response)) {
 			super.doTrace(request, response);
 		}
-	}
-
-	public static void error(Exception ex, Integer status) throws HttpException {
-		Throwable e = ex;
-		Throwable cause;
-		while ((cause = e.getCause()) != null)
-			e = cause;
-		throw new HttpException(status, e.getMessage(), ex);
-	}
-	
-	public static void error(Exception ex) throws HttpException {
-		error(ex, 400);
 	}
 }

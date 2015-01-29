@@ -955,32 +955,24 @@ public class DBService {
 	}
 
 	/* Private properties. */
-	//final private BoneCPDataSource boneCP;
 	final private BoneCP boneCP;
 	final private DBSetting setting;
-	final private Set<Tracer> tracerSet = new HashSet<>();
+	private Tracer tracer = null;
 
-	public synchronized void addTracer(Tracer tracer) {
-		tracerSet.add(tracer);
+	public synchronized void setTracer(Tracer tracer) {
+		this.tracer = tracer;
 	}
-
-	public synchronized void removeTracer(Tracer tracer) {
-		tracerSet.remove(tracer);
-	}
-
-	public synchronized void clearTracer() {
-		tracerSet.clear();
-	}
-	
 	public DBService(DBSetting dbSetting) throws ValidateException {
+		this(dbSetting, null);
+	}
+	public DBService(DBSetting dbSetting, Tracer tracer) throws ValidateException {
+		this.tracer = tracer;
 		Validator validator = new Validator();
 		validator.validateObject(dbSetting, DBSetting.class, false);
 		this.setting = dbSetting;
 		try {
 			Class.forName(setting.driver);
 			BoneCPConfig boneCPConfig = new BoneCPConfig();
-			//boneCP = new BoneCPDataSource();
-			//boneCP.setDriverClass(setting.driver);
 			boneCPConfig.setDefaultAutoCommit(true);
 			boneCPConfig.setJdbcUrl(setting.uri);
 			boneCPConfig.setJdbcUrl(setting.uri);
@@ -1005,24 +997,21 @@ public class DBService {
 	
 	public static class DBSession implements AutoCloseable {
 		private final Connection conn;
-		final private Set<Tracer> tracerSet;
+		final private Tracer tracer;
 		public DBSession(Connection conn) throws SQLException {
-			this.conn = conn;
-			this.conn.setAutoCommit(true);
-			tracerSet = new HashSet<>();
+			this(conn, null);
 		}
-		public DBSession(Connection conn, Set<Tracer> tracerSet) throws SQLException {
+		public DBSession(Connection conn, Tracer tracer) throws SQLException {
 			this.conn = conn;
 			this.conn.setAutoCommit(true);
-			this.tracerSet = tracerSet;
+			this.tracer = tracer;
 		}
 		private void trace(Tracer.Info info) {
-			for (Tracer tracer: tracerSet) {
-				try {
+			try {
+				if (tracer != null)
 					tracer.trace(info);
-				} catch (Exception ex) {
-					logger.log(Level.WARNING, "Record trace info failed.", ex);
-				}
+			} catch (Exception ex) {
+				logger.log(Level.WARNING, "Record trace info failed.", ex);
 			}
 		}
 		public void setAutoCommit(boolean autoCommit) throws SQLException {
@@ -1102,7 +1091,7 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!tracerSet.isEmpty()) {
+				if (tracer != null) {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "execute";
@@ -1125,7 +1114,7 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!tracerSet.isEmpty()) {
+				if (tracer != null) {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "execute";
@@ -1162,7 +1151,7 @@ public class DBService {
 				}
 				throw ex;
 			} finally {
-				if (!tracerSet.isEmpty()) {
+				if (tracer != null) {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "query";
@@ -1188,7 +1177,7 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!tracerSet.isEmpty()) {
+				if (tracer != null) {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "query";
@@ -1238,7 +1227,7 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!tracerSet.isEmpty()) {
+				if (tracer != null) {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "invoke";
@@ -1284,7 +1273,7 @@ public class DBService {
 				success = false;
 				throw ex;
 			} finally {
-				if (!tracerSet.isEmpty()) {
+				if (tracer != null) {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "perform";
@@ -1331,7 +1320,7 @@ public class DBService {
 		doWork(work, interfaceType, false);
 	}
 	public DBSession getSession() throws SQLException {
-		return new DBSession(getConnection());
+		return new DBSession(getConnection(), tracer);
 	}
 	public Connection getConnection() throws SQLException {
 		return boneCP.getConnection();

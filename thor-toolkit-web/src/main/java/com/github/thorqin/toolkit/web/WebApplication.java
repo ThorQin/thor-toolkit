@@ -143,8 +143,18 @@ public abstract class WebApplication extends TraceService
 		loadConfig();
 	}
 
-	private void loadConfig() {
+	private synchronized void loadConfig() {
 		setting = configManager.get("/", Setting.class, new Setting());
+		for (String dbKey: dbMapping.keySet()) {
+			DBService dbService = dbMapping.get(dbKey);
+			if (dbService == null)
+				continue;
+			boolean useTrace = configManager.getBoolean(dbKey + "/trace", false);
+			if (useTrace)
+				dbService.setTracer(this);
+			else
+				dbService.setTracer(null);
+		}
 	}
 
 	private void init() {
@@ -177,7 +187,7 @@ public abstract class WebApplication extends TraceService
 	public final void contextInitialized(ServletContextEvent sce) {}
 
 	@Override
-	public final void contextDestroyed(ServletContextEvent sce) {
+	public final synchronized void contextDestroyed(ServletContextEvent sce) {
 		try {
 			for (Map.Entry<String, DBService> db: dbMapping.entrySet()) {
 				db.getValue().close();
@@ -199,6 +209,9 @@ public abstract class WebApplication extends TraceService
 	@Override
 	public void onShutdown() {}
 
+	public final String getName() {
+		return applicationName;
+	}
 
 	public final String getDataPath() throws MalformedURLException, URISyntaxException {
 		String dataDir = ConfigManager.getAppDataDir(applicationName);
@@ -237,7 +250,7 @@ public abstract class WebApplication extends TraceService
 			DBService.DBSetting setting = configManager.get(name, DBService.DBSetting.class);
 			DBService db = new DBService(setting);
 			if (setting.trace)
-				db.addTracer(this);
+				db.setTracer(this);
 			dbMapping.put(name, db);
 			return db;
 		}

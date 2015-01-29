@@ -3,6 +3,7 @@ package com.github.thorqin.toolkit.web.utility;
 import com.github.thorqin.toolkit.utility.MimeUtils;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.UserAgentUtils;
+import com.github.thorqin.toolkit.web.HttpException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -129,5 +130,17 @@ public class ServletUtils {
                 outputStream.write(buffer, 0, length);
             }
         }
+    }
+
+    public static void error(Exception ex, Integer status) throws HttpException {
+        Throwable e = ex;
+        Throwable cause;
+        while ((cause = e.getCause()) != null)
+            e = cause;
+        throw new HttpException(status, e.getMessage(), ex);
+    }
+
+    public static void error(Exception ex) throws HttpException {
+        error(ex, 400);
     }
 }

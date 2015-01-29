@@ -26,6 +26,7 @@ public class SessionGenerator {
             throw new ServletException(ex);
         }
     }
+    @SuppressWarnings("unchecked")
     public void setSessionType(String sessionTypeName) throws ServletException {
         if (sessionTypeName != null && !sessionTypeName.isEmpty()) {
             try {

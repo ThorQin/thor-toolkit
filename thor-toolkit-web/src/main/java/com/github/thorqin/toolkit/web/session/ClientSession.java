@@ -235,6 +235,7 @@ public class ClientSession extends WebSession {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Enumeration<String> getKeys() {
 		return new IteratorEnumeration(value.values.keySet().iterator());
