@@ -10,7 +10,7 @@ import java.lang.reflect.Constructor;
 /**
  * Created by nuo.qin on 1/28/2015.
  */
-public class SessionGenerator {
+public class SessionFactory {
     private Class<? extends WebSession> sessionType = ClientSession.class;
 
     public WebSession getSession(WebApplication application, HttpServletRequest request, HttpServletResponse response) throws ServletException {

@@ -95,30 +95,25 @@ public class WebInitializer implements ServletContainerInitializer {
 					// Add routers ....
 					List<WebApplication.RouterInfo> routerInfos = application.getRouters();
 					for (WebApplication.RouterInfo info : routerInfos) {
-						ServletRegistration.Dynamic servletRegistion = ctx.addServlet(
+						ServletRegistration.Dynamic servletRegistration = ctx.addServlet(
 								"ThorTookitRouter_" + (routerCount++), info.router);
-						servletRegistion.setLoadOnStartup(0);
-						servletRegistion.setAsyncSupported(true);
-						servletRegistion.setInitParameter("sessionClass", application.getSessionType().getName());
-						int count = 0;
-						for (String path : info.path) {
-							if (path.trim().length() != 0) {
-								servletRegistion.addMapping(path.trim());
-								count++;
-							}
-						}
-						if (count == 0)
-							servletRegistion.addMapping("/*");
+						servletRegistration.setLoadOnStartup(0);
+						servletRegistration.setAsyncSupported(true);
+						servletRegistration.setInitParameter("sessionClass", application.getSessionType().getName());
+                        if (info.path.length == 0)
+                            servletRegistration.addMapping("/*");
+                        else
+                            servletRegistration.addMapping(info.path);
 					}
 					// Add filters ...
 					List<WebApplication.FilterInfo> filterInfos = application.getFilters();
 					for (WebApplication.FilterInfo info : filterInfos) {
-						FilterRegistration filterRegistion = ctx.addFilter(
+						FilterRegistration filterRegistration = ctx.addFilter(
 								"ThorTookitFilter" + (filterCount++), info.filter);
 						if (info.path.length == 0)
-							filterRegistion.addMappingForUrlPatterns(null, true, "/*");
+							filterRegistration.addMappingForUrlPatterns(null, true, "/*");
 						else
-							filterRegistion.addMappingForUrlPatterns(null, true, info.path);
+							filterRegistration.addMappingForUrlPatterns(null, true, info.path);
 					}
 					ctx.addListener(application);
 				}

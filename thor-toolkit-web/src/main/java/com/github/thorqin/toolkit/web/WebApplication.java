@@ -58,7 +58,7 @@ public abstract class WebApplication extends TraceService
 	public static class Setting {
 		public boolean traceRouter = false;
 		public boolean traceSecurity = false;
-		public int maxInterval = 900;
+		public int sessionTimeout = 900;
 	}
 
 	public static class RouterInfo {
@@ -117,7 +117,7 @@ public abstract class WebApplication extends TraceService
 		init();
 	}
 
-	public Class<? extends WebSession> getSessionType() {
+	public final Class<? extends WebSession> getSessionType() {
 		return sessionType;
 	}
 
@@ -199,7 +199,7 @@ public abstract class WebApplication extends TraceService
 		applicationMap.remove(applicationName);
 	}
 
-	public ServletContext getServletContext() {
+	public final ServletContext getServletContext() {
 		return servletContext;
 	}
 
@@ -259,6 +259,19 @@ public abstract class WebApplication extends TraceService
 		return getDBService("db");
 	}
 
+    public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        Constructor<? extends T> constructor;
+        try {
+            constructor = clazz.getConstructor(WebApplication.class);
+            constructor.setAccessible(true);
+            return constructor.newInstance(application);
+        } catch (NoSuchMethodException ex) {
+            constructor = clazz.getConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
+        }
+    }
+
 	public final List<RouterInfo> getRouters() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
 		if (routers == null) {
 			routers = new LinkedList<>();
@@ -267,23 +280,8 @@ public abstract class WebApplication extends TraceService
 				routers.add(new RouterInfo(new String[]{"/*"}, new WebBasicRouter(this)));
 			} else {
 				for (WebRouter router: webApp.routers()) {
-					Constructor<? extends WebRouterBase> constructor =
-							router.type().getConstructor(WebApplication.class);
-					if (constructor != null) {
-						constructor.setAccessible(true);
-						WebRouterBase inst = constructor.newInstance(this);
-						routers.add(new RouterInfo(router.path(), inst));
-					} else {
-						constructor = router.type().getConstructor();
-						if (constructor != null) {
-							constructor.setAccessible(true);
-							WebRouterBase inst = constructor.newInstance();
-							routers.add(new RouterInfo(router.path(), inst));
-						} else {
-							throw new NoSuchMethodException("Router must provide a valid constructor see WebRouterBase definition.");
-						}
-					}
-
+                    WebRouterBase inst = createInstance(router.type(), this);
+                    routers.add(new RouterInfo(router.path(), inst));
 				}
 			}
 		}
@@ -298,22 +296,8 @@ public abstract class WebApplication extends TraceService
 				filters.add(new FilterInfo(new String[]{"/*"}, new WebSecurityManager(this)));
 			} else {
 				for (WebFilter filter: webApp.filters()) {
-					Constructor<? extends WebFilterBase> constructor =
-							filter.type().getConstructor(WebApplication.class);
-					if (constructor != null) {
-						constructor.setAccessible(true);
-						WebFilterBase inst = constructor.newInstance(this);
-						filters.add(new FilterInfo(filter.path(), inst));
-					} else {
-						constructor = filter.type().getConstructor();
-						if (constructor != null) {
-							constructor.setAccessible(true);
-							WebFilterBase inst = constructor.newInstance();
-							filters.add(new FilterInfo(filter.path(), inst));
-						} else {
-							throw new NoSuchMethodException("Filter must provide a valid constructor see WebFilterBase definition.");
-						}
-					}
+                    WebFilterBase inst = createInstance(filter.type(), this);
+                    filters.add(new FilterInfo(filter.path(), inst));
 				}
 			}
 		}

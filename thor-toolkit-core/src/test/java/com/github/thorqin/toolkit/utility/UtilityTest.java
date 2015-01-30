@@ -6,8 +6,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by nuo.qin on 12/12/2014.
@@ -35,5 +34,20 @@ public class UtilityTest {
     public void testSplit() {
         String[] strings = "".split("/");
         System.out.println(strings.length);
+    }
+
+    @Test
+    public void testSort() {
+        List<Integer> list = new LinkedList<>();
+        list.add(2);
+        list.add(1);
+        list.add(3);
+        Collections.sort(list, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return o2 - o1;
+            }
+        });
+        System.out.println(list);
     }
 }

@@ -22,23 +22,18 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.github.thorqin.toolkit.web.session.SessionGenerator;
+import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.RuleMatcher;
 import com.github.thorqin.toolkit.web.utility.ServletUtils;
@@ -58,14 +53,12 @@ public final class WebBasicRouter extends WebRouterBase {
 	protected class MappingInfo {
 		public Object instance;
 		public Method method;
-		public Map<String, Integer> parameters;
-		public Pattern pattern;
 	}
 	
 	private RuleMatcher<MappingInfo> mapping = null;
 	private List<MappingInfo> startup = new LinkedList<>();
 	private List<MappingInfo> cleanups = new LinkedList<>();
-	private SessionGenerator sessionGenerator = new SessionGenerator();
+	private SessionFactory sessionFactory = new SessionFactory();
 
 
 	public WebBasicRouter(WebApplication application) {
@@ -90,7 +83,7 @@ public final class WebBasicRouter extends WebRouterBase {
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
 		String sessionTypeName = config.getInitParameter("sessionClass");
-		sessionGenerator.setSessionType(sessionTypeName);
+		sessionFactory.setSessionType(sessionTypeName);
 		if (mapping == null) {
 			try {
 				makeApiMapping(config.getServletContext());
@@ -132,24 +125,12 @@ public final class WebBasicRouter extends WebRouterBase {
 				"Content-Type,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control");
 	}
 
-	private Object createInstance(Class<?> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-		Constructor<?> constructor = clazz.getConstructor(WebApplication.class);
-		if (constructor != null) {
-			constructor.setAccessible(true);
-			return constructor.newInstance(application);
-		}
-		constructor = clazz.getConstructor();
-		if (constructor != null) {
-			constructor.setAccessible(true);
-			return constructor.newInstance();
-		}
-		throw new NoSuchMethodException("Does not provide valid constructor.");
-	}
+
 	
 	private Object addMapping(List<MappingInfo> collection, Class<?> clazz, Method method, Object inst) {
 		try {
 			if (inst == null) {
-				inst = createInstance(clazz);
+				inst = WebApplication.createInstance(clazz, application);
 			}
 			MappingInfo info = new MappingInfo();
 			info.instance = inst;
@@ -202,7 +183,8 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 		WebModule classAnno = clazz.getAnnotation(WebModule.class);
 		if (application != null) {
-			if (!classAnno.application().equals(application.getName()) && !application.getName().isEmpty())
+            String applyAppName = classAnno.application().trim();
+			if (!applyAppName.isEmpty() && !applyAppName.equals(application.getName()))
 				return;
 		}
 		boolean crossSite = classAnno.crossSite();
@@ -213,7 +195,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		if (!path.endsWith("/")) {
 			path += "/";
 		}
-		Object inst = createInstance(clazz);
+		Object inst = WebApplication.createInstance(clazz, application);
 
 		for (Field field : clazz.getDeclaredFields()) {
 			Class<?> fieldType = field.getType();
@@ -253,19 +235,16 @@ public final class WebBasicRouter extends WebRouterBase {
 			} else if (name.startsWith("/")) {
 				name = name.substring(1);
 			}
-			Map<String, Integer> paramInfo = new HashMap<>();
-			String fullPath = RuleMatcher.formatUrlRule(path + name, paramInfo);
+			String fullPath = path + name;
 			if (crossSite || entry.crossSite()) {
-				String key = "^" + WebEntry.HttpMethod.OPTIONS + ":" + fullPath.substring(1);
+				String key = WebEntry.HttpMethod.OPTIONS + ":" + fullPath;
 				System.out.println("Add Mapping: " + key);
 				MappingInfo info = new MappingInfo();
 				info.instance = this;
 				info.method = this.getClass().getMethod(
 						"setCrossSiteHeaders", HttpServletResponse.class);
 				info.method.setAccessible(true);
-				info.parameters = paramInfo;
-				info.pattern = Pattern.compile(key);
-				mapping.addRule(key, info);
+				mapping.addURLRule(key, info, entry.order(), entry.useCache());
 			}
 			String methodPrefix = "";
 			for (WebEntry.HttpMethod httpMethod : entry.method()) {
@@ -273,16 +252,16 @@ public final class WebBasicRouter extends WebRouterBase {
 					methodPrefix += "|";
 				methodPrefix += httpMethod;
 			}
-			methodPrefix = "^(" + methodPrefix + ")";
-			String key = methodPrefix + ":" + fullPath.substring(1);
-			System.out.println("Add Mapping: " + key);
+			methodPrefix = "(" + methodPrefix + ")";
+            Set<String> parameters = new HashSet<>();
+            String exp = RuleMatcher.ruleToExp(fullPath, parameters);
+			String key = methodPrefix + ":" + exp;
+			System.out.println("Add Mapping: " + methodPrefix + ":" + fullPath);
 			MappingInfo info = new MappingInfo();
 			info.instance = inst;
 			info.method = method;
-			info.parameters = paramInfo;
 			method.setAccessible(true);
-			info.pattern = Pattern.compile(key);
-			mapping.addRule(key, info);
+			mapping.addRule(key, parameters, info, entry.order(), entry.useCache());
 		}
 	}
 
@@ -326,7 +305,6 @@ public final class WebBasicRouter extends WebRouterBase {
 		mapping = new RuleMatcher<>();
 		File file = new File(getClassPath("/"));
 		scanClasses(file);
-		mapping.build();
 	}
 
 	private String readHttpBody(HttpServletRequest request) {
@@ -452,7 +430,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			return mInfo.request.getSession();
 		} else if (paramType.equals(WebSession.class)) {
 			if (mInfo.session == null)
-				mInfo.session = sessionGenerator.getSession(application, mInfo.request, mInfo.response);
+				mInfo.session = sessionFactory.getSession(application, mInfo.request, mInfo.response);
 			return mInfo.session;
 		} else {
 			for (Annotation ann : annos) {
@@ -514,8 +492,8 @@ public final class WebBasicRouter extends WebRouterBase {
 			requestPath += request.getPathInfo();
 		}
 		String key = httpMethod + ":" + requestPath;
-		MappingInfo info = mapping.match(key);
-		if (info == null) {
+		RuleMatcher<MappingInfo>.Result matchResult = mapping.match(key);
+		if (matchResult == null) {
 			return false;
 		}
 		// Handler has been found then route the input request to appropriate routine to do a further processing.
@@ -524,23 +502,11 @@ public final class WebBasicRouter extends WebRouterBase {
 			mInfo.request = request;
 			mInfo.response = response;
 			// Extract URL's parameters which like '/{user}/{id}' form into a hash map.
-			mInfo.urlParams = new HashMap<>();
-			if (info.parameters.size() > 0) {
-				Matcher matcher = info.pattern.matcher(key);
-				if (!matcher.find())
-					return false;
-				int gCount = matcher.groupCount();
-				for (String k : info.parameters.keySet()) {
-					int idx = info.parameters.get(k);
-					if (idx <= gCount) {
-						mInfo.urlParams.put(k, matcher.group(idx));
-					}
-				}
-			}
-			
-			boolean postJson = (request.getContentType() != null && 
-					request.getContentType().split(";")[0].equalsIgnoreCase("application/json") || 
-					request.getContentType() == null && 
+			mInfo.urlParams = matchResult.parameters;
+
+			boolean postJson = (request.getContentType() != null &&
+					request.getContentType().split(";")[0].equalsIgnoreCase("application/json") ||
+					request.getContentType() == null &&
 					request.getMethod().equalsIgnoreCase("POST"));
 			boolean postForm = (request.getContentType() != null
 				&& request.getContentType().split(";")[0].equalsIgnoreCase("application/x-www-form-urlencoded"));
@@ -553,10 +519,11 @@ public final class WebBasicRouter extends WebRouterBase {
 			if (mInfo.postType != RequestPostType.UNKNOW)
 				mInfo.httpBody = readHttpBody(request);
 			// Obtain session object
-			mInfo.session = sessionGenerator.getSession(application, request, response);
+			mInfo.session = sessionFactory.getSession(application, request, response);
 			if (mInfo.session != null) {
 				mInfo.session.touch();
 			}
+            MappingInfo info = matchResult.info;
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
 			if (entryAnno != null && entryAnno.crossSite()) {
 				setCrossSiteHeaders(response);
@@ -571,8 +538,8 @@ public final class WebBasicRouter extends WebRouterBase {
 			Object result = info.method.invoke(inst, realParameters.toArray());
 			if (mInfo.session != null && !mInfo.session.isSaved())
 				mInfo.session.save();
-			if (!info.method.getReturnType().equals(Void.class) && 
-					!info.method.getReturnType().equals(void.class) && 
+			if (!info.method.getReturnType().equals(Void.class) &&
+					!info.method.getReturnType().equals(void.class) &&
 					(entryAnno != null && entryAnno.toJson() || result != null)) {
 				ServletUtils.sendJsonObject(response, result);
 			}

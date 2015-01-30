@@ -15,7 +15,7 @@ public class ServerSession extends WebSession {
         super(application, request, response);
         HttpSession session = request.getSession();
         if (session.isNew() && application != null)
-            session.setMaxInactiveInterval(application.getSetting().maxInterval);
+            session.setMaxInactiveInterval(application.getSetting().sessionTimeout);
     }
 
     @Override

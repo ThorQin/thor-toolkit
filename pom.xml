@@ -5,18 +5,44 @@
 	<groupId>com.github.thorqin</groupId>
 	<artifactId>thor-toolkit</artifactId>
 	<version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 	<properties>  
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<downloadSources>true</downloadSources>
 		<downloadJavadocs>true</downloadJavadocs>
-	</properties>	
+	</properties>
 
-	<packaging>pom</packaging>
+    <description>
+        A lightweight java web framework used for easily create ajax based web application
+    </description>
+    <url>https://github.com/ThorQin/thor-toolkit</url>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://mit-license.org/</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>thorqin</id>
+            <name>Thor Qin</name>
+            <email>thor.qin@outlook.com</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/ThorQin/thor-toolkit</url>
+        <connection>scm:git:https://github.com/ThorQin/thor-toolkit.git</connection>
+    </scm>
+
+
 	<modules>
 		<module>thor-toolkit-core</module>
 		<module>thor-toolkit-web</module>
+        <module>test-website</module>
 	</modules>
 	<dependencies>
 		<dependency>

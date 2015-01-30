@@ -6,19 +6,14 @@
 
 package com.github.thorqin.toolkit.web;
 
-import com.github.thorqin.toolkit.web.session.ClientSession;
-import com.github.thorqin.toolkit.web.session.SessionGenerator;
-import com.github.thorqin.toolkit.web.session.WebSession;
+import com.github.thorqin.toolkit.web.session.SessionFactory;
 
 import java.io.IOException;
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  *
@@ -27,7 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 public class WebSecurityManager extends WebFilterBase {
 	private WebSecurityManager security;
 
-	private SessionGenerator sessionGenerator = new SessionGenerator();
+	private SessionFactory sessionFactory = new SessionFactory();
 
 	public WebSecurityManager(WebApplication application) {
 		super(application);
@@ -40,7 +35,7 @@ public class WebSecurityManager extends WebFilterBase {
 	@Override
 	public void init(FilterConfig config) throws ServletException {
 		String sessionTypeName = config.getInitParameter("sessionClass");
-		sessionGenerator.setSessionType(sessionTypeName);
+		sessionFactory.setSessionType(sessionTypeName);
 	}
 
 	@Override

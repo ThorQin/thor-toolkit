@@ -70,7 +70,7 @@ public class ClientSession extends WebSession {
 		value.creationTime = now;
 		value.lastAccessedTime = now;
 		if (application != null) {
-			this.setMaxInactiveInterval(application.getSetting().maxInterval);
+			this.setMaxInactiveInterval(application.getSetting().sessionTimeout);
 		} else {
 			this.setMaxInactiveInterval(request.getSession().getMaxInactiveInterval());
 		}

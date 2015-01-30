@@ -6,11 +6,8 @@
 
 package com.github.thorqin.toolkit.web.utility;
 
-import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.security.InvalidParameterException;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,112 +17,156 @@ import java.util.regex.Pattern;
  * @param <T> Stored info object type
  */
 public class RuleMatcher<T> {
-	private final List<SimpleEntry<String, T>> resultList = new ArrayList<>();
-	private final Map<String, Integer> ruleMap = new HashMap<>();
-	private final static String groupPrefix = "_RG_";
-	private Pattern pattern = null;
-	
-	public void addRule(String ruleRegExp, T info) {
-		if (ruleMap.containsKey(ruleRegExp)) {
-			resultList.set(ruleMap.get(ruleRegExp), new SimpleEntry<>(ruleRegExp,info));
-		} else {
-			resultList.add(new SimpleEntry<>(ruleRegExp,info));
-			ruleMap.put(ruleRegExp, resultList.size() - 1);
-		}
-		pattern = null;
+
+    private class Rule {
+        public Pattern pattern;
+        public T info;
+        public int order;
+        public boolean useCache;
+        private Set<String> parameters;
+        public Rule(String exp, Set<String> parameters, T info, int order, boolean useCache) {
+            this.pattern = Pattern.compile(exp);
+            this.info = info;
+            this.order = order;
+            this.useCache = useCache;
+            this.parameters = parameters;
+        }
+    }
+
+    private class OrderComparetor implements Comparator<Rule> {
+        @Override
+        public int compare(Rule o1, Rule o2) {
+            return o1.order - o2.order;
+        }
+    }
+
+    private final List<Rule> rules = new ArrayList<>();
+	private final Map<String, Rule> cache = new HashMap<>();
+
+    /**
+     * Add a match rule
+     * @param ruleExp Rule regexp
+     * @param info Stored object
+     * @param order Sort it from little to big
+     */
+	public void addRule(String ruleExp, Set<String> parameters, T info, int order, boolean useCache) {
+        rules.add(new Rule(ruleExp, parameters, info, order, useCache));
+        Collections.sort(rules, new OrderComparetor());
 	}
-	public void removeRule(String ruleRegExp) {
-		if (ruleMap.containsKey(ruleRegExp)) {
-			resultList.remove((int)ruleMap.get(ruleRegExp));
-			ruleMap.clear();
-			for (int i = 0; i < resultList.size(); i++)
-				ruleMap.put(resultList.get(i).getKey(), i);
-		}
-		pattern = null;
-	}
+
+    public void addURLRule(String urlPattern, T info, int order, boolean useCache) {
+        Set<String> parameters = new HashSet<>();
+        String exp = ruleToExp(urlPattern, parameters);
+        addRule(exp, parameters, info, order, useCache);
+    }
+
+    public void addURLRule(String urlPattern, T info, int order) {
+        addURLRule(urlPattern, info, order, true);
+    }
+
+    public void addURLRule(String urlPattern, T info) {
+        addURLRule(urlPattern, info, 10000, true);
+    }
+
+    public void addURLRule(String urlPattern, T info, boolean useCache) {
+        addURLRule(urlPattern, info, 10000, useCache);
+    }
+
+    /**
+     * Add a match rule, default order set to 10000 and should cache it
+     * @param ruleExp Rule regexp
+     * @param info Stored object
+     */
+    public void addRule(String ruleExp, Set<String> parameters, T info) {
+        addRule(ruleExp, parameters, info, 10000, true);
+    }
+
+    public void addRule(String ruleExp, T info) {
+        addRule(ruleExp, null, info, 10000, true);
+    }
+
+    public void addRule(String ruleExp, Set<String> parameters, T info, boolean useCache) {
+        addRule(ruleExp, parameters, info, 10000, useCache);
+    }
+
 	public void clear() {
-		ruleMap.clear();
-		resultList.clear();
-		pattern = null;
-	}
-	public void build() {
-		String regText = "";
-		for (int i = 0; i < resultList.size(); i++) {
-			SimpleEntry<String, T> entry = resultList.get(i);
-			String groupName = groupPrefix + i;
-			if (!regText.isEmpty())
-				regText += "|";
-			regText += "(?<" + groupName + ">" + entry.getKey() + ")";
-		}
-		pattern = Pattern.compile(regText);
+        rules.clear();
+        cache.clear();
 	}
 	
 	public int size() {
-		return resultList.size();
+		return rules.size();
 	}
-	
-	public T match(String input) {
-		if (pattern == null)
-			build();
-		Matcher matcher = pattern.matcher(input);
-		if (matcher.find()) {
-			for (int i = 0; i < resultList.size(); i++) {
-				SimpleEntry<String, T> entry = resultList.get(i);
-				String groupName = groupPrefix + i;
-				if (matcher.group(groupName) != null) {
-					return entry.getValue();
-				}
-			}
-			return null;
-		} else
-			return null;
+
+    public class Result {
+        public Map<String, String> parameters = new HashMap<>();
+        public T info;
+    }
+
+    private Result searchCache(String input) {
+        Rule rule = cache.get(input);
+        if (rule != null) {
+            Result result = new Result();
+            Matcher matcher = rule.pattern.matcher(input);
+            if (matcher.matches()) {
+                result.info = rule.info;
+                if (rule.parameters != null && !rule.parameters.isEmpty()) {
+                    for (String key : rule.parameters) {
+                        result.parameters.put(key, matcher.group(key));
+                    }
+                }
+                return result;
+            }
+        }
+        return null;
+    }
+
+	public Result match(String input) {
+        if (input == null)
+            return null;
+        Result result = searchCache(input);
+        if (result != null)
+            return result;
+        for (Rule rule: rules) {
+            Matcher matcher = rule.pattern.matcher(input);
+            if (matcher.matches()) {
+                result = new Result();
+                result.info = rule.info;
+                if (rule.useCache)
+                    cache.put(input, rule);
+                if (rule.parameters != null && !rule.parameters.isEmpty()) {
+                    for (String key : rule.parameters) {
+                        result.parameters.put(key, matcher.group(key));
+                    }
+                }
+                return result;
+            }
+        }
+        return null;
 	}
-	
-	public static boolean matchUrlRule(String rule, String url, Map<String, String> parameters) {
-		Map<String, Integer> paramSet = new HashMap<>();
-		String regexp = formatUrlRule(rule, paramSet);
-		Pattern pattern = Pattern.compile(regexp);
-		Matcher matcher = pattern.matcher(url);
-		if (!matcher.find())
-			return false;
-		if (parameters != null)
-			parameters.clear();
-		else
-			return true;
-		int gCount = matcher.groupCount();
-		for (String k : paramSet.keySet()) {
-			int idx = paramSet.get(k);
-			if (idx <= gCount) {
-				parameters.put(k, matcher.group(idx));
-			}
-		}
-		return true;
-	}
-	
-	public static String formatUrlRule(String input, Map<String, Integer> paramSet) {
-		if (paramSet != null)
-			paramSet.clear();
-		input = input.replaceAll("[\\^\\$\\(\\)\\[\\]\\|\\?\\.\\\\]", "\\\\$0");
-		input = input.replaceAll("\\*", "[^/]*");
-		input = input.replaceAll("\\+", ".*");
-		input = input.replaceAll("\\\\\\?\\.\\*", "(\\\\?.*)?");
-		Pattern pt = Pattern.compile("\\{([a-zA-Z][a-zA-Z0-9]*)\\}");
-		Matcher matcher = pt.matcher(input);
-		StringBuilder result = new StringBuilder();
-		result.append("^");
-		int pos = 0;
-		int findPos = 1;
-		while (matcher.find()) {
-			result.append(input.subSequence(pos, matcher.start()));
-			result.append("(");
-			if (paramSet != null)
-				paramSet.put(matcher.group(1), findPos++);
-			result.append("[^&=/\\?\\\\]+)");
-			pos = matcher.end();
-		}
-		if (pos < input.length())
-			result.append(input.subSequence(pos, input.length()));
-		result.append("$");
-		return result.toString();
-	}
+
+    private static String removeKeyword(String exp) {
+        return exp.replaceAll("[\\^\\$\\(\\)\\[\\]\\{\\}\\|\\+\\*\\?\\.\\\\]", "\\\\$0");
+    }
+
+    public static String ruleToExp(String rule, Set<String> parameters) {
+        parameters.clear();
+        Pattern pattern = Pattern.compile(
+                "\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}");
+        Matcher matcher = pattern.matcher(rule);
+        StringBuilder sb = new StringBuilder();
+        int pos = 0;
+        while (matcher.find()) {
+            sb.append(removeKeyword(rule.substring(pos, matcher.start())));
+            pos = matcher.end();
+            String key = matcher.group(1);
+            if (parameters.contains(key))
+                throw new InvalidParameterException("URL parameter name duplicated: " + key);
+            parameters.add(key);
+            sb.append("(?<").append(key).append(">[^/?]+)");
+        }
+        sb.append(removeKeyword(rule.substring(pos)));
+        return sb.toString();
+    }
+
 }

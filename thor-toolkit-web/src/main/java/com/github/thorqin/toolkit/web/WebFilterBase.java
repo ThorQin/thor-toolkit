@@ -1,7 +1,5 @@
 package com.github.thorqin.toolkit.web;
 
-import com.github.thorqin.toolkit.web.session.SessionGenerator;
-
 import javax.servlet.Filter;
 
 /**
