@@ -43,12 +43,6 @@ public class RuleMatcher<T> {
     private final List<Rule> rules = new ArrayList<>();
 	private final Map<String, Rule> cache = new HashMap<>();
 
-    /**
-     * Add a match rule
-     * @param ruleExp Rule regexp
-     * @param info Stored object
-     * @param order Sort it from little to big
-     */
 	public void addRule(String ruleExp, Set<String> parameters, T info, int order, boolean useCache) {
         rules.add(new Rule(ruleExp, parameters, info, order, useCache));
         Collections.sort(rules, new OrderComparetor());
@@ -72,11 +66,6 @@ public class RuleMatcher<T> {
         addURLRule(urlPattern, info, 10000, useCache);
     }
 
-    /**
-     * Add a match rule, default order set to 10000 and should cache it
-     * @param ruleExp Rule regexp
-     * @param info Stored object
-     */
     public void addRule(String ruleExp, Set<String> parameters, T info) {
         addRule(ruleExp, parameters, info, 10000, true);
     }
@@ -161,7 +150,7 @@ public class RuleMatcher<T> {
             pos = matcher.end();
             String key = matcher.group(1);
             if (parameters.contains(key))
-                throw new InvalidParameterException("URL parameter name duplicated: " + key);
+                throw new InvalidParameterException("URL parameter value duplicated: " + key);
             parameters.add(key);
             sb.append("(?<").append(key).append(">[^/?]+)");
         }

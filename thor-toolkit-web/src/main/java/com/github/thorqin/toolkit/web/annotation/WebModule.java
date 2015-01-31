@@ -33,11 +33,11 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface WebModule {
-	String path() default "/";
+	String value() default "/";
 
 	/**
 	 * If true then add some cross-site heads on the response message.
-	 * @return
+	 * @return true to add cross-site headers
 	 */
 	boolean crossSite() default false;
 
@@ -46,4 +46,6 @@ public @interface WebModule {
 	 * @return Application name that provided by WebApplication instance.
 	 */
 	String application() default "";
+
+    String suffix() default ".do";
 }

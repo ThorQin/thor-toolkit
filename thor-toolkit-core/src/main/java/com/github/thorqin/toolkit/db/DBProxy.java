@@ -29,7 +29,7 @@ public class DBProxy implements InvocationHandler {
 	 * Obtain a DBProxy object
 	 * @param session DBSession object
 	 * @param autoCommit whether or not commit when after invoke a call.
-	 * @throws SQLException
+	 * @throws SQLException When call setAutoCommit failed
 	 */
 	public DBProxy(DBSession session, boolean autoCommit) throws SQLException {
 		this.session = session;

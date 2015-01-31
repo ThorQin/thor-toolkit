@@ -40,6 +40,7 @@ public class WebSecurityManager extends WebFilterBase {
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        chain.doFilter(request, response);
 //		long beginTime = System.currentTimeMillis();
 //		if (security.checkPermission((HttpServletRequest)request, (HttpServletResponse)response))
 //			chain.doFilter(request, response);

@@ -23,18 +23,26 @@ public class ServletUtils {
         sendText(response, message);
     }
 
-    public static void sendText(HttpServletResponse response, String message) {
-        response.setContentType("text/plain");
+    public static void sendText(HttpServletResponse response, String message, String contentType) {
+        response.setContentType(contentType);
         response.setCharacterEncoding("utf-8");
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Cache-Control", "no-store");
         response.setDateHeader("Expires", 0);
-        try (Writer w = response.getWriter();) {
+        try (Writer w = response.getWriter()) {
             if (message != null)
                 w.write(message);
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Send message to client failed!", ex);
         }
+    }
+
+    public static void sendText(HttpServletResponse response, String message) {
+        sendText(response, message, "text/plain");
+    }
+
+    public static void sendHtml(HttpServletResponse response, String html) {
+        sendText(response, html, "text/html");
     }
 
     public static void sendJsonString(HttpServletResponse response, Integer status, String jsonString) {
@@ -43,16 +51,7 @@ public class ServletUtils {
     }
 
     public static void sendJsonString(HttpServletResponse response, String jsonString) {
-        response.setContentType("application/json");
-        response.setCharacterEncoding("utf-8");
-        response.setHeader("Pragma", "no-cache");
-        response.setHeader("Cache-Control", "no-store");
-        response.setDateHeader("Expires", 0);
-        try (Writer w = response.getWriter();) {
-            w.write(jsonString);
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Send message to client failed!", ex);
-        }
+        sendText(response, jsonString, "application/json");
     }
 
     public static void send(HttpServletResponse response, Integer status) {
@@ -73,7 +72,7 @@ public class ServletUtils {
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Cache-Control", "no-store");
         response.setDateHeader("Expires", 0);
-        try (Writer w = response.getWriter();){
+        try (Writer w = response.getWriter()){
             Serializer.toJson(obj, w);
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Send message to client failed!", ex);

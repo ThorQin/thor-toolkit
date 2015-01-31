@@ -38,7 +38,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface WebApp {
 	String name();
-	WebRouter[] routers() default { @WebRouter(type = WebBasicRouter.class)};
+	WebRouter[] routers() default { @WebRouter("*.do") };
 	WebFilter[] filters() default { @WebFilter(type = WebSecurityManager.class)};
 	Class<? extends WebSession> sessionType() default ClientSession.class;
 }

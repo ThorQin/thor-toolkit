@@ -17,6 +17,7 @@ import java.lang.reflect.Type;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.channels.FileLock;
 import java.util.Date;
 import java.util.HashMap;
@@ -396,7 +397,7 @@ public class Serializer {
 	
 	// WWW FORM URL ENCODING ...
 
-	public static <T> String toUrlEncoding(T obj) throws IllegalAccessException {
+	public static <T> String toUrlEncoding(T obj) throws IllegalAccessException, UnsupportedEncodingException {
 		if (obj == null)
 			return "";
 		StringBuilder sb = new StringBuilder();
@@ -407,26 +408,48 @@ public class Serializer {
 					sb.append("&");
 				sb.append(field.getName());
 				sb.append("=");
-				sb.append(field.get(obj).toString());
+				sb.append(URLEncoder.encode(field.get(obj).toString(), "utf-8"));
 			}
 		}
 		return sb.toString();
 	}
 
+    public static String toUrlEncoding(Map<String, String> obj) throws IllegalAccessException, UnsupportedEncodingException {
+        if (obj == null)
+            return "";
+        StringBuilder sb = new StringBuilder();
+        Class<?> type = obj.getClass();
+        for (String key: obj.keySet()) {
+            if (sb.length() > 0)
+                sb.append("&");
+            sb.append(URLEncoder.encode(key, "utf-8"));
+            sb.append("=");
+            sb.append(URLEncoder.encode(obj.get(key), "utf-8"));
+        }
+        return sb.toString();
+    }
+
+    public static Map<String, String> fromUrlEncoding(String formData) throws UnsupportedEncodingException {
+        if (formData == null)
+            return null;
+        String[] parts = formData.split("&");
+        Map<String, String> map = new HashMap<>();
+        for (String part : parts) {
+            String[] pair = part.split("=");
+            if (pair.length != 2)
+                continue;
+            String key = URLDecoder.decode(pair[0], "utf-8");
+            String val = URLDecoder.decode(pair[1], "utf-8");
+            map.put(key, val);
+        }
+        return map;
+    }
+
 	public static <T> T fromUrlEncoding(String formData, Class<T> type) throws InstantiationException, IllegalAccessException, UnsupportedEncodingException {
-		if (formData == null)
-			return null;
-		T obj = type.newInstance();
-		String[] parts = formData.split("&");
-		Map<String, String> map = new HashMap<>();
-		for (String part : parts) {
-			String[] pair = part.split("=");
-			if (pair.length != 2)
-				continue;
-			String key = URLDecoder.decode(pair[0], "utf-8");
-			String val = URLDecoder.decode(pair[1], "utf-8");
-			map.put(key, val);
-		}
+        Map<String, String> map = fromUrlEncoding(formData);
+        if (map == null)
+            return null;
+        T obj = type.newInstance();
 		for (Field field: type.getDeclaredFields()) {
 			String key;
 			SerializedName name = field.getAnnotation(SerializedName.class);

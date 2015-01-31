@@ -13,7 +13,7 @@ import java.util.Enumeration;
 public class ServerSession extends WebSession {
     public ServerSession(WebApplication application, HttpServletRequest request, HttpServletResponse response) {
         super(application, request, response);
-        HttpSession session = request.getSession();
+        HttpSession session = request.getSession(true);
         if (session.isNew() && application != null)
             session.setMaxInactiveInterval(application.getSetting().sessionTimeout);
     }
@@ -70,6 +70,11 @@ public class ServerSession extends WebSession {
     @Override
     public boolean isSaved() {
         return true;
+    }
+
+    @Override
+    public boolean isNew() {
+        return request.getSession().isNew();
     }
 
     @Override

@@ -31,6 +31,7 @@ public class ClientSession extends WebSession {
 	private final static ThreadLocal<Encryptor> encryptorLocalStore = new ThreadLocal<>();
 
 	private boolean isSaved = false;
+    private boolean isNew = true;
 
 	private static class Data {
 		public String sid;
@@ -44,7 +45,7 @@ public class ClientSession extends WebSession {
 	private static Encryptor getEncryptor() throws Exception {
 		Encryptor obj = encryptorLocalStore.get();
 		if (obj == null) {
-			obj = Encryptor.create("aes", Base64.decodeBase64(importKey()));
+			obj = Encryptor.createByEncodedKey("aes", Base64.decodeBase64(importKey()));
 			encryptorLocalStore.set(obj);
 		}
 		return obj;
@@ -63,6 +64,7 @@ public class ClientSession extends WebSession {
 
 	private void newSession() {
 		this.isSaved = false;
+        this.isNew = true;
 		value = new Data();
 		value.sid = java.util.UUID.randomUUID().toString().replace("-", "");
 		value.values = new HashMap<>();
@@ -78,10 +80,15 @@ public class ClientSession extends WebSession {
 
 	private void fromCookie(Cookie cookie) throws Exception {
 		Encryptor enc = getEncryptor();
-		this.isSaved = false;
 		value = Serializer.fromKryo(enc.decrypt(
 				Base64.decodeBase64(cookie.getValue())));
+        if (isExpired()) {
+            newSession();
+            return;
+        }
 		value.lastAccessedTime = new Date().getTime();
+        this.isSaved = true;
+        this.isNew = false;
 	}
 
 	public ClientSession(WebApplication application, HttpServletRequest request, HttpServletResponse response) {
@@ -137,6 +144,7 @@ public class ClientSession extends WebSession {
 	public void touch() {
 		value.lastAccessedTime = new Date().getTime();
 		this.isSaved = false;
+        this.isNew = false;
 	}
 
 	@Override
@@ -144,7 +152,12 @@ public class ClientSession extends WebSession {
 		return this.isSaved;
 	}
 
-	@Override
+    @Override
+    public boolean isNew() {
+        return this.isNew;
+    }
+
+    @Override
 	public String toString() {
 		try {
 			Encryptor enc = getEncryptor();

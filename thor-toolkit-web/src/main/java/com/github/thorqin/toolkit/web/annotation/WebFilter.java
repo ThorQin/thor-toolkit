@@ -38,6 +38,6 @@ import java.lang.annotation.Target;
 @Retention(value=RUNTIME)
 @Target(value={TYPE})
 public @interface WebFilter {
-	String[] path() default "/*";
+	String[] value() default "/*";
 	Class<? extends WebFilterBase> type();
 }

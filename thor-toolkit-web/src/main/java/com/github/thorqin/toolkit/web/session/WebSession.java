@@ -36,6 +36,7 @@ public abstract class WebSession {
         else
             return (new Date().getTime() - getLastAccessedTime() > getMaxInactiveInterval() * 1000);
     }
+    public abstract boolean isNew();
     public abstract boolean isSaved();
     public abstract void setMaxInactiveInterval(int interval);
     public abstract int getMaxInactiveInterval();

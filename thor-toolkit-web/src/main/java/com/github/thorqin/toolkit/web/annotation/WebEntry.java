@@ -47,13 +47,13 @@ public @interface WebEntry {
    }
 
 	HttpMethod[] method();
-	String name() default "";
+
+	String value() default "";
+
 	boolean crossSite() default false;
+
     int order() default 10000;
+
     boolean useCache() default true;
-	/**
-	 * Wether or not automaticlly serialize returned object to JSON response
-	 * @return
-	 */
-	boolean toJson() default true;
+
 }

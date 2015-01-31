@@ -281,7 +281,7 @@ public abstract class WebApplication extends TraceService
 			} else {
 				for (WebRouter router: webApp.routers()) {
                     WebRouterBase inst = createInstance(router.type(), this);
-                    routers.add(new RouterInfo(router.path(), inst));
+                    routers.add(new RouterInfo(router.value(), inst));
 				}
 			}
 		}
@@ -297,7 +297,7 @@ public abstract class WebApplication extends TraceService
 			} else {
 				for (WebFilter filter: webApp.filters()) {
                     WebFilterBase inst = createInstance(filter.type(), this);
-                    filters.add(new FilterInfo(filter.path(), inst));
+                    filters.add(new FilterInfo(filter.value(), inst));
 				}
 			}
 		}

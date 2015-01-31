@@ -30,8 +30,6 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
@@ -40,7 +38,6 @@ import com.github.thorqin.toolkit.web.utility.ServletUtils;
 import javassist.bytecode.AnnotationsAttribute;
 import javassist.bytecode.ClassFile;
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -69,12 +66,6 @@ public final class WebBasicRouter extends WebRouterBase {
 		super(null);
 	}
 
-	/**
-	 * Get the path of related to the current class path
-	 * @param relativePath
-	 * @return URI of the path
-	 * @throws java.net.URISyntaxException
-	 */
 	private static URI getClassPath(String relativePath) throws URISyntaxException {
 		return WebBasicRouter.class.getResource(relativePath).toURI();
 	}
@@ -86,7 +77,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		sessionFactory.setSessionType(sessionTypeName);
 		if (mapping == null) {
 			try {
-				makeApiMapping(config.getServletContext());
+				makeApiMapping();
 			} catch (Exception ex) {
 				throw new ServletException("Initialize dispatcher servlet error.", ex);
 			}
@@ -144,7 +135,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		return inst;
 	}
 	
-	private WebEntry checkMethodParametersAndAnnotation(Class<?> clazz, Method method) {
+	private static WebEntry checkMethodParametersAndAnnotation(Class<?> clazz, Method method) {
 		if (!method.isAnnotationPresent(WebEntry.class))
 			return null;
 		WebEntry entry = method.getAnnotation(WebEntry.class);
@@ -164,14 +155,15 @@ public final class WebBasicRouter extends WebRouterBase {
 			if (annotations != null) {
 				for (Annotation annotation : annotations) {
 					if (annotation instanceof Entity ||
-							annotation instanceof UrlParam) {
+							annotation instanceof Param ||
+                            annotation instanceof Query) {
 						continue PARAMETER_CHECK;
 					}
 				}
 			}
 			logger.log(Level.WARNING,
-				"Method ''{0}.{1}'' has unknown(or unsupported) parameter type: {2}, method ignored.",
-				new Object[]{clazz.getName(), method.getName(), paramType.getName()});
+				"Method ''{0}.{1}'' has unknown(or unsupported) parameter at #{2}, method ignored.",
+				new Object[]{clazz.getName(), method.getName(), i + 1});
 			return null;
 		}
 		return entry;
@@ -188,7 +180,7 @@ public final class WebBasicRouter extends WebRouterBase {
 				return;
 		}
 		boolean crossSite = classAnno.crossSite();
-		String path = clazz.getAnnotation(WebModule.class).path();
+		String path = clazz.getAnnotation(WebModule.class).value();
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
@@ -227,9 +219,9 @@ public final class WebBasicRouter extends WebRouterBase {
 			WebEntry entry = checkMethodParametersAndAnnotation(clazz, method);
 			if (entry == null)
 				continue;
-			String name = entry.name();
+			String name = entry.value();
 			if (name.isEmpty()) {
-				name = method.getName();
+				name = method.getName() + classAnno.suffix();
 			} else if (name.equals("/")) {
 				name = "";
 			} else if (name.startsWith("/")) {
@@ -270,9 +262,12 @@ public final class WebBasicRouter extends WebRouterBase {
 			return;
 		}
 		if (path.isDirectory()) {
-			for (File item : path.listFiles()) {
-				scanClasses(item);
-			}
+            File[] files = path.listFiles();
+            if (files != null) {
+                for (File item : files) {
+                    scanClasses(item);
+                }
+            }
 			return;
 		}
 		else if (!path.isFile() || !path.getName().endsWith(".class")) {
@@ -298,7 +293,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 	}
 
-	private synchronized void makeApiMapping(ServletContext context) throws Exception {
+	private synchronized void makeApiMapping() throws Exception {
 		if (mapping != null) {
 			return;
 		}
@@ -307,7 +302,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		scanClasses(file);
 	}
 
-	private String readHttpBody(HttpServletRequest request) {
+	private static String readHttpBody(HttpServletRequest request) {
 		try {
 			InputStream is = request.getInputStream();
 			if (is != null) {
@@ -337,7 +332,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 	}
 	
-	private Object parseFromBody(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
+	private static Object parseFromBody(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
 		try {
 			if ((annoEntity.encoding() == ParseEncoding.JSON ||
 					annoEntity.encoding() == ParseEncoding.EITHER) &&
@@ -359,7 +354,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 	}
 	
-	private Object parseFromQueryString(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
+	private static Object parseFromQueryString(Class<?> paramType, MethodRuntimeInfo mInfo) {
 		try {
 			return Serializer.fromUrlEncoding(mInfo.request.getQueryString(), paramType);
 		} catch (UnsupportedEncodingException | IllegalAccessException | InstantiationException ex) {
@@ -369,93 +364,108 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 	}
 	
-	private Object convertUrlParam(String val, Class<?> paramType, String paramName) throws ValidateException {
+	private static Object convertParam(String val, Class<?> paramType, String paramName) throws ValidateException {
 		if (paramType.equals(String.class))
 			return val;
 		else if (paramType.equals(Integer.class) || paramType.equals(int.class)) {
 			try {
 				return Integer.valueOf(val);
 			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid URL parameter '" + paramName + "': Need an integer value");
+				throw new ValidateException("Invalid parameter '" + paramName + "': Need an integer value");
 			}
 		} else if (paramType.equals(Long.class) || paramType.equals(long.class)) {
 			try {
 				return Long.valueOf(val);
 			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid URL parameter '" + paramName + "': Need an long integer value");
+				throw new ValidateException("Invalid parameter '" + paramName + "': Need an long integer value");
 			}
 		} else if (paramType.equals(Short.class) || paramType.equals(short.class)) {
 			try {
 				return Short.valueOf(val);
 			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid URL parameter '" + paramName + "': Need an short integer value");
+				throw new ValidateException("Invalid parameter '" + paramName + "': Need an short integer value");
 			}
 		} else if (paramType.equals(Byte.class) || paramType.equals(byte.class)) {
 			try {
 				return Byte.valueOf(val);
 			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid URL parameter '" + paramName + "': Need an byte value");
+				throw new ValidateException("Invalid parameter '" + paramName + "': Need an byte value");
 			}
 		} else if (paramType.equals(Float.class) || paramType.equals(float.class)) {
 			try {
 				return Float.valueOf(val);
 			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid URL parameter '" + paramName + "': Need an float value");
+				throw new ValidateException("Invalid parameter '" + paramName + "': Need an float value");
 			}
 		} else if (paramType.equals(Double.class) || paramType.equals(double.class)) {
 			try {
 				return Double.valueOf(val);
 			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid URL parameter '" + paramName + "': Need an double value");
+				throw new ValidateException("Invalid parameter '" + paramName + "': Need an double value");
 			}
 		} else if (paramType.equals(Boolean.class) || paramType.equals(boolean.class)) {
 			try {
 				return Boolean.valueOf(val);
 			} catch (Exception err) {
-				throw new ValidateException("Invalid URL parameter '" + paramName + "': Need an boolean value");
+				throw new ValidateException("Invalid parameter '" + paramName + "': Need an boolean value");
 			}
 		} else
-			throw new ValidateException("Invalid URL parameter '" + paramName + "': Cannot translate to specified parameter type!");
+			throw new ValidateException("Invalid parameter '" + paramName + "': Cannot translate to specified parameter type!");
 	}
 
 	private Object makeParam(
 			Class<?> paramType, 
 			Annotation[] annos,
-			MethodRuntimeInfo mInfo) throws ValidateException, ServletException {
+			MethodRuntimeInfo mInfo) throws ValidateException, ServletException, UnsupportedEncodingException {
 		if (paramType.equals(HttpServletRequest.class)) {
 			return mInfo.request;
 		} else if (paramType.equals(HttpServletResponse.class)) {
 			return mInfo.response;
 		} else if (paramType.equals(HttpSession.class)) {
-			return mInfo.request.getSession();
+			return mInfo.request.getSession(true);
 		} else if (paramType.equals(WebSession.class)) {
-			if (mInfo.session == null)
-				mInfo.session = sessionFactory.getSession(application, mInfo.request, mInfo.response);
+            // Obtain session object
+            mInfo.session = sessionFactory.getSession(application, mInfo.request, mInfo.response);
+            if (mInfo.session != null && !mInfo.session.isNew()) {
+                mInfo.session.touch();
+            }
 			return mInfo.session;
 		} else {
 			for (Annotation ann : annos) {
-				if (ann instanceof UrlParam) {
-					UrlParam annParam = (UrlParam)ann;
-					String paramName = annParam.value();
-					if (mInfo.urlParams.containsKey(paramName)) {
-						String val = mInfo.urlParams.get(paramName);
-						Object obj = convertUrlParam(val, paramType, paramName);
-						Validator validator = new Validator();
-						validator.validate(obj, paramType, annos);
-						return obj;
-					} else
-						return null;
+				if (ann instanceof Param) {
+                    Param annParam = (Param) ann;
+                    String paramName = annParam.value();
+                    Object obj = null;
+                    if (mInfo.urlParams.containsKey(paramName)) {
+                        String val = mInfo.urlParams.get(paramName);
+                        obj = convertParam(val, paramType, paramName);
+                    }
+                    Validator validator = new Validator();
+                    validator.validate(obj, paramType, annos);
+                    return obj;
+                } else if (ann instanceof Query) {
+                    Query annParam = (Query) ann;
+                    String paramName = annParam.value();
+                    Map<String, String> queryMap = Serializer.fromUrlEncoding(mInfo.request.getQueryString());
+                    Object obj = null;
+                    if (queryMap != null && queryMap.containsKey(paramName)) {
+                        String val = queryMap.get(paramName);
+                        obj = convertParam(val, paramType, paramName);
+                    }
+                    Validator validator = new Validator();
+                    validator.validate(obj, paramType, annos);
+                    return obj;
 				} else if (ann instanceof Entity) {
 					Entity annoEntity = (Entity)ann;
 					Object param = null;
 					if (annoEntity.source() == SourceType.HTTP_BODY ) {
 						param = parseFromBody(paramType, annoEntity, mInfo);
 					} else if (annoEntity.source() == SourceType.QUERY_STRING) {
-						param = parseFromQueryString(paramType, annoEntity, mInfo);
+						param = parseFromQueryString(paramType, mInfo);
 					} else if (annoEntity.source() == SourceType.EITHER) {
 						param = parseFromBody(paramType, annoEntity, mInfo);
 						if (param == null)
-							param = parseFromQueryString(paramType, annoEntity, mInfo);
+							param = parseFromQueryString(paramType, mInfo);
 					}
 					Validator validator = new Validator();
 					validator.validate(param, paramType, annos);
@@ -477,7 +487,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		public String httpBody;
 		public HttpServletRequest request;
 		public HttpServletResponse response;
-		public WebSession session;
+		public WebSession session = null;
 		public Map<String, String> urlParams = new HashMap<>();
 	}
 
@@ -518,11 +528,7 @@ public final class WebBasicRouter extends WebRouterBase {
 				mInfo.postType = RequestPostType.UNKNOW;
 			if (mInfo.postType != RequestPostType.UNKNOW)
 				mInfo.httpBody = readHttpBody(request);
-			// Obtain session object
-			mInfo.session = sessionFactory.getSession(application, request, response);
-			if (mInfo.session != null) {
-				mInfo.session.touch();
-			}
+
             MappingInfo info = matchResult.info;
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
 			if (entryAnno != null && entryAnno.crossSite()) {
@@ -536,13 +542,24 @@ public final class WebBasicRouter extends WebRouterBase {
 				realParameters.add(makeParam(params[i], annos[i], mInfo));
 			}
 			Object result = info.method.invoke(inst, realParameters.toArray());
-			if (mInfo.session != null && !mInfo.session.isSaved())
+			if (mInfo.session != null && !mInfo.session.isSaved() && !mInfo.session.isNew())
 				mInfo.session.save();
-			if (!info.method.getReturnType().equals(Void.class) &&
-					!info.method.getReturnType().equals(void.class) &&
-					(entryAnno != null && entryAnno.toJson() || result != null)) {
-				ServletUtils.sendJsonObject(response, result);
-			}
+
+            if (result != null) {
+                if (result.getClass().equals(WebContent.class)) {
+                    WebContent content = (WebContent)result;
+                    if (content.getType() == WebContent.Type.JSON) {
+                        ServletUtils.sendJsonString(response, content.toString());
+                    } else if (content.getType() == WebContent.Type.HTML) {
+                        ServletUtils.sendHtml(response, content.toString());
+                    } else if (content.getType() == WebContent.Type.PLAIN) {
+                        ServletUtils.sendText(response, content.toString());
+                    } else if (content.getType() == WebContent.Type.REDIRECTION) {
+                        request.getRequestDispatcher(content.toString()).forward(request, response);
+                    }
+                } else
+                    ServletUtils.sendJsonObject(response, result);
+            }
 			return true;
 		} catch (ValidateException ex) {
 			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, "Bad request: invalid parameters!");

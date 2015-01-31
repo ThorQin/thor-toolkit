@@ -24,6 +24,7 @@
 
 package com.github.thorqin.toolkit.web.annotation;
 
+import com.github.thorqin.toolkit.web.WebBasicRouter;
 import com.github.thorqin.toolkit.web.WebRouterBase;
 import static java.lang.annotation.ElementType.TYPE;
 import java.lang.annotation.Retention;
@@ -37,6 +38,6 @@ import java.lang.annotation.Target;
 @Retention(value=RUNTIME)
 @Target(value={TYPE})
 public @interface WebRouter {
-	String[] path() default "/*";
-	Class<? extends WebRouterBase> type();
+	String[] value();
+	Class<? extends WebRouterBase> type() default WebBasicRouter.class;
 }
