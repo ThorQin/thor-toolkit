@@ -138,11 +138,11 @@ public class RuleMatcher<T> {
         return exp.replaceAll("[\\^\\$\\(\\)\\[\\]\\{\\}\\|\\+\\*\\?\\.\\\\]", "\\\\$0");
     }
 
+    public static Pattern paramPattern = Pattern.compile(
+            "\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}");
     public static String ruleToExp(String rule, Set<String> parameters) {
         parameters.clear();
-        Pattern pattern = Pattern.compile(
-                "\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}");
-        Matcher matcher = pattern.matcher(rule);
+        Matcher matcher = paramPattern.matcher(rule);
         StringBuilder sb = new StringBuilder();
         int pos = 0;
         while (matcher.find()) {

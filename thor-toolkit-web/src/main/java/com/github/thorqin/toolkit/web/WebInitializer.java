@@ -96,7 +96,7 @@ public class WebInitializer implements ServletContainerInitializer {
 					List<WebApplication.RouterInfo> routerInfos = application.getRouters();
 					for (WebApplication.RouterInfo info : routerInfos) {
 						ServletRegistration.Dynamic servletRegistration = ctx.addServlet(
-								"ThorTookitRouter_" + (routerCount++), info.router);
+								"TTRouter_" + (routerCount++), info.router);
 						servletRegistration.setLoadOnStartup(0);
 						servletRegistration.setAsyncSupported(true);
 						servletRegistration.setInitParameter("sessionClass", application.getSessionType().getName());
@@ -109,7 +109,8 @@ public class WebInitializer implements ServletContainerInitializer {
 					List<WebApplication.FilterInfo> filterInfos = application.getFilters();
 					for (WebApplication.FilterInfo info : filterInfos) {
 						FilterRegistration filterRegistration = ctx.addFilter(
-								"ThorTookitFilter" + (filterCount++), info.filter);
+								"TTFilter_" + (filterCount++), info.filter);
+                        filterRegistration.setInitParameter("sessionClass", application.getSessionType().getName());
 						if (info.path.length == 0)
 							filterRegistration.addMappingForUrlPatterns(null, true, "/*");
 						else

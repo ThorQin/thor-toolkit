@@ -139,7 +139,7 @@ public abstract class WebApplication extends TraceService
 	}
 
 	@Override
-	public void onChanged(ConfigManager config) {
+	public void onConfigChanged(ConfigManager config) {
 		loadConfig();
 	}
 
@@ -277,10 +277,13 @@ public abstract class WebApplication extends TraceService
 			routers = new LinkedList<>();
 			WebApp webApp = this.getClass().getAnnotation(WebApp.class);
 			if (webApp == null) {
-				routers.add(new RouterInfo(new String[]{"/*"}, new WebBasicRouter(this)));
+                WebRouterBase inst = new WebBasicRouter(this);
+                configManager.addChangeListener(inst);
+				routers.add(new RouterInfo(new String[]{"/*"}, inst));
 			} else {
 				for (WebRouter router: webApp.routers()) {
                     WebRouterBase inst = createInstance(router.type(), this);
+                    configManager.addChangeListener(inst);
                     routers.add(new RouterInfo(router.value(), inst));
 				}
 			}
@@ -293,10 +296,13 @@ public abstract class WebApplication extends TraceService
 			filters = new LinkedList<>();
 			WebApp webApp = this.getClass().getAnnotation(WebApp.class);
 			if (webApp == null) {
-				filters.add(new FilterInfo(new String[]{"/*"}, new WebSecurityManager(this)));
+                WebFilterBase inst =new WebSecurityManager(this);
+                configManager.addChangeListener(inst);
+				filters.add(new FilterInfo(new String[]{"/*"}, inst));
 			} else {
 				for (WebFilter filter: webApp.filters()) {
                     WebFilterBase inst = createInstance(filter.type(), this);
+                    configManager.addChangeListener(inst);
                     filters.add(new FilterInfo(filter.value(), inst));
 				}
 			}

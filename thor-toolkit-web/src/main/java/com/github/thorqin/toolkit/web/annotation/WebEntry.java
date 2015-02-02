@@ -32,28 +32,33 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface WebEntry {
-	/**
-	*
-	* @author nuo.qin
-	*/
-   public static enum HttpMethod {
-	   GET,
-	   POST,
-	   PUT,
-	   DELETE,
-	   HEAD,
-	   OPTIONS,
-	   TRACE
-   }
+    /**
+     * @author nuo.qin
+     */
+    public static enum HttpMethod {
+        GET,
+        POST,
+        PUT,
+        DELETE,
+        HEAD,
+        OPTIONS,
+        TRACE
+    }
 
-	HttpMethod[] method();
+    public static enum CacheType {
+        AUTO,
+        ENABLED,
+        DISABLED
+    }
 
-	String value() default "";
+    HttpMethod[] method();
 
-	boolean crossSite() default false;
+    String value() default "";
+
+    boolean crossSite() default false;
 
     int order() default 10000;
 
-    boolean useCache() default true;
+    CacheType cache() default CacheType.AUTO;
 
 }

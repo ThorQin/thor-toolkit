@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
+import java.security.Principal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,6 +18,14 @@ import java.util.logging.Logger;
  */
 public class ServletUtils {
     private static Logger logger = Logger.getLogger(ServletUtils.class.getName());
+
+    public static String getURL(HttpServletRequest request) {
+        StringBuilder sb = new StringBuilder(request.getRequestURL());
+        String queryString = request.getQueryString();
+        if (queryString != null)
+            sb.append("?").append(queryString);
+        return sb.toString();
+    }
 
     public static void sendText(HttpServletResponse response, Integer status, String message) {
         response.setStatus(status);

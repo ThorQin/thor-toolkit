@@ -16,7 +16,7 @@ import java.util.logging.Logger;
  */
 public class ConfigManager {
     public static interface ChangeListener {
-        void onChanged(ConfigManager config);
+        void onConfigChanged(ConfigManager config);
     }
 
     private static WatchService monitorService = null;
@@ -151,7 +151,7 @@ public class ConfigManager {
     private void fireChanged() {
         for (ChangeListener listener: listenerSet) {
             try {
-                listener.onChanged(this);
+                listener.onConfigChanged(this);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -462,7 +462,10 @@ public class ConfigManager {
      * @return App data dir path or null if env variable not exists.
      */
     public static String getAppDataDir(String appName) {
-        String dataDir = System.getenv().get("APP_DATA_DIR");
+        String dataDir = System.getProperty("app.data.dir");
+        if (dataDir == null) {
+            dataDir = System.getenv("APP_DATA_DIR");
+        }
         if (dataDir != null) {
             while (appName.startsWith("/") || appName.startsWith("\\"))
                 appName = appName.substring(1);

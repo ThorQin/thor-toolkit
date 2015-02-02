@@ -30,6 +30,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
@@ -169,6 +170,19 @@ public final class WebBasicRouter extends WebRouterBase {
 		return entry;
 	}
 
+    private static boolean shouldUseCache(WebEntry entry, String address) {
+        if (entry.cache() == WebEntry.CacheType.ENABLED)
+            return true;
+        else if (entry.cache() == WebEntry.CacheType.DISABLED)
+            return false;
+        else {
+            if (RuleMatcher.paramPattern.matcher(address).find())
+                return false;
+            else
+                return true;
+        }
+    }
+
 	private void analyzeClass(Class<?> clazz) throws Exception {
 		if (!clazz.isAnnotationPresent(WebModule.class)) {
 			return;
@@ -236,7 +250,8 @@ public final class WebBasicRouter extends WebRouterBase {
 				info.method = this.getClass().getMethod(
 						"setCrossSiteHeaders", HttpServletResponse.class);
 				info.method.setAccessible(true);
-				mapping.addURLRule(key, info, entry.order(), entry.useCache());
+                mapping.addURLRule(key, info, entry.order(),
+                        shouldUseCache(entry, fullPath));
 			}
 			String methodPrefix = "";
 			for (WebEntry.HttpMethod httpMethod : entry.method()) {
@@ -253,7 +268,8 @@ public final class WebBasicRouter extends WebRouterBase {
 			info.instance = inst;
 			info.method = method;
 			method.setAccessible(true);
-			mapping.addRule(key, parameters, info, entry.order(), entry.useCache());
+			mapping.addRule(key, parameters, info, entry.order(),
+                    shouldUseCache(entry, fullPath));
 		}
 	}
 
@@ -531,9 +547,9 @@ public final class WebBasicRouter extends WebRouterBase {
 
             MappingInfo info = matchResult.info;
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
-			if (entryAnno != null && entryAnno.crossSite()) {
-				setCrossSiteHeaders(response);
-			}
+            if (entryAnno != null && entryAnno.crossSite()) {
+                setCrossSiteHeaders(response);
+            }
 			Object inst = info.instance;
 			Class<?>[] params = info.method.getParameterTypes();
 			Annotation[][] annos = info.method.getParameterAnnotations();
@@ -557,8 +573,9 @@ public final class WebBasicRouter extends WebRouterBase {
                     } else if (content.getType() == WebContent.Type.REDIRECTION) {
                         request.getRequestDispatcher(content.toString()).forward(request, response);
                     }
-                } else
+                } else {
                     ServletUtils.sendJsonObject(response, result);
+                }
             }
 			return true;
 		} catch (ValidateException ex) {
@@ -611,8 +628,9 @@ public final class WebBasicRouter extends WebRouterBase {
 				Tracer.Info traceInfo = new Tracer.Info();
 				traceInfo.catalog = "router";
 				traceInfo.name = "access";
-				traceInfo.put("url", requestPath);
+				traceInfo.put("url", ServletUtils.getURL(request));
 				traceInfo.put("method", httpMethod);
+                traceInfo.put("clientIP", request.getRemoteAddr());
 				traceInfo.put("startTime", beginTime);
 				traceInfo.put("runningTime", System.currentTimeMillis() - beginTime);
 				application.trace(traceInfo);
@@ -620,59 +638,10 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 	}
 
-	@Override
-	protected void doHead(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		if (!dispatch(request, response)) {
-			super.doHead(request, response);
-		}
-	}
-
-	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		if (!dispatch(request, response)) {
-			super.doGet(request, response);
-		}
-	}
-
-	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		if (!dispatch(request, response)) {
-			super.doPost(request, response);
-		}
-	}
-
-	@Override
-	protected void doDelete(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		if (!dispatch(request, response)) {
-			super.doDelete(request, response);
-		}
-	}
-
-	@Override
-	protected void doOptions(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		if (!dispatch(request, response)) {
-			super.doOptions(request, response);
-		}
-	}
-
-	@Override
-	protected void doPut(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		if (!dispatch(request, response)) {
-			super.doPut(request, response);
-		}
-	}
-
-	@Override
-	protected void doTrace(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		if (!dispatch(request, response)) {
-			super.doTrace(request, response);
-		}
-	}
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        if (!dispatch(req, resp)) {
+            super.service(req, resp);
+        }
+    }
 }
