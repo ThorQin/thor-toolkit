@@ -472,7 +472,7 @@ public class Serializer {
 
 	public static String loadTextResource(String resourceName) throws IOException {
 		try (InputStream in = Serializer.class.getClassLoader().getResourceAsStream(resourceName)) {
-			return loadTextStream(in);
+            return loadTextStream(in);
 		}
 	}
 

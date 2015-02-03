@@ -11,5 +11,7 @@
 	"maxConnectionsPerPartition": 20,
 	"partitionCount": 1,
 	"trace": true
-  }
+  },
+  "defaultAllow": true,
+  "rules": []
 }

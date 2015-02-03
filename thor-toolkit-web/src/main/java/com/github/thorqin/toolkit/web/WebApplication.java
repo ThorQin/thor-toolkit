@@ -40,9 +40,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.logging.*;
 import javax.servlet.*;
 
 /**
@@ -79,7 +79,7 @@ public abstract class WebApplication extends TraceService
 		}
 	}
 
-	private static Logger logger =
+	private final static Logger logger =
 			Logger.getLogger(WebApplication.class.getName());
 	private static Map<String, WebApplication> applicationMap = new HashMap<>();
 
@@ -157,12 +157,38 @@ public abstract class WebApplication extends TraceService
 		}
 	}
 
+    public static Logger getLogger() {
+        return logger;
+    }
+
 	private void init() {
+        final String dataDir = ConfigManager.getAppDataDir(applicationName);
+        if (dataDir != null) {
+            try {
+                String logFile = dataDir;
+                if (logFile.endsWith("/") || logFile.endsWith("\\"))
+                    logFile += "log";
+                else
+                    logFile += "/log";
+                Files.createDirectories(new File(logFile).toPath());
+                logFile += "/ " + applicationName + ".log";
+                try {
+                    FileHandler fileHandler = new FileHandler(logFile, 1024 * 1024, 3, true);
+                    fileHandler.setEncoding("utf-8");
+                    fileHandler.setFormatter(new SimpleFormatter());
+                    logger.addHandler(fileHandler);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
 		this.start(); // Start trace service
 		this.configManager = new ConfigManager();
 		configManager.addChangeListener(this);
 		try {
-			configManager.load(ConfigManager.getAppDataDir(applicationName), "config.json");
+			configManager.load(dataDir, "config.json");
 			configManager.setMonitorFileChange(true);
 		} catch (IOException e) {
 			logger.log(Level.WARNING, "Configuration file not exists!");

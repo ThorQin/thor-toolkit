@@ -73,6 +73,12 @@
 				<artifactId>jetty-maven-plugin</artifactId>
 				<version>9.2.2.v20140723</version>
 				<configuration>
+                    <systemProperties>
+                        <systemProperty>
+                            <name>app.data.dir</name>
+                            <value>C:\Users\nuo.qin\Workspace\AppData</value>
+                        </systemProperty>
+                    </systemProperties>
 					<!--<webAppSourceDirectory>${project.build.directory}/${project.build.finalName}</webAppSourceDirectory>-->
                     <webApp>
                         <contextPath>/</contextPath>
@@ -82,6 +88,8 @@
 					</webAppConfig>
 					<scanIntervalSeconds>0</scanIntervalSeconds>
 					<reload>manual</reload>
+                    <stopPort>9966</stopPort>
+                    <stopKey>StopJetty</stopKey>
 				</configuration>
 			</plugin>
 		</plugins>

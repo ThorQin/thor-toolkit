@@ -46,7 +46,7 @@ import javax.servlet.http.HttpSession;
 
 public final class WebBasicRouter extends WebRouterBase {
 	private static final long serialVersionUID = -4658671798328062327L;
-	private static final Logger logger = Logger.getLogger(WebBasicRouter.class.getName());
+	private static final Logger logger = WebApplication.getLogger();
 	
 	protected class MappingInfo {
 		public Object instance;
@@ -580,7 +580,11 @@ public final class WebBasicRouter extends WebRouterBase {
 			return true;
 		} catch (ValidateException ex) {
 			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, "Bad request: invalid parameters!");
-			logger.log(Level.WARNING, "Bad request: {0}", ex.getMessage());
+			logger.logp(Level.WARNING,
+                    matchResult.info.method.getDeclaringClass().getName(),
+                    matchResult.info.method.getName(),
+                    "Bad request for {0}::{1}: {2}",
+                    ex.getMessage());
 			return true;
 		} catch (HttpException ex) {
 			if (ex.getMessage() != null) {
@@ -593,9 +597,15 @@ public final class WebBasicRouter extends WebRouterBase {
 			} else
 				ServletUtils.send(response, ex.getHttpStatus());
 			if (ex.getCause() != null)
-				logger.log(Level.WARNING, ex.getMessage(), ex.getCause());
-			else
-				logger.log(Level.WARNING, ex.getMessage());
+				logger.logp(Level.WARNING,
+                        matchResult.info.method.getDeclaringClass().getName(),
+                        matchResult.info.method.getName(),
+                        ex.getMessage(), ex.getCause());
+            else
+                logger.logp(Level.WARNING,
+                        matchResult.info.method.getDeclaringClass().getName(),
+                        matchResult.info.method.getName(),
+                        ex.getMessage());
 			return true;
 		} catch (InvocationTargetException ex) {
 			Throwable realEx = ex.getTargetException();
@@ -611,17 +621,30 @@ public final class WebBasicRouter extends WebRouterBase {
 				} else
 					ServletUtils.send(response, httpEx.getHttpStatus());
 				if (httpEx.getCause() != null)
-					logger.log(Level.WARNING, httpEx.getMessage(), httpEx.getCause());
+					logger.logp(Level.WARNING,
+                            matchResult.info.method.getDeclaringClass().getName(),
+                            matchResult.info.method.getName(),
+                            httpEx.getMessage(),
+                            httpEx.getCause());
 				else
-					logger.log(Level.WARNING, httpEx.getMessage());
+					logger.logp(Level.WARNING,
+                            matchResult.info.method.getDeclaringClass().getName(),
+                            matchResult.info.method.getName(),
+                            httpEx.getMessage());
 			} else {
 				ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
-				logger.log(Level.SEVERE, "Error processing", ex);
+				logger.logp(Level.SEVERE,
+                        matchResult.info.method.getDeclaringClass().getName(),
+                        matchResult.info.method.getName(),
+                        "Error processing", ex);
 			}
 			return true;
 		} catch (Exception ex) {
 			ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
-			logger.log(Level.SEVERE, "Error processing", ex);
+			logger.logp(Level.SEVERE,
+                    matchResult.info.method.getDeclaringClass().getName(),
+                    matchResult.info.method.getName(),
+                    "Error processing!!", ex);
 			return true;
 		} finally {
 			if (application != null && application.getSetting().traceRouter) {
