@@ -24,8 +24,8 @@
 
 package com.github.thorqin.toolkit.web.annotation;
 
-import com.github.thorqin.toolkit.web.WebBasicRouter;
-import com.github.thorqin.toolkit.web.WebRouterBase;
+import com.github.thorqin.toolkit.web.router.WebBasicRouter;
+import com.github.thorqin.toolkit.web.router.WebRouterBase;
 import static java.lang.annotation.ElementType.TYPE;
 import java.lang.annotation.Retention;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;

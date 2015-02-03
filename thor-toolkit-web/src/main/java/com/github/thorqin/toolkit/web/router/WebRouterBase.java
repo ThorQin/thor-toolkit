@@ -1,16 +1,17 @@
-package com.github.thorqin.toolkit.web;
+package com.github.thorqin.toolkit.web.router;
 
 import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.web.WebApplication;
 
-import javax.servlet.Filter;
+import javax.servlet.http.HttpServlet;
 
 /**
  * Created by nuo.qin on 1/28/2015.
  */
-public abstract class WebFilterBase implements Filter, ConfigManager.ChangeListener {
+public abstract class WebRouterBase extends HttpServlet implements ConfigManager.ChangeListener {
     protected final WebApplication application;
 
-    WebFilterBase(WebApplication application) {
+    public WebRouterBase(WebApplication application) {
         this.application = application;
     }
 

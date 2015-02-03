@@ -4,11 +4,12 @@
  * and open the template in the editor.
  */
 
-package com.github.thorqin.toolkit.web;
+package com.github.thorqin.toolkit.web.filter;
 
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.ServletUtils;

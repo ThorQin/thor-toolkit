@@ -24,7 +24,7 @@
 
 package com.github.thorqin.toolkit.web.annotation;
 
-import com.github.thorqin.toolkit.web.WebFilterBase;
+import com.github.thorqin.toolkit.web.filter.WebFilterBase;
 
 import static java.lang.annotation.ElementType.TYPE;
 import java.lang.annotation.Retention;

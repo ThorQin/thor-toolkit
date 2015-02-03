@@ -1,4 +1,4 @@
-package com.github.thorqin.toolkit.web;
+package com.github.thorqin.toolkit.web.router;
 
 import com.github.thorqin.toolkit.utility.Serializer;
 

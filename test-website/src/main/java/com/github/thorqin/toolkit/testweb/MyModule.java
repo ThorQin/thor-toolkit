@@ -1,6 +1,6 @@
 package com.github.thorqin.toolkit.testweb;
 
-import com.github.thorqin.toolkit.web.WebContent;
+import com.github.thorqin.toolkit.web.router.WebContent;
 import com.github.thorqin.toolkit.web.annotation.Param;
 import com.github.thorqin.toolkit.web.annotation.Query;
 import com.github.thorqin.toolkit.web.annotation.WebEntry;

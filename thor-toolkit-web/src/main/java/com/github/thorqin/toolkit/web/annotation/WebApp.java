@@ -24,8 +24,7 @@
 
 package com.github.thorqin.toolkit.web.annotation;
 
-import com.github.thorqin.toolkit.web.WebBasicRouter;
-import com.github.thorqin.toolkit.web.WebSecurityManager;
+import com.github.thorqin.toolkit.web.filter.WebSecurityManager;
 import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.WebSession;
 
