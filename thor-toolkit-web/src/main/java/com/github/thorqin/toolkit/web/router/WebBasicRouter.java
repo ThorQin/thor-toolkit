@@ -110,17 +110,9 @@ public final class WebBasicRouter extends WebRouterBase {
 	}
 
 	public void setCrossSiteHeaders(HttpServletResponse response) {
-		response.setHeader("Access-Control-Allow-Origin", "*");
-		response.setHeader("Access-Control-Allow-Credentials", "true");
-		response.setHeader("P3P","CP=CAO PSA OUR");
-		response.setHeader("Access-Control-Allow-Methods",
-				"GET,POST,PUT,DELETE,HEAD,OPTIONS");
-		response.setHeader("Access-Control-Allow-Headers",
-				"Content-Type,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control");
+		ServletUtils.setCrossSiteHeaders(response);
 	}
 
-
-	
 	private Object addMapping(List<MappingInfo> collection, Class<?> clazz, Method method, Object inst) {
 		try {
 			if (inst == null) {
@@ -377,7 +369,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			return Serializer.fromUrlEncoding(mInfo.request.getQueryString(), paramType);
 		} catch (UnsupportedEncodingException | IllegalAccessException | InstantiationException ex) {
 			logger.log(Level.WARNING, 
-					"Warnning: Cannot deserialize class ''{0}'' from QueryString.", paramType.getName());
+					"Warning: Cannot deserialize class ''{0}'' from QueryString.", paramType.getName());
 			return null;
 		}
 	}
@@ -497,7 +489,7 @@ public final class WebBasicRouter extends WebRouterBase {
 	private static enum RequestPostType {
 		JSON,
 		HTTP_FORM,
-		UNKNOW
+        UNKNOWN
 	}
 	
 	private static class MethodRuntimeInfo {
@@ -543,14 +535,14 @@ public final class WebBasicRouter extends WebRouterBase {
 			else if (postForm)
 				mInfo.postType = RequestPostType.HTTP_FORM;
 			else
-				mInfo.postType = RequestPostType.UNKNOW;
-			if (mInfo.postType != RequestPostType.UNKNOW)
+				mInfo.postType = RequestPostType.UNKNOWN;
+			if (mInfo.postType != RequestPostType.UNKNOWN)
 				mInfo.httpBody = readHttpBody(request);
 
             MappingInfo info = matchResult.info;
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
             if (entryAnno != null && entryAnno.crossSite()) {
-                setCrossSiteHeaders(response);
+                ServletUtils.setCrossSiteHeaders(response);
             }
 			Object inst = info.instance;
 			Class<?>[] params = info.method.getParameterTypes();

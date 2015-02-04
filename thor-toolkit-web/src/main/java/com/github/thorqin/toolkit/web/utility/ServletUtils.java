@@ -16,8 +16,18 @@ import java.util.logging.Logger;
 /**
  * Created by nuo.qin on 12/25/2014.
  */
-public class ServletUtils {
+public final class ServletUtils {
     private static Logger logger = Logger.getLogger(ServletUtils.class.getName());
+
+    public static void setCrossSiteHeaders(HttpServletResponse response) {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("P3P","CP=CAO PSA OUR");
+        response.setHeader("Access-Control-Allow-Methods",
+                "GET,POST,PUT,DELETE,HEAD,OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers",
+                "Content-Type,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control");
+    }
 
     public static String getURL(HttpServletRequest request) {
         StringBuilder sb = new StringBuilder(request.getRequestURL());

@@ -37,7 +37,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
  *
  * @author nuo.qin
  */
-public class DownloadManager {
+public final class DownloadManager {
 
 	private final static Logger logger = Logger.getLogger(DownloadManager.class.getName());
 	private final static int maxSize = 1024 * 1024 * 5;

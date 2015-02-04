@@ -43,7 +43,7 @@ import javax.servlet.annotation.HandlesTypes;
  * @author nuo.qin
  */
 @HandlesTypes(WebApplication.class)
-public class WebInitializer implements ServletContainerInitializer {
+public final class WebInitializer implements ServletContainerInitializer {
 	private static class OrderComparetor<T> implements Comparator<T> {
 		@Override
 		public int compare(T o1, T o2) {

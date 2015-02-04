@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class Serializer {
+public final class Serializer {
 	public static class DateTimeAdapter extends TypeAdapter<DateTime>
 			implements InstanceCreator<DateTime>,
 			JsonSerializer<DateTime>, JsonDeserializer<DateTime> {

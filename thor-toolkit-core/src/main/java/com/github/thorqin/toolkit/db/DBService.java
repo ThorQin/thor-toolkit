@@ -30,7 +30,7 @@ import java.util.logging.Logger;
  * @author nuo.qin
  *
  **********************************************************/
-public class DBService {
+public final class DBService {
 	public static class DBSetting {
 		@ValidateString
 		public String driver;
@@ -277,10 +277,11 @@ public class DBService {
 			} else if (valueType.equals(DBTable.class)) {
 				Method method =cls.getMethod("getObject", int.class);
 				method.setAccessible(true);
-				DBCursor cursor = (DBCursor)fromSqlObject(method.invoke(stmt, offset), udtMapping);
-				if (cursor == null)
-					return null;
-				return (T) cursor.getTable();
+				try (DBCursor cursor = (DBCursor)fromSqlObject(method.invoke(stmt, offset), udtMapping)) {
+                    if (cursor == null)
+                        return null;
+                    return (T) cursor.getTable();
+                }
 			} else if (valueType.equals(DBCursor.class)) {
 				Method method =cls.getMethod("getObject", int.class);
 				method.setAccessible(true);
@@ -759,6 +760,11 @@ public class DBService {
 		public void make(T obj) throws SQLException;
 	}
 
+    public static interface TableAdjuster {
+        public String[] adjustHead(String[] head);
+        public Object[] adjustLine(Object[] line);
+    }
+
 	public static class DBCursor implements AutoCloseable {
 		private Statement statement;
 		private ResultSet resultSet;
@@ -909,20 +915,28 @@ public class DBService {
 			return list;
 		}
 		public DBTable getTable() throws SQLException {
-			return getTable(null);
+			return getTable(null, null);
 		}
-		public DBTable getTable(Map<String, Class<?>> udtMapping) throws SQLException {
+        public DBTable getTable(TableAdjuster adjuster) throws SQLException {
+            return getTable(adjuster, null);
+        }
+		public DBTable getTable(TableAdjuster adjuster, Map<String, Class<?>> udtMapping) throws SQLException {
 			if (resultSet == null)
 				return null;
 			DBTable table = new DBTable();
 			table.head = Arrays.copyOf(columns, columns.length);
+            if (adjuster != null)
+                table.head = adjuster.adjustHead(table.head);
 			LinkedList<Object[]> list = new LinkedList<>();
 			while (resultSet.next()) {
-				Object[] line = new Object[table.head.length];
-				for (int i = 1; i <= table.head.length; i++) {
+				Object[] line = new Object[columns.length];
+				for (int i = 1; i <= columns.length; i++) {
 					line[i - 1] = fromSqlObject(resultSet.getObject(i), udtMapping);
 				}
-				list.add(line);
+                if (adjuster != null)
+                    line = adjuster.adjustLine(line);
+                if (line != null)
+				    list.add(line);
 			}
 			table.data = list;
 			table.length = list.size();
@@ -995,7 +1009,7 @@ public class DBService {
 		}
 	}
 	
-	public static class DBSession implements AutoCloseable {
+	public final static class DBSession implements AutoCloseable {
 		private final Connection conn;
 		final private Tracer tracer;
 		public DBSession(Connection conn) throws SQLException {
@@ -1200,8 +1214,16 @@ public class DBService {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;		
 			StringBuilder sqlString = new StringBuilder();
-			sqlString.append("{?=call ").append(procName).append("(");
-			if (args != null) {
+            boolean noReturn = returnType.equals(void.class) || returnType.equals(Void.class);
+            int offset;
+            if (noReturn) {
+                sqlString.append("{call ").append(procName).append("(");
+                offset = 1;
+            } else {
+                sqlString.append("{?=call ").append(procName).append("(");
+                offset = 2;
+            }
+            if (args != null) {
 				for (int i = 0; i < args.length; i++) {
 					if (i == 0)
 						sqlString.append("?");
@@ -1211,18 +1233,23 @@ public class DBService {
 			}
 			sqlString.append(")}");
 			try (CallableStatement stmt = conn.prepareCall(sqlString.toString())){
-				bindParameter(stmt, args, 2);
-				stmt.registerOutParameter(1, toSqlType(returnType));
+                bindParameter(stmt, args, offset);
+                if (!noReturn) {
+                    stmt.registerOutParameter(1, toSqlType(returnType));
+                }
 				stmt.execute();
 				if (args != null) {
 					for (int i = 0; i < args.length; i++) {
 						if (args[i] instanceof DBOut) {
 							DBOut param = (DBOut)args[i];
-							param.setValue(stmtGet(stmt, param.getType(), i + 2, udtMapping));
+							param.setValue(stmtGet(stmt, param.getType(), i + offset, udtMapping));
 						}
 					}
 				}
-				return stmtGet(stmt, returnType, 1, udtMapping);
+                if (noReturn)
+                    return null;
+                else
+				    return stmtGet(stmt, returnType, 1, udtMapping);
 			} catch (Exception ex) {
 				success = false;
 				throw ex;
@@ -1239,51 +1266,12 @@ public class DBService {
 				}
 			}
 		}
-		public void perform(String procName, Object... args) throws SQLException {
-			perform(procName, null, args);
+		public void invoke(String procName, Object... args) throws SQLException {
+            invoke(procName, void.class, null, args);
 		}
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		public void perform(String procName, Map<String, Class<?>> udtMapping, Object... args)
+		public void invoke(String procName, Map<String, Class<?>> udtMapping, Object... args)
 				throws SQLException {
-			long beginTime = System.currentTimeMillis();
-			boolean success = true;			
-			StringBuilder sqlString = new StringBuilder();
-			sqlString.append("{call ").append(procName).append("(");
-			if (args != null) {
-				for (int i = 0; i < args.length; i++) {
-					if (i == 0)
-						sqlString.append("?");
-					else
-						sqlString.append(",?");
-				}
-			}
-			sqlString.append(")}");
-			try (CallableStatement stmt = conn.prepareCall(sqlString.toString())){
-				bindParameter(stmt, args, 1);
-				stmt.execute();
-				if (args != null) {
-					for (int i = 0; i < args.length; i++) {
-						if (args[i] instanceof DBOut) {
-							DBOut param = (DBOut)args[i];
-							param.setValue(stmtGet(stmt, param.getType(), i + 1, udtMapping));
-						}
-					}
-				}
-			} catch (Exception ex) {
-				success = false;
-				throw ex;
-			} finally {
-				if (tracer != null) {
-					Tracer.Info info = new Tracer.Info();
-					info.catalog = "database";
-					info.name = "perform";
-					info.put("statement", sqlString.toString());
-					info.put("success", success);
-					info.put("startTime", beginTime);
-					info.put("runningTime", System.currentTimeMillis() - beginTime);
-					trace(info);
-				}
-			}
+            invoke(procName, void.class, udtMapping, args);
 		}
 	}
 
@@ -1325,4 +1313,101 @@ public class DBService {
 	public Connection getConnection() throws SQLException {
 		return boneCP.getConnection();
 	}
+
+    // convenient methods
+
+    public int execute(String queryString, Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            return session.execute(queryString, args);
+        }
+    }
+
+    public DBTable query(String queryString,
+                         TableAdjuster adjuster,
+                         Map<String, Class<?>> udtMapping,
+                         Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                return cursor.getTable(adjuster, udtMapping);
+            }
+        }
+    }
+
+    public DBTable query(String queryString,
+                         TableAdjuster adjuster,
+                         Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                return cursor.getTable(adjuster, null);
+            }
+        }
+    }
+
+    public DBTable query(String queryString,
+                         Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                return cursor.getTable(null, null);
+            }
+        }
+    }
+
+    public <T> List<T> query(String queryString,
+                             Class<T> type,
+                             RowTypeAdapter<T> adapter,
+                             Map<String, Class<?>> udtMapping,
+                             Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                return cursor.getList(type, adapter, udtMapping);
+            }
+        }
+    }
+
+    public <T> List<T> query(String queryString,
+                             Class<T> type,
+                             RowTypeAdapter<T> adapter,
+                             Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                return cursor.getList(type, adapter, null);
+            }
+        }
+    }
+
+    public <T> List<T> query(String queryString,
+                             Class<T> type,
+                             Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                return cursor.getList(type, null, null);
+            }
+        }
+    }
+
+    public <T> T invoke(String procName, Class<T> returnType, Object... args)
+            throws SQLException {
+        try (DBSession session = getSession()) {
+            return session.invoke(procName, returnType, null, args);
+        }
+    }
+
+    public <T> T invoke(String procName, Class<T> returnType, Map<String, Class<?>> udtMapping,
+                        Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            return session.invoke(procName, returnType, udtMapping, args);
+        }
+    }
+    public void invoke(String procName, Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            session.invoke(procName, void.class, null, args);
+        }
+    }
+
+    public void invoke(String procName, Map<String, Class<?>> udtMapping, Object... args)
+            throws SQLException {
+        try (DBSession session = getSession()) {
+            session.invoke(procName, void.class, udtMapping, args);
+        }
+    }
 }

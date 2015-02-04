@@ -10,7 +10,7 @@ package com.github.thorqin.toolkit.utility;
  *
  * @author nuo.qin
  */
-public class UserAgentUtils {
+public final class UserAgentUtils {
 
 	public static enum OSType {
 

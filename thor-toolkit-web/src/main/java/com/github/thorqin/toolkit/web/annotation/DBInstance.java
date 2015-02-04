@@ -18,5 +18,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
 public @interface DBInstance {
-	public String value() default "";
+    /**
+     * Database configuration name in config.json
+     * @return Configuration name
+     */
+	public String value() default "db";
 }

@@ -47,7 +47,7 @@ import com.github.thorqin.toolkit.validation.annotation.*;
  *
  * @author nuo.qin
  */
-public class Validator {
+public final class Validator {
 	private static interface DoubleConvert {
 		public Double convert(Object val); 
 	}

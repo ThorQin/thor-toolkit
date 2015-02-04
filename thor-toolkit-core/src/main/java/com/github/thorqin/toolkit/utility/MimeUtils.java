@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Created by nuo.qin on 12/25/2014.
  */
-public class MimeUtils {
+public final class MimeUtils {
     public static final Map<String, String> mimeMap;
     static {
         mimeMap = new HashMap<>();

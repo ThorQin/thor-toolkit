@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  *
  * @author nuo.qin
  */
-public class StringUtils {
+public final class StringUtils {
 	private static Pattern intPattern =
 			Pattern.compile("^[+-]?\\d+$");
 	private static Pattern doublePattern =

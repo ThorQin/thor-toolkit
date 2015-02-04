@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  * @author nuo.qin
  * @param <T> Stored info object type
  */
-public class RuleMatcher<T> {
+public final class RuleMatcher<T> {
 
     private class Rule {
         public Pattern pattern;
