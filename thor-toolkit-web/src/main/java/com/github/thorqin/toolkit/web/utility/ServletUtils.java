@@ -37,9 +37,44 @@ public final class ServletUtils {
         return sb.toString();
     }
 
+    public static String readHttpBody(HttpServletRequest request) {
+        try {
+            InputStream is = request.getInputStream();
+            if (is != null) {
+                Writer writer = new StringWriter();
+                char[] buffer = new char[1024];
+                try {
+                    String encoding = request.getCharacterEncoding();
+                    if (encoding == null) {
+                        encoding = "UTF-8";
+                    }
+                    Reader reader = new BufferedReader(
+                            new InputStreamReader(is, encoding));
+                    int n;
+                    while ((n = reader.read(buffer)) != -1) {
+                        writer.write(buffer, 0, n);
+                    }
+                } catch (IOException ex) {
+                    logger.log(Level.WARNING,
+                            "Read http body failed: ", ex);
+                }
+                return writer.toString();
+            } else {
+                return "";
+            }
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
     public static void sendText(HttpServletResponse response, Integer status, String message) {
         response.setStatus(status);
         sendText(response, message);
+    }
+
+    public static void sendText(HttpServletResponse response, Integer status, String message, String contentType) {
+        response.setStatus(status);
+        sendText(response, message, contentType);
     }
 
     public static void sendText(HttpServletResponse response, String message, String contentType) {
@@ -62,6 +97,10 @@ public final class ServletUtils {
 
     public static void sendHtml(HttpServletResponse response, String html) {
         sendText(response, html, "text/html");
+    }
+
+    public static void sendHtml(HttpServletResponse response, Integer status, String html) {
+        sendText(response, status, html, "text/html");
     }
 
     public static void sendJsonString(HttpServletResponse response, Integer status, String jsonString) {

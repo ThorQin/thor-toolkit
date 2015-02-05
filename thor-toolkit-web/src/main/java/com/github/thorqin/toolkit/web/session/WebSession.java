@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Map;
 
 /**
  * Created by nuo.qin on 1/28/2015.
@@ -21,6 +22,7 @@ public abstract class WebSession {
         this.application = application;
     }
     public abstract Enumeration<String> getKeys();
+    public abstract Map<String, Object> getMap();
     public abstract Object get(String key);
     public abstract void set(String key, Object value);
     public abstract void remove(String key);

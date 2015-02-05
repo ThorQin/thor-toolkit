@@ -6,6 +6,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by nuo.qin on 1/28/2015.
@@ -21,6 +23,16 @@ public class ServerSession extends WebSession {
     @Override
     public Enumeration<String> getKeys() {
         return request.getSession().getAttributeNames();
+    }
+
+    @Override
+    public Map<String, Object> getMap() {
+        Map<String, Object> values = new HashMap<>();
+        for (Enumeration<String> keys = getKeys(); keys.hasMoreElements();) {
+            String key = keys.nextElement();
+            values.put(key, get(key));
+        }
+        return values;
     }
 
     @Override

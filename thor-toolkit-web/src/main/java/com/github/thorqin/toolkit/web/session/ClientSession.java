@@ -122,6 +122,11 @@ public class ClientSession extends WebSession {
 		touch();
 	}
 
+    @Override
+    public Map<String, Object> getMap() {
+        return value.values;
+    }
+
 	@Override
 	public Object get(String key) {
 		Object findValue = this.value.values.get(key);

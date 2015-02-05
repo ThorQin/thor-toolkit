@@ -69,7 +69,7 @@ public class DBProxy implements InvocationHandler {
 		}
 		if (method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class)) {
 			try {
-				session.perform(procName, args);
+				session.invoke(procName, args);
 				if (autoCommit)
 					session.commit();
 				return null;

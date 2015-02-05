@@ -311,36 +311,6 @@ public final class WebBasicRouter extends WebRouterBase {
 		File file = new File(getClassPath("/"));
 		scanClasses(file);
 	}
-
-	private static String readHttpBody(HttpServletRequest request) {
-		try {
-			InputStream is = request.getInputStream();
-			if (is != null) {
-				Writer writer = new StringWriter();
-				char[] buffer = new char[1024];
-				try {
-					String encoding = request.getCharacterEncoding();
-					if (encoding == null) {
-						encoding = "UTF-8";
-					}
-					Reader reader = new BufferedReader(
-							new InputStreamReader(is, encoding));
-					int n;
-					while ((n = reader.read(buffer)) != -1) {
-						writer.write(buffer, 0, n);
-					}
-				} catch (IOException ex) {
-					logger.log(Level.WARNING,
-							"Read http body failed: ", ex);
-				}
-				return writer.toString();
-			} else {
-				return "";
-			}
-		} catch (IOException e) {
-			return "";
-		}
-	}
 	
 	private static Object parseFromBody(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
 		try {
@@ -527,7 +497,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			boolean postJson = (request.getContentType() != null &&
 					request.getContentType().split(";")[0].equalsIgnoreCase("application/json") ||
 					request.getContentType() == null &&
-					request.getMethod().equalsIgnoreCase("POST"));
+                            (request.getMethod().equalsIgnoreCase("POST") || request.getMethod().equalsIgnoreCase("PUT")));
 			boolean postForm = (request.getContentType() != null
 				&& request.getContentType().split(";")[0].equalsIgnoreCase("application/x-www-form-urlencoded"));
 			if (postJson)
@@ -537,7 +507,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			else
 				mInfo.postType = RequestPostType.UNKNOWN;
 			if (mInfo.postType != RequestPostType.UNKNOWN)
-				mInfo.httpBody = readHttpBody(request);
+                mInfo.httpBody = ServletUtils.readHttpBody(request);
 
             MappingInfo info = matchResult.info;
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
@@ -571,7 +541,6 @@ public final class WebBasicRouter extends WebRouterBase {
                     ServletUtils.sendJsonObject(response, result);
                 }
             }
-			return true;
 		} catch (ValidateException ex) {
 			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, "Bad request: invalid parameters!");
 			logger.logp(Level.WARNING,
@@ -579,7 +548,6 @@ public final class WebBasicRouter extends WebRouterBase {
                     matchResult.info.method.getName(),
                     "Bad request for {0}::{1}: {2}",
                     ex.getMessage());
-			return true;
 		} catch (HttpException ex) {
 			if (ex.getMessage() != null) {
 				if (ex.getJsonObject() != null)
@@ -600,7 +568,6 @@ public final class WebBasicRouter extends WebRouterBase {
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
                         ex.getMessage());
-			return true;
 		} catch (InvocationTargetException ex) {
 			Throwable realEx = ex.getTargetException();
 			if (HttpException.class.isInstance(realEx)) {
@@ -632,14 +599,12 @@ public final class WebBasicRouter extends WebRouterBase {
                         matchResult.info.method.getName(),
                         "Error processing", ex);
 			}
-			return true;
 		} catch (Exception ex) {
 			ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
 			logger.logp(Level.SEVERE,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
                     "Error processing!!", ex);
-			return true;
 		} finally {
 			if (application != null && application.getSetting().traceRouter) {
 				Tracer.Info traceInfo = new Tracer.Info();
@@ -653,6 +618,7 @@ public final class WebBasicRouter extends WebRouterBase {
 				application.trace(traceInfo);
 			}
 		}
+        return true;
 	}
 
     @Override
