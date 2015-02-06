@@ -131,7 +131,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                                 + key + ": invalid parameter: " + parameter);
                         continue ANALYSE_PROCEDURE;
                     }
-                    if (parameter.contains(parameter.toLowerCase())) {
+                    if (paramSet.contains(parameter.toLowerCase())) {
                         logger.log(Level.WARNING, "Invalid procedure web entry define: "
                                 + key + ": duplicated parameter: " + parameter);
                         continue ANALYSE_PROCEDURE;
@@ -229,7 +229,10 @@ public abstract class WebDBRouter extends WebRouterBase {
                 httpBody = ServletUtils.readHttpBody(request);
 
             Map<String, String> headers = null;
-            WebSession session = null;
+            WebSession session = sessionFactory.getSession(application, request, response);
+            if (session != null && !session.isNew()) {
+                session.touch();
+            }
             DBService.DBRefString refSession = null;
             DBService.DBOutString outResponseHeader = null;
             DBService.DBOutString outResponse = null;
@@ -269,12 +272,6 @@ public abstract class WebDBRouter extends WebRouterBase {
                     outResponseContentType = new DBService.DBOutString();
                     parameters.add(outResponseContentType);
                 } else if (paramName.equalsIgnoreCase("session")) {
-                    if (session == null) {
-                        session = sessionFactory.getSession(application, request, response);
-                        if (session != null && !session.isNew()) {
-                            session.touch();
-                        }
-                    }
                     refSession = new DBService.DBRefString(Serializer.toJsonString(session.getMap()));
                     parameters.add(refSession);
                 } else {
@@ -290,7 +287,6 @@ public abstract class WebDBRouter extends WebRouterBase {
                 for (String sessionKey : map.keySet()) {
                     session.set(sessionKey, map.get(sessionKey));
                 }
-                session.save();
             }
             if (outResponseHeader != null && outResponseHeader.getValue() != null) {
                 Type type = new TypeToken<Map<String, String>>(){}.getType();
@@ -299,14 +295,20 @@ public abstract class WebDBRouter extends WebRouterBase {
                     response.setHeader(headerKey, map.get(headerKey));
                 }
             }
+            if (session != null && !session.isSaved() && !session.isNew())
+                session.save();
+
             String contentType;
             if (outResponseContentType != null && outResponseContentType.getValue() != null) {
                 contentType = outResponseContentType.getValue();
             } else {
                 contentType = "application/json";
             }
-            if (outResponse != null && outResponse.getValue() != null) {
-                ServletUtils.sendText(response, outResponse.getValue(), contentType);
+            String responseString = outResponse.getValue();
+            if (outResponse != null && responseString != null) {
+                boolean supportGzip = ServletUtils.supportGZipCompression(request);
+                supportGzip = (supportGzip && responseString.length() > 1024);
+                ServletUtils.sendText(response, responseString, contentType, supportGzip);
             }
         } catch (SQLException ex) {
             if (ex.getMessage() != null) {

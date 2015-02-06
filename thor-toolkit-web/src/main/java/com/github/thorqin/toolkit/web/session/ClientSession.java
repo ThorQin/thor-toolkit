@@ -173,6 +173,10 @@ public class ClientSession extends WebSession {
 		}
 	}
 
+    public void delete() {
+        save(getRootPath(request), null, 0, true, false);
+    }
+
 	public void save(String path, String domain, Integer maxAge, boolean httpOnly, boolean secureOnly) {
 		try {
 			touch();

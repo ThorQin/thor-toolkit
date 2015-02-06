@@ -404,11 +404,6 @@ public final class WebBasicRouter extends WebRouterBase {
 		} else if (paramType.equals(HttpSession.class)) {
 			return mInfo.request.getSession(true);
 		} else if (paramType.equals(WebSession.class)) {
-            // Obtain session object
-            mInfo.session = sessionFactory.getSession(application, mInfo.request, mInfo.response);
-            if (mInfo.session != null && !mInfo.session.isNew()) {
-                mInfo.session.touch();
-            }
 			return mInfo.session;
 		} else {
 			for (Annotation ann : annos) {
@@ -491,6 +486,11 @@ public final class WebBasicRouter extends WebRouterBase {
 			MethodRuntimeInfo mInfo = new MethodRuntimeInfo();
 			mInfo.request = request;
 			mInfo.response = response;
+            // Obtain session object
+            mInfo.session = sessionFactory.getSession(application, mInfo.request, mInfo.response);
+            if (mInfo.session != null && !mInfo.session.isNew()) {
+                mInfo.session.touch();
+            }
 			// Extract URL's parameters which like '/{user}/{id}' form into a hash map.
 			mInfo.urlParams = matchResult.parameters;
 
@@ -526,19 +526,24 @@ public final class WebBasicRouter extends WebRouterBase {
 				mInfo.session.save();
 
             if (result != null) {
+                boolean supportGzip = ServletUtils.supportGZipCompression(request);
                 if (result.getClass().equals(WebContent.class)) {
                     WebContent content = (WebContent)result;
-                    if (content.getType() == WebContent.Type.JSON) {
-                        ServletUtils.sendJsonString(response, content.toString());
-                    } else if (content.getType() == WebContent.Type.HTML) {
-                        ServletUtils.sendHtml(response, content.toString());
-                    } else if (content.getType() == WebContent.Type.PLAIN) {
-                        ServletUtils.sendText(response, content.toString());
-                    } else if (content.getType() == WebContent.Type.REDIRECTION) {
-                        request.getRequestDispatcher(content.toString()).forward(request, response);
+                    String strContent = content.toString();
+                    if (strContent != null) {
+                        supportGzip = (supportGzip && strContent.length() > 1024);
+                        if (content.getType() == WebContent.Type.JSON) {
+                            ServletUtils.sendJsonString(response, strContent, supportGzip);
+                        } else if (content.getType() == WebContent.Type.HTML) {
+                            ServletUtils.sendHtml(response, strContent, supportGzip);
+                        } else if (content.getType() == WebContent.Type.PLAIN) {
+                            ServletUtils.sendText(response, strContent, supportGzip);
+                        } else if (content.getType() == WebContent.Type.REDIRECTION) {
+                            request.getRequestDispatcher(strContent).forward(request, response);
+                        }
                     }
                 } else {
-                    ServletUtils.sendJsonObject(response, result);
+                    ServletUtils.sendJsonObject(response, result, supportGzip);
                 }
             }
 		} catch (ValidateException ex) {

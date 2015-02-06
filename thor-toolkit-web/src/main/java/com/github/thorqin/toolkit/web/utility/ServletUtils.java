@@ -9,9 +9,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
-import java.security.Principal;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Created by nuo.qin on 12/25/2014.
@@ -22,7 +23,7 @@ public final class ServletUtils {
     public static void setCrossSiteHeaders(HttpServletResponse response) {
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Credentials", "true");
-        response.setHeader("P3P","CP=CAO PSA OUR");
+        response.setHeader("P3P", "CP=CAO PSA OUR");
         response.setHeader("Access-Control-Allow-Methods",
                 "GET,POST,PUT,DELETE,HEAD,OPTIONS");
         response.setHeader("Access-Control-Allow-Headers",
@@ -35,6 +36,18 @@ public final class ServletUtils {
         if (queryString != null)
             sb.append("?").append(queryString);
         return sb.toString();
+    }
+
+    public static boolean supportGZipCompression(HttpServletRequest request) {
+        Enumeration<String> headers = request.getHeaders("Accept-Encoding");
+        while (headers.hasMoreElements()) {
+            String[] value = headers.nextElement().split(",");
+            for (String v : value) {
+                if (v.trim().toLowerCase().equals("gzip"))
+                    return true;
+            }
+        }
+        return false;
     }
 
     public static String readHttpBody(HttpServletRequest request) {
@@ -67,49 +80,97 @@ public final class ServletUtils {
         }
     }
 
+    public static void sendText(HttpServletResponse response, Integer status, String message, boolean compress) {
+        response.setStatus(status);
+        sendText(response, message, compress);
+    }
+
     public static void sendText(HttpServletResponse response, Integer status, String message) {
         response.setStatus(status);
-        sendText(response, message);
+        sendText(response, message, false);
+    }
+
+    public static void sendText(HttpServletResponse response, Integer status, String message, String contentType, boolean compress) {
+        response.setStatus(status);
+        sendText(response, message, contentType, compress);
     }
 
     public static void sendText(HttpServletResponse response, Integer status, String message, String contentType) {
         response.setStatus(status);
-        sendText(response, message, contentType);
+        sendText(response, message, contentType, false);
     }
 
     public static void sendText(HttpServletResponse response, String message, String contentType) {
+        sendText(response, message, contentType, false);
+    }
+
+    public static void sendText(HttpServletResponse response, String message, String contentType, boolean compress) {
         response.setContentType(contentType);
         response.setCharacterEncoding("utf-8");
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Cache-Control", "no-store");
         response.setDateHeader("Expires", 0);
-        try (Writer w = response.getWriter()) {
-            if (message != null)
+        if (message == null)
+            return;
+        if (compress) {
+            response.addHeader("Content-Encoding", "gzip");
+            response.addHeader("Transfer-Encoding", "chunked");
+            try (GZIPOutputStream gzipStream = new GZIPOutputStream(response.getOutputStream())) {
+                try (OutputStreamWriter writer = new OutputStreamWriter(gzipStream, "utf-8")) {
+                    writer.write(message);
+                }
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Send message to client failed!", ex);
+            }
+        } else {
+            try (Writer w = response.getWriter()) {
                 w.write(message);
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Send message to client failed!", ex);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Send message to client failed!", ex);
+            }
         }
     }
 
+    public static void sendText(HttpServletResponse response, String message, boolean compress) {
+        sendText(response, message, "text/plain", compress);
+    }
+
     public static void sendText(HttpServletResponse response, String message) {
-        sendText(response, message, "text/plain");
+        sendText(response, message, "text/plain", false);
+    }
+
+    public static void sendHtml(HttpServletResponse response, String html, boolean compress) {
+        sendText(response, html, "text/html", compress);
     }
 
     public static void sendHtml(HttpServletResponse response, String html) {
-        sendText(response, html, "text/html");
+        sendText(response, html, "text/html", false);
+    }
+
+    public static void sendHtml(HttpServletResponse response, Integer status, String html, boolean compress) {
+        sendText(response, status, html, "text/html", compress);
     }
 
     public static void sendHtml(HttpServletResponse response, Integer status, String html) {
-        sendText(response, status, html, "text/html");
+        sendText(response, status, html, "text/html", false);
+    }
+
+    public static void sendJsonString(HttpServletResponse response, Integer status, String jsonString, boolean compress) {
+        response.setStatus(status);
+        sendJsonString(response, jsonString, compress);
     }
 
     public static void sendJsonString(HttpServletResponse response, Integer status, String jsonString) {
         response.setStatus(status);
-        sendJsonString(response, jsonString);
+        sendJsonString(response, jsonString, false);
+    }
+
+    public static void sendJsonString(HttpServletResponse response, String jsonString, boolean compress) {
+        sendText(response, jsonString, "application/json", compress);
     }
 
     public static void sendJsonString(HttpServletResponse response, String jsonString) {
-        sendText(response, jsonString, "application/json");
+        sendText(response, jsonString, "application/json", false);
     }
 
     public static void send(HttpServletResponse response, Integer status) {
@@ -119,21 +180,42 @@ public final class ServletUtils {
         response.setStatus(status);
     }
 
+    public static void sendJsonObject(HttpServletResponse response, Integer status, Object obj, boolean compress) {
+        response.setStatus(status);
+        sendJsonObject(response, obj, compress);
+    }
+
     public static void sendJsonObject(HttpServletResponse response, Integer status, Object obj) {
         response.setStatus(status);
-        sendJsonObject(response, obj);
+        sendJsonObject(response, obj, false);
     }
 
     public static void sendJsonObject(HttpServletResponse response, Object obj) {
+        sendJsonObject(response, obj, false);
+    }
+
+    public static void sendJsonObject(HttpServletResponse response, Object obj, boolean compress) {
         response.setContentType("application/json");
         response.setCharacterEncoding("utf-8");
         response.setHeader("Pragma", "no-cache");
         response.setHeader("Cache-Control", "no-store");
         response.setDateHeader("Expires", 0);
-        try (Writer w = response.getWriter()){
-            Serializer.toJson(obj, w);
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Send message to client failed!", ex);
+        if (compress) {
+            response.addHeader("Content-Encoding", "gzip");
+            response.addHeader("Transfer-Encoding", "chunked");
+            try (GZIPOutputStream gzipStream = new GZIPOutputStream(response.getOutputStream())) {
+                try (OutputStreamWriter writer = new OutputStreamWriter(gzipStream, "utf-8")) {
+                    Serializer.toJson(obj, writer);
+                }
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Send message to client failed!", ex);
+            }
+        } else {
+            try (PrintWriter writer = response.getWriter()) {
+                Serializer.toJson(obj, writer);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Send message to client failed!", ex);
+            }
         }
     }
 
@@ -147,9 +229,9 @@ public final class ServletUtils {
     }
 
     public static void download(HttpServletRequest req,
-                                    HttpServletResponse resp,
-                                    InputStream inputStream,
-                                    String fileName) throws IOException {
+                                HttpServletResponse resp,
+                                InputStream inputStream,
+                                String fileName) throws IOException {
         try {
             if (fileName != null) {
                 fileName = URLEncoder.encode(fileName, "utf-8").replace("+", "%20");

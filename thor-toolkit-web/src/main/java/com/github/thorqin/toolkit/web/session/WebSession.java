@@ -32,6 +32,7 @@ public abstract class WebSession {
     public abstract long getLastAccessedTime();
     public abstract void save();
     public abstract void touch();
+    public abstract void delete();
     public boolean isExpired() {
         if (this.getMaxInactiveInterval() <= 0)
             return false;

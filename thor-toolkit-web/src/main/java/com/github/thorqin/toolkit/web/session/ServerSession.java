@@ -75,6 +75,11 @@ public class ServerSession extends WebSession {
     }
 
     @Override
+    public void delete() {
+        clear();
+    }
+
+    @Override
     public void touch() {
         request.getSession().getId();
     }
