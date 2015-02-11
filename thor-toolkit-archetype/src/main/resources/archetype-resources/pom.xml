@@ -2,10 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.github.thorqin</groupId>
-	<artifactId>test-website</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<groupId>${groupId}</groupId>
+	<artifactId>${artifactId}</artifactId>
+	<version>${version}</version>
 	<packaging>war</packaging>
+
+    <name>${artifactId}</name>
 	
 	<properties>
 		<endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
@@ -87,7 +89,7 @@
                     <systemProperties>
                         <systemProperty>
                             <name>app.data.dir</name>
-                            <value>C:\Users\nuo.qin\Workspace\AppData</value>
+                            <value>~/Workspace/AppData</value>
                         </systemProperty>
                     </systemProperties>
 					<!--<webAppSourceDirectory>${project.build.directory}/${project.build.finalName}</webAppSourceDirectory>-->

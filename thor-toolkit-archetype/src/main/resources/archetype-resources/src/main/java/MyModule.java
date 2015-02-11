@@ -1,9 +1,12 @@
-package com.github.thorqin.toolkit.testweb;
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\' )
+package ${package};
 
 import com.github.thorqin.toolkit.web.annotation.*;
 import com.github.thorqin.toolkit.web.router.WebContent;
 
-import static com.github.thorqin.toolkit.web.annotation.WebEntry.HttpMethod.GET;
+import static ${groupId}.toolkit.web.annotation.WebEntry.HttpMethod.GET;
 
 @WebModule
 public class MyModule {

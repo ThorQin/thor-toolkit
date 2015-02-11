@@ -32,17 +32,14 @@
             <email>thor.qin@outlook.com</email>
         </developer>
     </developers>
-
     <scm>
         <url>https://github.com/ThorQin/thor-toolkit</url>
         <connection>scm:git:https://github.com/ThorQin/thor-toolkit.git</connection>
     </scm>
-
-
 	<modules>
 		<module>thor-toolkit-core</module>
 		<module>thor-toolkit-web</module>
-        <module>test-website</module>
+		<module>thor-toolkit-archetype</module>
 	</modules>
 	<dependencies>
 		<dependency>
@@ -57,4 +54,24 @@
 
 		</plugins>
 	</build>
+	<distributionManagement>
+		<repository> 
+			<id>nexus-releases</id> 
+			<name>Internal Releases</name> 
+			<url>http://10.63.2.111:8081/nexus/content/repositories/release</url> 
+		</repository> 
+		<snapshotRepository> 
+			<id>nexus-snapshots</id>
+			<name>Internal Snapshots</name> 
+			<url>http://10.63.2.111:8081/nexus/content/repositories/snapshots</url> 
+		</snapshotRepository>
+	</distributionManagement>
+    <profiles>
+        <profile>
+            <id>Local</id>
+            <modules>
+                <module>test-website</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>

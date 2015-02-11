@@ -1,4 +1,7 @@
-package com.github.thorqin.toolkit.testweb;
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\' )
+package ${package};
 
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.web.WebApplication;
