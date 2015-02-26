@@ -126,7 +126,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                 Set<String> paramSet = new HashSet<>();
                 for (String parameter: parameters) {
                     if (!parameter.matches("^(?i)query_string|request_body|request_header|" +
-                            "session|response_header|response_content_type|response$")) {
+                            "session|status|response_header|response_content_type|response_body$")) {
                         logger.log(Level.WARNING, "Invalid procedure web entry define: "
                                 + key + ": invalid parameter: " + parameter);
                         continue ANALYSE_PROCEDURE;
@@ -237,6 +237,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             DBService.DBOutString outResponseHeader = null;
             DBService.DBOutString outResponse = null;
             DBService.DBOutString outResponseContentType = null;
+            DBService.DBOutInteger outStatus = null;
             List<Object> parameters = new ArrayList<>(mappingInfo.parameters.length);
             for (String paramName : mappingInfo.parameters) {
                 if (paramName.equalsIgnoreCase("request_body")) {
@@ -265,9 +266,12 @@ public abstract class WebDBRouter extends WebRouterBase {
                 } else if (paramName.equalsIgnoreCase("response_header")) {
                     outResponseHeader = new DBService.DBOutString();
                     parameters.add(outResponseHeader);
-                } else if (paramName.equalsIgnoreCase("response")) {
+                } else if (paramName.equalsIgnoreCase("response_body")) {
                     outResponse = new DBService.DBOutString();
                     parameters.add(outResponse);
+                } else if (paramName.equalsIgnoreCase("status")) {
+                    outStatus = new DBService.DBOutInteger();
+                    parameters.add(outStatus);
                 } else if (paramName.equalsIgnoreCase("response_content_type")) {
                     outResponseContentType = new DBService.DBOutString();
                     parameters.add(outResponseContentType);
@@ -280,6 +284,11 @@ public abstract class WebDBRouter extends WebRouterBase {
             }
             // Call database stored procedure
             db.invoke(mappingInfo.procedure, parameters.toArray());
+
+            int status = HttpServletResponse.SC_OK;
+            if (outStatus != null && outStatus.getValue() != null) {
+                status = outStatus.getValue();
+            }
 
             if (refSession != null && refSession.getValue() != null && session != null) {
                 Type type = new TypeToken<Map<String, Object>>(){}.getType();
@@ -308,7 +317,9 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (outResponse != null && responseString != null) {
                 boolean supportGzip = ServletUtils.supportGZipCompression(request);
                 supportGzip = (supportGzip && responseString.length() > 1024);
-                ServletUtils.sendText(response, responseString, contentType, supportGzip);
+                ServletUtils.sendText(response, status, responseString, contentType, supportGzip);
+            } else {
+                ServletUtils.send(response, status);
             }
         } catch (SQLException ex) {
             if (ex.getMessage() != null) {
