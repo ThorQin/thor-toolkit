@@ -293,6 +293,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (refSession != null && refSession.getValue() != null && session != null) {
                 Type type = new TypeToken<Map<String, Object>>(){}.getType();
                 Map<String, Object> map = Serializer.fromJson(refSession.getValue(), type);
+                session.clear();
                 for (String sessionKey : map.keySet()) {
                     session.set(sessionKey, map.get(sessionKey));
                 }
@@ -313,8 +314,9 @@ public abstract class WebDBRouter extends WebRouterBase {
             } else {
                 contentType = "application/json";
             }
-            String responseString = outResponse.getValue();
-            if (outResponse != null && responseString != null) {
+            String responseString;
+            if (outResponse != null && outResponse.getValue() != null) {
+                responseString = outResponse.getValue();
                 boolean supportGzip = ServletUtils.supportGZipCompression(request);
                 supportGzip = (supportGzip && responseString.length() > 1024);
                 ServletUtils.sendText(response, status, responseString, contentType, supportGzip);

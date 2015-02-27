@@ -223,8 +223,13 @@ public abstract class WebApplication extends TraceService
 				db.getValue().close();
 			}
 		} catch (Exception ex) {
+            ex.printStackTrace();
 		}
-		this.onShutdown();
+		try {
+            this.onShutdown();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
 		this.stop();
 		applicationMap.remove(applicationName);
 	}
@@ -234,7 +239,7 @@ public abstract class WebApplication extends TraceService
 	}
 
 	@Override
-	public void onStartup() {}
+	public void onStartup() throws ServletException {}
 
 	@Override
 	public void onShutdown() {}

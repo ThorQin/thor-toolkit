@@ -24,5 +24,10 @@ public @interface DBRouter {
      */
     public String index() default "_web_";
 
-    public String refreshEntry() default "refreshRouteTable";
+    /**
+     * Provide ability that can refresh database router table at runtime.
+     * Set this value to empty if do not need this feature.
+     * @return Name of the entry
+     */
+    public String refreshEntry() default "refreshRouter";
 }
