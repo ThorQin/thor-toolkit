@@ -35,7 +35,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
  *
  * @author nuo.qin
  */
-public final class DownloadManager {
+public final class UploadManager {
 	private final static int maxSize = 1024 * 1024 * 5;
 	private final String uploadDir;
 //	private final Map<String, String> mime = new HashMap<>();
@@ -43,15 +43,15 @@ public final class DownloadManager {
     private Pattern pattern;
     private boolean storeDetail;
 
-	public DownloadManager(File baseDir) {
+	public UploadManager(File baseDir) {
         this(baseDir, true);
 	}
 
-    public DownloadManager(File baseDir, boolean storeDetail) {
+    public UploadManager(File baseDir, boolean storeDetail) {
         this.uploadDir = baseDir.getAbsolutePath();
         this.storeDetail = storeDetail;
         // By default, only allow upload images
-        pattern = Pattern.compile("(?i).+\\\\.(jpg|jpeg|png|gif)");
+        setFileSuffix("jpg|jpeg|png|gif");
     }
 
     /**
@@ -63,6 +63,13 @@ public final class DownloadManager {
             pattern = null;
         else
             pattern = Pattern.compile(rule);
+    }
+
+    public void setFileSuffix(String suffix) {
+        if (suffix == null)
+            pattern = null;
+        else
+            setRestriction("(?i).+\\.(" + suffix + ")");
     }
 
     public boolean isStoreDetail() {
@@ -191,6 +198,9 @@ public final class DownloadManager {
 	public void copyTo(String fileId, File destPath, boolean replaceExisting) throws IOException {
         String filePath = fileIdToPath(fileId);
         File dataFile = new File(filePath + ".data");
+        File parentFile = destPath.getParentFile();
+        if (parentFile != null)
+            Files.createDirectories(parentFile.toPath());
 		if (replaceExisting)
 			Files.copy(dataFile.toPath(), destPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		else
