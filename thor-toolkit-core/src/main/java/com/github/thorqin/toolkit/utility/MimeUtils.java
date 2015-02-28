@@ -8,6 +8,10 @@ import java.util.Map;
  */
 public final class MimeUtils {
     public static final Map<String, String> mimeMap;
+    /**
+     * Unknown mime type
+     */
+    public static final String UNKNOWN_MIME = "application/octet-stream";
     static {
         mimeMap = new HashMap<>();
         mimeMap.put("323", "text/h323");
@@ -16,6 +20,7 @@ public final class MimeUtils {
         mimeMap.put("aif", "audio/x-aiff");
         mimeMap.put("aifc", "audio/x-aiff");
         mimeMap.put("aiff", "audio/x-aiff");
+        mimeMap.put("apk", "application/vnd.android.package-archive");
         mimeMap.put("asf", "video/x-ms-asf");
         mimeMap.put("asr", "video/x-ms-asf");
         mimeMap.put("asx", "video/x-ms-asf");
@@ -28,9 +33,11 @@ public final class MimeUtils {
         mimeMap.put("bmp", "image/bmp");
         mimeMap.put("c", "text/plain");
         mimeMap.put("cat", "application/vnd.ms-pkiseccat");
+        mimeMap.put("cc", "text/plain");
         mimeMap.put("cdf", "application/x-cdf");
         mimeMap.put("cer", "application/x-x509-ca-cert");
         mimeMap.put("class", "application/octet-stream");
+        mimeMap.put("cpp", "text/plain");
         mimeMap.put("clp", "application/x-msclip");
         mimeMap.put("cmx", "image/x-cmx");
         mimeMap.put("cod", "image/cis-cod");
@@ -39,6 +46,7 @@ public final class MimeUtils {
         mimeMap.put("crl", "application/pkix-crl");
         mimeMap.put("crt", "application/x-x509-ca-cert");
         mimeMap.put("csh", "application/x-csh");
+        mimeMap.put("cs", "text/plain");
         mimeMap.put("css", "text/css");
         mimeMap.put("dcr", "application/x-director");
         mimeMap.put("der", "application/x-x509-ca-cert");
@@ -74,13 +82,16 @@ public final class MimeUtils {
         mimeMap.put("ief", "image/ief");
         mimeMap.put("iii", "application/x-iphone");
         mimeMap.put("ins", "application/x-internet-signup");
+        mimeMap.put("ipa", "application/octet-stream");
         mimeMap.put("isp", "application/x-internet-signup");
         mimeMap.put("jar", "application/java-archive");
         mimeMap.put("jfif", "image/pipeg");
+        mimeMap.put("java", "text/plain");
         mimeMap.put("jpe", "image/jpeg");
         mimeMap.put("jpeg", "image/jpeg");
         mimeMap.put("jpg", "image/jpeg");
         mimeMap.put("js", "application/x-javascript");
+        mimeMap.put("json", "application/json");
         mimeMap.put("latex", "application/x-latex");
         mimeMap.put("lha", "application/octet-stream");
         mimeMap.put("lsf", "video/x-la-asf");
@@ -122,6 +133,7 @@ public final class MimeUtils {
         mimeMap.put("pfx", "application/x-pkcs12");
         mimeMap.put("pgm", "image/x-portable-graymap");
         mimeMap.put("pko", "application/ynd.ms-pkipko");
+        mimeMap.put("plist", "text/xml");
         mimeMap.put("pma", "application/x-perfmon");
         mimeMap.put("pmc", "application/x-perfmon");
         mimeMap.put("pml", "application/x-perfmon");
@@ -193,6 +205,7 @@ public final class MimeUtils {
         mimeMap.put("wrz", "x-world/x-vrml");
         mimeMap.put("xaf", "x-world/x-vrml");
         mimeMap.put("xbm", "image/x-xbitmap");
+        mimeMap.put("xhtml", "application/xhtml+xml");
         mimeMap.put("xla", "application/vnd.ms-excel");
         mimeMap.put("xlc", "application/vnd.ms-excel");
         mimeMap.put("xlm", "application/vnd.ms-excel");
@@ -201,6 +214,7 @@ public final class MimeUtils {
         mimeMap.put("xlsm", "application/vnd.ms-excel.sheet.macroEnabled.12");
         mimeMap.put("xlt", "application/vnd.ms-excel");
         mimeMap.put("xlw", "application/vnd.ms-excel");
+        mimeMap.put("xml", "text/xml");
         mimeMap.put("xof", "x-world/x-vrml");
         mimeMap.put("xpm", "image/x-xpixmap");
         mimeMap.put("xwd", "image/x-xwindowdump");
@@ -208,10 +222,19 @@ public final class MimeUtils {
         mimeMap.put("zip", "application/zip");
     }
 
+    /**
+     * Get MIME type by pass full file name or file suffix name
+     * @param suffix File name or file suffix name
+     * @return MIME type
+     */
     public static String getFileMime(String suffix) {
         int dotPos = suffix.lastIndexOf('.');
         if (dotPos >= 0)
             suffix = suffix.substring(dotPos+1);
-        return mimeMap.get(suffix.toLowerCase());
+        String mime = mimeMap.get(suffix.toLowerCase());
+        if (mime == null)
+            return UNKNOWN_MIME;
+        else
+            return mime;
     }
 }

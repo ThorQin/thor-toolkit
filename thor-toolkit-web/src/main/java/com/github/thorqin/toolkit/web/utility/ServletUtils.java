@@ -224,14 +224,31 @@ public final class ServletUtils {
                                 File file,
                                 String fileName) throws IOException {
         try (FileInputStream inputStream = new FileInputStream(file)) {
-            download(req, resp, inputStream, fileName);
+            download(req, resp, inputStream, fileName, null);
+        }
+    }
+
+    public static void download(HttpServletRequest req,
+                                HttpServletResponse resp,
+                                File file) throws IOException {
+        try (FileInputStream inputStream = new FileInputStream(file)) {
+            download(req, resp, inputStream, file.getName(), null);
+        }
+    }
+
+    public static void download(HttpServletRequest req,
+                                HttpServletResponse resp,
+                                File file,
+                                String fileName, String mimeType) throws IOException {
+        try (FileInputStream inputStream = new FileInputStream(file)) {
+            download(req, resp, inputStream, fileName, mimeType);
         }
     }
 
     public static void download(HttpServletRequest req,
                                 HttpServletResponse resp,
                                 InputStream inputStream,
-                                String fileName) throws IOException {
+                                String fileName, String mimeType) throws IOException {
         try {
             if (fileName != null) {
                 fileName = URLEncoder.encode(fileName, "utf-8").replace("+", "%20");
@@ -242,12 +259,12 @@ public final class ServletUtils {
             fileName = "download.dat";
             e1.printStackTrace();
         }
-        String extName = "";
-        if (fileName.lastIndexOf(".") > 0)
-            extName = fileName.substring(fileName.lastIndexOf(".") + 1);
-        String mimeType = MimeUtils.getFileMime(extName);
-        if (mimeType == null)
-            mimeType = "application/octet-stream";
+        if (mimeType == null) {
+            String extName = "";
+            if (fileName.lastIndexOf(".") > 0)
+                extName = fileName.substring(fileName.lastIndexOf(".") + 1);
+            mimeType = MimeUtils.getFileMime(extName);
+        }
         resp.setHeader("Cache-Control", "no-store");
         resp.setHeader("Pragma", "no-cache");
         resp.setDateHeader("Expires", 0);
