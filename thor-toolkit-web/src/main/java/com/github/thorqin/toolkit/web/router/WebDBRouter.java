@@ -2,6 +2,7 @@ package com.github.thorqin.toolkit.web.router;
 
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.trace.Tracer;
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
@@ -43,6 +44,7 @@ public abstract class WebDBRouter extends WebRouterBase {
     private final String refreshEntry;
     protected final DBService db;
     protected final String indexProcedure;
+    protected final String localeBundle;
     private Map<String, MappingInfo> mapping = new HashMap<>();
 
     public WebDBRouter(WebApplication application) throws ValidateException {
@@ -58,18 +60,20 @@ public abstract class WebDBRouter extends WebRouterBase {
         else
             db = application.getDBService(dbRouter.value());
         indexProcedure = dbRouter.index();
+        localeBundle = dbRouter.localeMessage();
         if (dbRouter.refreshEntry().isEmpty())
             refreshEntry = null;
         else
             refreshEntry = dbRouter.refreshEntry();
     }
 
-    public WebDBRouter(DBService dbService, String indexProcedure, String refreshEntry) throws ValidateException {
+    public WebDBRouter(DBService dbService, String indexProcedure, String localeBundle, String refreshEntry) throws ValidateException {
         super(null);
         if (dbService == null)
             throw new InstantiationError("Parameter 'dbService' is null. ");
         db = dbService;
         this.indexProcedure = indexProcedure;
+        this.localeBundle = localeBundle;
         if (refreshEntry == null || refreshEntry.isEmpty())
             this.refreshEntry = null;
         else
@@ -210,6 +214,8 @@ public abstract class WebDBRouter extends WebRouterBase {
         MappingInfo mappingInfo = mapping.get(key);
         if (mappingInfo == null)
             return false;
+
+        String language=request.getHeader("Accept-Language");
         try {
             RequestPostType postType;
             String httpBody = null;
@@ -330,7 +336,8 @@ public abstract class WebDBRouter extends WebRouterBase {
                 if (matcher.find()) {
                     int status = Integer.valueOf(matcher.group(1));
                     String msg = matcher.group(2);
-                    ServletUtils.sendText(response, status, msg);
+                    ServletUtils.sendText(response, status,
+                            Localization.get(localeBundle, language, msg));
                     logger.log(Level.WARNING, "Return HTTP error: " + ex.getMessage());
                 } else {
                     ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
@@ -342,8 +349,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             }
         } catch (Exception ex) {
             ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
-            logger.log(Level.SEVERE,
-                    "Error processing!!", ex);
+            logger.log(Level.SEVERE, "Error processing!!", ex);
         } finally {
             if (application != null && application.getSetting().traceRouter) {
                 Tracer.Info traceInfo = new Tracer.Info();

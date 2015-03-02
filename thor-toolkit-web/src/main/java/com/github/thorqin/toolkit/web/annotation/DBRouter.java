@@ -30,4 +30,10 @@ public @interface DBRouter {
      * @return Name of the entry
      */
     public String refreshEntry() default "refreshRouter";
+
+    /**
+     * Use specified properties file to translate DB raised http message.
+     * @return Message that translated in specified locale
+     */
+    public String localeMessage() default "message";
 }
