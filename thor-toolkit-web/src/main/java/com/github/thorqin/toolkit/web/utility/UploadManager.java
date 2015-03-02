@@ -133,6 +133,7 @@ public final class UploadManager {
         if (!path.startsWith(basePath)) {
             return null;
         }
+        path = path.substring(basePath.length());
         path = path.replaceAll("/|\\\\","");
         if (path.endsWith(".data")) {
             path = path.substring(0, path.length() - 5);
