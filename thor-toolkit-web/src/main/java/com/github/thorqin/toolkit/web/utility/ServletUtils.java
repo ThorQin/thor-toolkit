@@ -288,7 +288,7 @@ public final class ServletUtils {
         }
     }
 
-    public static void error(Exception ex, Integer status) throws HttpException {
+    public static void error(Integer status, Exception ex) throws HttpException {
         Throwable e = ex;
         Throwable cause;
         while ((cause = e.getCause()) != null)
@@ -297,6 +297,18 @@ public final class ServletUtils {
     }
 
     public static void error(Exception ex) throws HttpException {
-        error(ex, 400);
+        error(500, ex);
+    }
+
+    public static void error(Integer status, String message, Throwable ex) throws HttpException {
+        throw new HttpException(status, message, ex);
+    }
+
+    public static void error(Integer status, String message) throws HttpException {
+        throw new HttpException(status, message);
+    }
+
+    public static void error(Integer status) throws HttpException {
+        throw new HttpException(status);
     }
 }
