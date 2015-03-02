@@ -7,6 +7,7 @@ import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -31,12 +32,23 @@ public final class Serializer {
 
 		@Override
 		public void write(JsonWriter out, DateTime value) throws IOException {
-			out.value(StringUtils.toISO8601(value));
+            if (value == null)
+                out.nullValue();
+            else
+			    out.value(StringUtils.toISO8601(value));
 		}
 
 		@Override
 		public DateTime read(JsonReader in) throws IOException {
-			return StringUtils.parseISO8601(in.nextString());
+            JsonToken token = in.peek();
+            if (token != null) {
+                if (token.name().equals("NULL")) {
+                    in.nextNull();
+                    return null;
+                }
+			    return StringUtils.parseISO8601(in.nextString());
+            } else
+                return null;
 		}
 
 		@Override
@@ -61,12 +73,23 @@ public final class Serializer {
 
 		@Override
 		public void write(JsonWriter out, Date value) throws IOException {
-			out.value(StringUtils.toISO8601(new DateTime(value.getTime(), DateTimeZone.getDefault())));
+            if (value == null)
+                out.nullValue();
+            else
+			    out.value(StringUtils.toISO8601(new DateTime(value.getTime(), DateTimeZone.getDefault())));
 		}
 
 		@Override
 		public Date read(JsonReader in) throws IOException {
-			return StringUtils.parseISO8601(in.nextString()).toDate();
+            JsonToken token = in.peek();
+            if (token != null) {
+                if (token.name().equals("NULL")) {
+                    in.nextNull();
+                    return null;
+                }
+                return StringUtils.parseISO8601(in.nextString()).toDate();
+            } else
+                return null;
 		}
 
 		@Override
