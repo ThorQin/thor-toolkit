@@ -48,4 +48,10 @@ public @interface WebModule {
 	String application() default "";
 
     String suffix() default ".do";
+
+    /**
+     * Use specified properties file to translate DB raised http message.
+     * @return Message that translated in specified locale
+     */
+    public String localeMessage() default "message";
 }

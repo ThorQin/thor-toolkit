@@ -118,9 +118,13 @@ public class Localization {
 	}
 
     public static synchronized String get(String bundle, String locale, String msg) {
+        return getInstance(bundle, locale).get(msg);
+    }
+
+    public static synchronized Localization getInstance(String bundle, String locale) {
         String key = bundle + "_" + locale;
         if (cache.containsKey(key)) {
-            return cache.get(key).get(msg);
+            return cache.get(key);
         } else {
             Localization loc;
             try {
@@ -130,7 +134,7 @@ public class Localization {
                 loc = new Localization(bundle, "en-US");
             }
             cache.put(key, loc);
-            return loc.get(msg);
+            return loc;
         }
     }
 }

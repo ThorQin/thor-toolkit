@@ -47,10 +47,10 @@ public class DBProxy implements InvocationHandler {
 		}
 		String procName;
 		DBMethod dbMethod = method.getAnnotation(DBMethod.class);
-		if (dbMethod != null) {
+		if (dbMethod != null && !dbMethod.value().isEmpty()) {
 			procName = dbMethod.value();
 		} else {
-			procName = (prefix.isEmpty() ? "" : prefix + "_") + StringUtils.camelToUnderline(method.getName());
+			procName = prefix + StringUtils.camelToUnderline(method.getName());
 		}
 		Class<?>[] paramTypes = method.getParameterTypes();
 		return invokeCall(args, paramTypes, method, session, procName);

@@ -5,6 +5,7 @@ import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.UserAgentUtils;
 import com.github.thorqin.toolkit.web.HttpException;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -216,6 +217,59 @@ public final class ServletUtils {
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, "Send message to client failed!", ex);
             }
+        }
+    }
+
+
+
+    public static void setCookie(HttpServletResponse response, String name, String value, String path, String domain, Integer maxAge, boolean httpOnly, boolean secureOnly) {
+        try {
+            if (name == null || value == null)
+                return;
+            Cookie cookie = new Cookie(name, value);
+            if (maxAge != null)
+                cookie.setMaxAge(maxAge);
+            if (domain != null && !domain.isEmpty())
+                cookie.setDomain(domain);
+            if (path != null && !path.isEmpty())
+                cookie.setPath(path);
+            cookie.setHttpOnly(httpOnly);
+            cookie.setSecure(secureOnly);
+            cookie.setVersion(1);
+            if (response != null)
+                response.addCookie(cookie);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public static void setCookie(HttpServletResponse response, String name, String value, String path, String domain, Integer maxAge)  {
+        setCookie(response, name, value, path, domain, maxAge, true, false);
+    }
+
+    public static void setCookie(HttpServletResponse response, String name, String value, String path)  {
+        setCookie(response, name, value, path, null, null, true, false);
+    }
+
+    public static void setCookie(HttpServletResponse response, String name, String value, Integer maxAge)  {
+        setCookie(response, name, value, null, null, maxAge, true, false);
+    }
+
+    public static void setCookie(HttpServletResponse response, String name, String value)  {
+        setCookie(response, name, value, null, null, null, true, false);
+    }
+
+    public static String getCookie(HttpServletRequest request, String name)  {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        } else {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(name)) {
+                    return cookie.getValue();
+                }
+            }
+            return null;
         }
     }
 

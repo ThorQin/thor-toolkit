@@ -2,6 +2,7 @@ package com.github.thorqin.toolkit.web.router;
 
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.trace.Tracer;
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
@@ -53,6 +54,7 @@ public final class WebBasicRouter extends WebRouterBase {
 	protected class MappingInfo {
 		public Object instance;
 		public Method method;
+        public String localeMessage;
 	}
 	
 	private RuleMatcher<MappingInfo> mapping = null;
@@ -196,6 +198,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			path += "/";
 		}
 		Object inst = WebApplication.createInstance(clazz, application);
+        String localeMessage = classAnno.localeMessage();
 
 		for (Field field : clazz.getDeclaredFields()) {
 			Class<?> fieldType = field.getType();
@@ -261,6 +264,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			MappingInfo info = new MappingInfo();
 			info.instance = inst;
 			info.method = method;
+            info.localeMessage = localeMessage;
 			method.setAccessible(true);
 			mapping.addRule(key, parameters, info, entry.order(),
                     shouldUseCache(entry, fullPath));
@@ -405,7 +409,10 @@ public final class WebBasicRouter extends WebRouterBase {
 			return mInfo.request.getSession(true);
 		} else if (paramType.equals(WebSession.class)) {
 			return mInfo.session;
-		} else {
+		} else if (paramType.equals(Localization.class)) {
+            String language = mInfo.request.getHeader("Accept-Language");
+            return Localization.getInstance(mInfo.localeMessage, language);
+        } else {
 			for (Annotation ann : annos) {
 				if (ann instanceof Param) {
                     Param annParam = (Param) ann;
@@ -463,6 +470,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		public HttpServletRequest request;
 		public HttpServletResponse response;
 		public WebSession session = null;
+        public String localeMessage;
 		public Map<String, String> urlParams = new HashMap<>();
 	}
 
@@ -510,6 +518,7 @@ public final class WebBasicRouter extends WebRouterBase {
                 mInfo.httpBody = ServletUtils.readHttpBody(request);
 
             MappingInfo info = matchResult.info;
+            mInfo.localeMessage = info.localeMessage;
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
             if (entryAnno != null && entryAnno.crossSite()) {
                 ServletUtils.setCrossSiteHeaders(response);
