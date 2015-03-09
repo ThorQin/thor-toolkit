@@ -270,6 +270,7 @@ public class ConfigManager {
         }
         return obj;
     }
+
     public <T> T get(String jsonPath, Class<T> type) {
         JsonElement obj = get(jsonPath);
         if (obj != null)
@@ -277,6 +278,7 @@ public class ConfigManager {
         else
             return null;
     }
+
     public <T> T get(String jsonPath, Class<T> type, T defaultValue) {
         try {
             T value = get(jsonPath, type);
@@ -285,10 +287,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public String getString(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsString() : null;
     }
+
     public String getString(String jsonPath, String defaultValue) {
         try {
             String val = getString(jsonPath);
@@ -297,10 +301,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public Integer getInteger(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsInt() : null;
     }
+
     public Integer getInteger(String jsonPath, Integer defaultValue) {
         try {
             Integer val = getInteger(jsonPath);
@@ -309,10 +315,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public Long getLong(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsLong() : null;
     }
+
     public Long getLong(String jsonPath, Long defaultValue) {
         try {
             Long val = getLong(jsonPath);
@@ -321,10 +329,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public Short getShort(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsShort() : null;
     }
+
     public Short getShort(String jsonPath, Short defaultValue) {
         try {
             Short val = getShort(jsonPath);
@@ -333,10 +343,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public Byte getByte(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsByte() : null;
     }
+
     public Byte getByte(String jsonPath, Byte defaultValue) {
         try {
             Byte val = getByte(jsonPath);
@@ -345,10 +357,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public BigInteger getBigInteger(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsBigInteger() : null;
     }
+
     public BigInteger getBigInteger(String jsonPath, BigInteger defaultValue) {
         try {
             BigInteger val = getBigInteger(jsonPath);
@@ -357,10 +371,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public BigDecimal getBigDecimal(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsBigDecimal() : null;
     }
+
     public BigDecimal getBigDecimal(String jsonPath, BigDecimal defaultValue) {
         try {
             BigDecimal val = getBigDecimal(jsonPath);
@@ -369,10 +385,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public Boolean getBoolean(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsBoolean() : null;
     }
+
     public Boolean getBoolean(String jsonPath, Boolean defaultValue) {
         try {
             Boolean val = getBoolean(jsonPath);
@@ -381,10 +399,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public Float getFloat(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsFloat() : null;
     }
+
     public Float getFloat(String jsonPath, Float defaultValue) {
         try {
             Float val = getFloat(jsonPath);
@@ -393,10 +413,12 @@ public class ConfigManager {
             return defaultValue;
         }
     }
+
     public Double getDouble(String jsonPath) {
         JsonElement obj = get(jsonPath);
         return obj != null ? obj.getAsDouble() : null;
     }
+
     public Double getDouble(String jsonPath, Double defaultValue) {
         try {
             Double val = getDouble(jsonPath);
@@ -413,6 +435,7 @@ public class ConfigManager {
         else
             return null;
     }
+
     public DateTime getDateTime(String jsonPath, DateTime defaultValue) {
         try {
             DateTime val = getDateTime(jsonPath);
@@ -421,7 +444,6 @@ public class ConfigManager {
             return defaultValue;
         }
     }
-
 
     public <T> List<T> getList(String jsonPath, Class<T> type) {
         JsonElement obj = get(jsonPath);
@@ -438,6 +460,7 @@ public class ConfigManager {
         } else
             return new ArrayList<>();
     }
+
     public <T> Map<String, T> getMap(String jsonPath, Class<T> type) {
         JsonElement obj = get(jsonPath);
         if (obj != null) {
@@ -456,17 +479,31 @@ public class ConfigManager {
 
 
     /**
-     * Get application data directory path, it's combined by
-     * system environment variable 'APP_DATA_DIR' and plus application name.
-     * @param appName Application name
+     * Get application data directory path, it's combined by Java system property name or
+     * OS environment variable name(by default var name is 'APP_DATA_DIR') and plus application name.
+     * @param environmentValueName Java system property name or OS environment variable name
+     * @param appName Application name, if pass null then return the path of the 'APP_DATA_DIR'
      * @return App data dir path or null if env variable not exists.
      */
-    public static String getAppDataDir(String appName) {
-        String dataDir = System.getProperty("app.data.dir");
+    public static String getAppDataDir(String environmentValueName, String appName) {
+        if (environmentValueName == null)
+            environmentValueName = "app.data.dir";
+        String envStyle = environmentValueName.replace('.', '_').toUpperCase();
+        String javaStyle = environmentValueName.replace('_', '.').toLowerCase();
+        String dataDir = System.getProperty(javaStyle);
         if (dataDir == null) {
-            dataDir = System.getenv("APP_DATA_DIR");
+            dataDir = System.getProperty(envStyle);
+            if (dataDir == null) {
+                dataDir = System.getenv(envStyle);
+                if (dataDir == null) {
+                    dataDir = System.getenv(javaStyle);
+                }
+            }
         }
         if (dataDir != null) {
+            if (appName == null) {
+                return dataDir;
+            }
             while (appName.startsWith("/") || appName.startsWith("\\"))
                 appName = appName.substring(1);
             if (dataDir.endsWith("/") || dataDir.endsWith("\\"))
@@ -476,5 +513,25 @@ public class ConfigManager {
             return dataDir;
         } else
             return null;
+    }
+
+
+    /**
+     * Get application data directory path, it's combined by
+     * system environment variable 'APP_DATA_DIR' or 'app.data.dir' and plus application name.
+     * @param appName Application name
+     * @return App data dir path or null if env variable not exists.
+     */
+    public static String getAppDataDir(String appName) {
+        return getAppDataDir(null, appName);
+    }
+
+    /**
+     * Get application data directory path, it's combined by
+     * system environment variable 'APP_DATA_DIR' or 'app.data.dir'.
+     * @return App data dir path or null if env variable not exists.
+     */
+    public static String getAppDataDir() {
+        return getAppDataDir(null, null);
     }
 }

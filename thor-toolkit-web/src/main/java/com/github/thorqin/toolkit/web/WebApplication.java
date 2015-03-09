@@ -95,6 +95,7 @@ public abstract class WebApplication extends TraceService
 	private Class<? extends WebSession> sessionType = ClientSession.class;
 	private final Map<String, DBService> dbMapping = new HashMap<>();
 	private Setting setting;
+    private String appDataEnv = null;
 
 	public WebApplication(String name) {
 		if (name == null || name.isEmpty())
@@ -166,7 +167,10 @@ public abstract class WebApplication extends TraceService
     }
 
 	private void init() {
-        final String dataDir = ConfigManager.getAppDataDir(applicationName);
+        WebApp appAnno = this.getClass().getAnnotation(WebApp.class);
+        if (appAnno != null)
+            appDataEnv = appAnno.appDataEnv();
+        final String dataDir = ConfigManager.getAppDataDir(appDataEnv, applicationName);
         if (dataDir != null) {
             try {
                 String logFile = dataDir;
@@ -249,7 +253,7 @@ public abstract class WebApplication extends TraceService
 	}
 
 	public final String getDataPath() throws MalformedURLException, URISyntaxException {
-		String dataDir = ConfigManager.getAppDataDir(applicationName);
+		String dataDir = ConfigManager.getAppDataDir(appDataEnv, applicationName);
 		if (dataDir != null) {
 			return dataDir;
 		} else {
