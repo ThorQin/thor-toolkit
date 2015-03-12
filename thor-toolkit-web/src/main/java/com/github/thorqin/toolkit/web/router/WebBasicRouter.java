@@ -49,7 +49,7 @@ import javax.servlet.http.HttpSession;
 
 public final class WebBasicRouter extends WebRouterBase {
 	private static final long serialVersionUID = -4658671798328062327L;
-	private static final Logger logger = WebApplication.getLogger();
+	private final Logger logger;
 	
 	protected class MappingInfo {
 		public Object instance;
@@ -65,10 +65,12 @@ public final class WebBasicRouter extends WebRouterBase {
 
 	public WebBasicRouter(WebApplication application) {
 		super(application);
+        logger = application.getLogger();
 	}
 
 	public WebBasicRouter() {
 		super(null);
+        logger = Logger.getLogger(WebBasicRouter.class.getName());
 	}
 
 	private static URI getClassPath(String relativePath) throws URISyntaxException {
@@ -132,7 +134,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		return inst;
 	}
 	
-	private static WebEntry checkMethodParametersAndAnnotation(Class<?> clazz, Method method) {
+	private WebEntry checkMethodParametersAndAnnotation(Class<?> clazz, Method method) {
 		if (!method.isAnnotationPresent(WebEntry.class))
 			return null;
 		WebEntry entry = method.getAnnotation(WebEntry.class);
@@ -316,7 +318,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		scanClasses(file);
 	}
 	
-	private static Object parseFromBody(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
+	private Object parseFromBody(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
 		try {
 			if ((annoEntity.encoding() == ParseEncoding.JSON ||
 					annoEntity.encoding() == ParseEncoding.EITHER) &&
@@ -338,7 +340,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 	}
 	
-	private static Object parseFromQueryString(Class<?> paramType, MethodRuntimeInfo mInfo) {
+	private Object parseFromQueryString(Class<?> paramType, MethodRuntimeInfo mInfo) {
 		try {
 			return Serializer.fromUrlEncoding(mInfo.request.getQueryString(), paramType);
 		} catch (UnsupportedEncodingException | IllegalAccessException | InstantiationException ex) {

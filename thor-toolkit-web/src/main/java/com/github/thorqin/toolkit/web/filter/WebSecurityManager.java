@@ -35,7 +35,7 @@ import javax.servlet.http.HttpServletResponse;
  * @author nuo.qin
  */
 public class WebSecurityManager extends WebFilterBase {
-    private static final Logger logger = WebApplication.getLogger();
+    private final Logger logger;
 
     public static class SecuritySetting {
         public boolean defaultAllow = true;
@@ -56,11 +56,13 @@ public class WebSecurityManager extends WebFilterBase {
 
 	public WebSecurityManager(WebApplication application) {
 		super(application);
+        logger = application.getLogger();
 	}
 
 	public WebSecurityManager() {
 		super(null);
-	}
+        logger = Logger.getLogger(WebSecurityManager.class.getName());
+    }
 
     private void buildSetting() {
         List<Map<String, Pattern>> newRules = new ArrayList<>();

@@ -83,10 +83,9 @@ public abstract class WebApplication extends TraceService
 		}
 	}
 
-	private final static Logger logger =
-			Logger.getLogger(WebApplication.class.getName());
 	private static Map<String, WebApplication> applicationMap = new HashMap<>();
 
+    private final Logger logger;
 	private String applicationName;
 	private ConfigManager configManager;
 	private ServletContext servletContext;
@@ -104,6 +103,7 @@ public abstract class WebApplication extends TraceService
 			throw new RuntimeException(APP_NAME_DUP_MESSAGE);
 		applicationMap.put(name, this);
 		applicationName = name;
+        logger = Logger.getLogger(applicationName);
 		init();
 	}
 
@@ -119,6 +119,7 @@ public abstract class WebApplication extends TraceService
 		applicationMap.put(name, this);
 		applicationName = name;
 		sessionType = appAnno.sessionType();
+        logger = Logger.getLogger(applicationName);
 		init();
 	}
 
@@ -162,7 +163,7 @@ public abstract class WebApplication extends TraceService
 		}
 	}
 
-    public static Logger getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 

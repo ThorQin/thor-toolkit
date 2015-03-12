@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
  * Created by nuo.qin on 2/4/2015.
  */
 public abstract class WebDBRouter extends WebRouterBase {
-    private static final Logger logger = WebApplication.getLogger();
+    private final Logger logger;
 
     public static class MappingInfo {
         public String procedure;
@@ -49,6 +49,7 @@ public abstract class WebDBRouter extends WebRouterBase {
 
     public WebDBRouter(WebApplication application) throws ValidateException {
         super(application);
+        logger = application.getLogger();
         DBRouter dbRouter = this.getClass().getAnnotation(DBRouter.class);
         if (application == null)
             throw new InstantiationError("Parameter 'application' is null. " +
@@ -69,6 +70,7 @@ public abstract class WebDBRouter extends WebRouterBase {
 
     public WebDBRouter(DBService dbService, String indexProcedure, String localeBundle, String refreshEntry) throws ValidateException {
         super(null);
+        logger = Logger.getLogger(WebDBRouter.class.getName());
         if (dbService == null)
             throw new InstantiationError("Parameter 'dbService' is null. ");
         db = dbService;
