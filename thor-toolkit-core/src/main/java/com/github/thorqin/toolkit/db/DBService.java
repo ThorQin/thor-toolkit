@@ -964,9 +964,6 @@ public final class DBService {
 	public static interface DBWork {
 		public void doWork(DBSession session) throws Exception;
 	}
-	public static interface DBProxyWork<T> {
-		public void doWork(T proxy) throws Exception;
-	}
 
 	/* Private properties. */
 	final private BoneCP boneCP;
@@ -1046,11 +1043,11 @@ public final class DBService {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T> T getProxy(Class<T> interfaceType, boolean autoCommit) throws SQLException {
+		public <T> T getProxy(Class<T> interfaceType) throws SQLException {
 			Object instance = Proxy.newProxyInstance(
 					DBProxy.class.getClassLoader(),
 					new Class<?>[]{interfaceType},
-					new DBProxy(this, autoCommit));
+					new DBProxy(this));
 			return (T)instance;
 		}
 
@@ -1283,30 +1280,6 @@ public final class DBService {
 		}
 	}
 
-	/**
-	 * Do a database work by through a serials DBProxy invokes.
-	 * @param work Database work
-	 * @param interfaceType Proxy interface class
-	 * @param autoCommit Whether commit transaction when a proxy method called.
-	 *                   if autoCommit is false then transaction will be committed when
-	 *                   the work completely finished. if true then will commit transaction
-	 *                   immediately when after a method invoked.
-	 * @param <T> Proxy interface
-	 * @throws Exception Any exception
-	 */
-	public <T> void doWork(DBProxyWork<T> work, Class<T> interfaceType, boolean autoCommit) throws Exception {
-		if (work != null) {
-			try (DBSession session = getSession()) {
-				T proxy = session.getProxy(interfaceType, autoCommit);
-				work.doWork(proxy);
-				if (autoCommit == false)
-					session.commit();
-			}
-		}
-	}
-	public <T> void doWork(DBProxyWork<T> work, Class<T> interfaceType) throws Exception {
-		doWork(work, interfaceType, false);
-	}
 	public DBSession getSession() throws SQLException {
 		return new DBSession(getConnection(), tracer);
 	}

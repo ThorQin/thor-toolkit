@@ -23,18 +23,13 @@ import java.sql.SQLException;
  */
 public class DBProxy implements InvocationHandler {
 	private DBSession session;
-	private boolean autoCommit;
 
 	/**
 	 * Obtain a DBProxy object
 	 * @param session DBSession object
-	 * @param autoCommit whether or not commit when after invoke a call.
-	 * @throws SQLException When call setAutoCommit failed
 	 */
-	public DBProxy(DBSession session, boolean autoCommit) throws SQLException {
+	public DBProxy(DBSession session) {
 		this.session = session;
-		this.session.setAutoCommit(false);
-		this.autoCommit = autoCommit;
 	}
 
 	@Override
@@ -67,28 +62,26 @@ public class DBProxy implements InvocationHandler {
 				}
 			}
 		}
-		if (method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class)) {
-			try {
-				session.invoke(procName, args);
-				if (autoCommit)
-					session.commit();
-				return null;
-			} catch (Exception ex) {
-				if (autoCommit)
-					session.rollback();
-				throw ex;
-			}
-		} else {
-			try {
-				Object result = session.invoke(procName, method.getReturnType(), args);
-				if (autoCommit)
-					session.commit();
-				return result;
-			} catch (Exception ex) {
-				if (autoCommit)
-					session.rollback();
-				throw ex;
-			}
-		}
+        boolean autoCommit = session.getAutoCommit();
+        try {
+            Object result = null;
+            if (autoCommit)
+                session.setAutoCommit(false);
+            if (method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class)) {
+                session.invoke(procName, args);
+            } else {
+                result = session.invoke(procName, method.getReturnType(), args);
+            }
+            if (autoCommit)
+                session.commit();
+            return result;
+        } catch (Exception ex) {
+            if (autoCommit)
+                session.rollback();
+            throw ex;
+        } finally {
+            if (autoCommit)
+                session.setAutoCommit(autoCommit);
+        }
 	}
 }

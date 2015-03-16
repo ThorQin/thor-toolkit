@@ -296,6 +296,8 @@ public final class UploadManager {
     private static boolean emptyFolder(File folder) {
         boolean isEmpty = true;
         File[] files = folder.listFiles();
+        if (files == null)
+            return true;
         for (File f: files) {
             if (f.isFile())
                 isEmpty = false;
