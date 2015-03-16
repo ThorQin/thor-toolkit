@@ -259,20 +259,31 @@ public final class DBService {
 			throws SQLException {
 		Class<?> cls = stmt.getClass();
 		try {
+            T value;
+            Method wasNull = cls.getMethod("wasNull");
+            wasNull.setAccessible(true);
 			String methodName = stmtGetMapping.get(valueType);
 			if (methodName != null) {
 				Method method = cls.getMethod(methodName, int.class);
 				method.setAccessible(true);
-				return (T) method.invoke(stmt, offset);
+				value = (T)method.invoke(stmt, offset);
+                if ((boolean)wasNull.invoke(stmt))
+                    return null;
+                else
+                    return value;
 			} else if (valueType.equals(DateTime.class)) {
-				Method method =cls.getMethod("getTimestamp", int.class);
+				Method method = cls.getMethod("getTimestamp", int.class);
 				method.setAccessible(true);
 				Timestamp timestamp = (Timestamp)method.invoke(stmt, offset);
+                if (timestamp == null)
+                    return null;
 				return (T)new DateTime(timestamp.getTime());
 			} else if (valueType.equals(Date.class)) {
 				Method method =cls.getMethod("getTimestamp", int.class);
 				method.setAccessible(true);
 				Timestamp timestamp = (Timestamp)method.invoke(stmt, offset);
+                if (timestamp == null)
+                    return null;
 				return (T)new Date(timestamp.getTime());
 			} else if (valueType.equals(DBTable.class)) {
 				Method method =cls.getMethod("getObject", int.class);
@@ -290,9 +301,11 @@ public final class DBService {
 				Method method = cls.getMethod("getBlob", int.class);
 				method.setAccessible(true);
 				Blob blob = (Blob)method.invoke(stmt, offset);
+                if (blob == null)
+                    return null;
 				return (T)blob.getBinaryStream();
 			} else {
-				Method method =cls.getMethod("getObject", int.class);
+				Method method = cls.getMethod("getObject", int.class);
 				method.setAccessible(true);
 				return (T) fromSqlObject(method.invoke(stmt, offset), valueType, udtMapping);
 			}

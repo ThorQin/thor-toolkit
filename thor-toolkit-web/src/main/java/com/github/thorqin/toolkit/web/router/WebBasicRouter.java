@@ -152,7 +152,9 @@ public final class WebBasicRouter extends WebRouterBase {
 			Class<?> paramType = parameterTypes[i];
 			if (paramType.equals(HttpServletRequest.class) ||
 					paramType.equals(HttpServletResponse.class) ||
-					paramType.equals(WebSession.class)) {
+					paramType.equals(WebSession.class) ||
+                    paramType.equals(Localization.class)
+                    ) {
 				continue;
 			}
 			Annotation[] annotations = parameterAnnotations[i];
