@@ -50,22 +50,27 @@ public abstract class WebDBRouter extends WebRouterBase {
     public WebDBRouter(WebApplication application) throws ValidateException {
         super(application);
         logger = application.getLogger();
-        DBRouter dbRouter = this.getClass().getAnnotation(DBRouter.class);
-        if (application == null)
-            throw new InstantiationError("Parameter 'application' is null. " +
-                    "Must use this router under web application environment.");
-        if (dbRouter == null)
-            throw new InstantiationError("Must either provide @DBRouter annotation or use 3 parameters constructor.");
-        if (dbRouter.value().isEmpty())
-            db = application.getDBService();
-        else
-            db = application.getDBService(dbRouter.value());
-        indexProcedure = dbRouter.index();
-        localeBundle = dbRouter.localeMessage();
-        if (dbRouter.refreshEntry().isEmpty())
-            refreshEntry = null;
-        else
-            refreshEntry = dbRouter.refreshEntry();
+        try {
+            DBRouter dbRouter = this.getClass().getAnnotation(DBRouter.class);
+            if (application == null)
+                throw new InstantiationError("Parameter 'application' is null. " +
+                        "Must use this router under web application environment.");
+            if (dbRouter == null)
+                throw new InstantiationError("Must either provide @DBRouter annotation or use 3 parameters constructor.");
+            if (dbRouter.value().isEmpty())
+                db = application.getDBService();
+            else
+                db = application.getDBService(dbRouter.value());
+            indexProcedure = dbRouter.index();
+            localeBundle = dbRouter.localeMessage();
+            if (dbRouter.refreshEntry().isEmpty())
+                refreshEntry = null;
+            else
+                refreshEntry = dbRouter.refreshEntry();
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Create WebDBRouter instance failed!", ex);
+            throw new RuntimeException(ex);
+        }
     }
 
     public WebDBRouter(DBService dbService, String indexProcedure, String localeBundle, String refreshEntry) throws ValidateException {
@@ -176,10 +181,15 @@ public abstract class WebDBRouter extends WebRouterBase {
     @Override
     public final void init(ServletConfig config) throws ServletException {
         super.init(config);
-        String sessionTypeName = config.getInitParameter("sessionClass");
-        sessionFactory.setSessionType(sessionTypeName);
-        mapping.clear();
-        makeMapping(mapping);
+        try {
+            String sessionTypeName = config.getInitParameter("sessionClass");
+            sessionFactory.setSessionType(sessionTypeName);
+            mapping.clear();
+            makeMapping(mapping);
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Initialize WebDBRouter failed!", ex);
+            throw new ServletException(ex);
+        }
     }
 
     @Override

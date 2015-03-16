@@ -267,6 +267,8 @@ public final class UploadManager {
 
     private void listFiles(File folder, List<FileBasicInfo> files) throws IOException {
         File[] subFiles = folder.listFiles();
+        if (subFiles == null)
+            return;
         for (File f: subFiles) {
             if (f.isDirectory()) {
                 listFiles(f, files);

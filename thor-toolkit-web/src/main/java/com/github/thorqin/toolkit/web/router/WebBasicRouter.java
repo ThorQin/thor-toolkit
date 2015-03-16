@@ -80,23 +80,28 @@ public final class WebBasicRouter extends WebRouterBase {
 	@Override
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-		String sessionTypeName = config.getInitParameter("sessionClass");
-		sessionFactory.setSessionType(sessionTypeName);
-		if (mapping == null) {
-			try {
-				makeApiMapping();
-			} catch (Exception ex) {
-				throw new ServletException("Initialize dispatcher servlet error.", ex);
-			}
-		}
-		for (MappingInfo info : startup) {
-			try {
-				info.method.invoke(info.instance);
-			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-				logger.log(Level.SEVERE, "Invoke startup failed", ex);
-			}
-		}
-		startup.clear();
+        try {
+            String sessionTypeName = config.getInitParameter("sessionClass");
+            sessionFactory.setSessionType(sessionTypeName);
+            if (mapping == null) {
+                try {
+                    makeApiMapping();
+                } catch (Exception ex) {
+                    throw new ServletException("Initialize dispatcher servlet error.", ex);
+                }
+            }
+            for (MappingInfo info : startup) {
+                try {
+                    info.method.invoke(info.instance);
+                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                    logger.log(Level.SEVERE, "Invoke startup failed", ex);
+                }
+            }
+            startup.clear();
+        } catch (ServletException ex) {
+            logger.log(Level.SEVERE, "Initialize WebBasicRouter failed!", ex);
+            throw new RuntimeException(ex);
+        }
 	}
 
 	@Override
