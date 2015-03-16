@@ -1039,6 +1039,13 @@ public final class DBService {
 		}
 		@Override
 		public void close() throws SQLException	{
+            if (!conn.getAutoCommit()) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
 			conn.close();
 		}
 
@@ -1280,8 +1287,14 @@ public final class DBService {
 		}
 	}
 
-	public DBSession getSession() throws SQLException {
-		return new DBSession(getConnection(), tracer);
+    public DBSession getSession() throws SQLException {
+        return getSession(true);
+    }
+
+	public DBSession getSession(boolean autoCommit) throws SQLException {
+        DBSession dbSession = new DBSession(getConnection(), tracer);
+        dbSession.setAutoCommit(autoCommit);
+        return dbSession;
 	}
 	public Connection getConnection() throws SQLException {
 		return boneCP.getConnection();
