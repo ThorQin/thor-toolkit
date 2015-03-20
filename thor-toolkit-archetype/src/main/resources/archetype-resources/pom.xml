@@ -87,12 +87,25 @@
 				<version>9.2.2.v20140723</version>
 				<configuration>
                     <systemProperties>
+                    
+                    	<!--
+                    	Uncomment following lines, if you want to setup configuration & 
+                    	data store dir from this project POM file, 
+                    	or instead using project setting in POM file, 
+                    	you can setup system environment variable "APP_DATA_DIR" to indicate the location.
+                        
                         <systemProperty>
                             <name>app.data.dir</name>
-                            <value>~/Workspace/AppData</value>
+                            <value>path/to/your/dir</value>
                         </systemProperty>
+                        -->
+                        
                     </systemProperties>
-					<!--<webAppSourceDirectory>${project.build.directory}/${project.build.finalName}</webAppSourceDirectory>-->
+					
+					<!-- If want to set jetty app source directory...
+					<webAppSourceDirectory>${project.build.directory}/${project.build.finalName}</webAppSourceDirectory>
+					-->
+                    
                     <webApp>
                         <contextPath>/</contextPath>
                     </webApp>

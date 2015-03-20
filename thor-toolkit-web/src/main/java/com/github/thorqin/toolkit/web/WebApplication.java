@@ -26,6 +26,7 @@ package com.github.thorqin.toolkit.web;
 
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.trace.TraceService;
+import com.github.thorqin.toolkit.utility.AppClassLoader;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.web.annotation.WebApp;
@@ -127,8 +128,8 @@ public abstract class WebApplication extends TraceService
 		return sessionType;
 	}
 
-	public static WebApplication get(String name) {
-		return applicationMap.get(name);
+	public static WebApplication get(String appName) {
+		return applicationMap.get(appName);
 	}
 
 	public static WebApplication get() {
@@ -143,6 +144,17 @@ public abstract class WebApplication extends TraceService
 					"Must provide application name when more than one instance exiting.");
 		}
 	}
+
+    public AppClassLoader getAppClassLoader(ClassLoader parent) {
+        String path;
+        try {
+            path = getDataPath("lib");
+        } catch (Exception ex) {
+            path = null;
+        }
+        AppClassLoader appClassLoader = new AppClassLoader(parent, path);
+        return appClassLoader;
+    }
 
 	@Override
 	public void onConfigChanged(ConfigManager config) {

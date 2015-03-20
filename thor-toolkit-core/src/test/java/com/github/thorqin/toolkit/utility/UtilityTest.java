@@ -2,7 +2,11 @@ package com.github.thorqin.toolkit.utility;
 
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 
 /**
@@ -11,8 +15,17 @@ import java.io.IOException;
 public class UtilityTest {
 
     @Test
-    public void test() throws IOException {
+    public void test() throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        AppClassLoader classLoader = new AppClassLoader(
+                UtilityTest.class.getClassLoader(), "/home/thor/Workspace/AppData");
+        Class<?> systemClass = classLoader.loadClass("java.lang.System");
+        Method setOutMethod = systemClass.getDeclaredMethod("setOut", PrintStream.class);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(byteArrayOutputStream, true, "utf-8");
+        setOutMethod.invoke(null, printStream);
 
+        System.out.println("test");
+        String str = byteArrayOutputStream.toString("utf-8");
     }
 
 }

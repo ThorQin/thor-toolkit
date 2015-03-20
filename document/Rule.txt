@@ -1,0 +1,30 @@
+
+Rules Key:
+====================================
+path						Match request server path
+method						Match http method (GET|POST|...)
+server						Match server IP
+s:<Session key name> 		Match session field
+scheme						Match request scheme (http, https ...)
+port 						Match server port
+client 						Match client IP
+uri							Match full URI
+h:<Header name>				Match http header field
+q:<Parameter name>			Match the query string parameter
+action						Action to perform: true(allow) | false(denied) | <redirection path(or url)>
+							If ignore then use negative value of the DEFAULT ACTION value.
+							
+Example:
+====================================
+{
+  ......
+  "defaultAllow": false,
+  "rules": [
+    {
+      "path": "/assets/.*"	// Allow all resource path access
+    }, {
+      "path": "/app/.*",
+      "s:uid": ".*" 		// Allow any logged-in user to access to "app" path
+    }
+  ]
+}

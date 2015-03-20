@@ -527,6 +527,20 @@ public final class DBService {
 			} else
 				throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
 		}
+        public Object getValue(int row, String column) {
+            buildHeadMapping();
+            Integer pos = headMapping.get(column);
+            if (pos != null) {
+                return data.get(row)[pos];
+            } else
+                throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
+        }
+        public Object getValue(int row, int column) {
+            if (column >= 0 && column < head.length) {
+                return data.get(row)[column];
+            } else
+                throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
+        }
 		public void setValue(Object[] row, String column, Object value) {
 			buildHeadMapping();
 			Integer pos = headMapping.get(column);
@@ -535,6 +549,20 @@ public final class DBService {
 			} else
 				throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
 		}
+        public void setValue(int row, String column, Object value) {
+            buildHeadMapping();
+            Integer pos = headMapping.get(column);
+            if (pos != null) {
+                data.get(row)[pos] = value;
+            } else
+                throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
+        }
+        public void setValue(int row, int column, Object value) {
+            if (column >= 0 && column < head.length) {
+                data.get(row)[column] = value;
+            } else
+                throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
+        }
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
@@ -899,34 +927,50 @@ public final class DBService {
 			if (resultSet == null)
 				return list;
 			while (resultSet.next()) {
-				T obj = type.newInstance();
-				for (Field field : type.getDeclaredFields()) {
-					DBField anno = field.getAnnotation(DBField.class);
-					if (anno == null)
-						continue;
-					String colName = anno.value();
-					if (colName.isEmpty())
-						colName = field.getName();
-					Integer col = null;
-					for (int i = 0; i < columns.length; i++) {
-						if (columns[i].equalsIgnoreCase(colName)) {
-							col = i + 1;
-							break;
-						}
-					}
-					if (col != null) {
-						Class<?> fieldType = field.getType();
-						field.setAccessible(true);
-						field.set(obj, stmtGet(resultSet, fieldType, col, udtMapping));
-					}
-				}
-				if (adapter != null) {
-					adapter.make(obj);
-				}
+				T obj = get(type, adapter, udtMapping);
 				list.add(obj);
 			}
 			return list;
 		}
+
+        public <T> T get(Class<T> type) throws IllegalAccessException, InstantiationException, SQLException {
+            return get(type, null, null);
+        }
+
+        public <T> T get(Class<T> type, RowTypeAdapter<T> adapter) throws IllegalAccessException, InstantiationException, SQLException {
+            return get(type, adapter, null);
+        }
+
+        public <T> T get(Class<T> type, RowTypeAdapter<T> adapter, Map<String, Class<?>> udtMapping) throws IllegalAccessException, InstantiationException, SQLException {
+            if (resultSet == null)
+                return null;
+            T obj = type.newInstance();
+            for (Field field : type.getDeclaredFields()) {
+                DBField anno = field.getAnnotation(DBField.class);
+                if (anno == null)
+                    continue;
+                String colName = anno.value();
+                if (colName.isEmpty())
+                    colName = field.getName();
+                Integer col = null;
+                for (int i = 0; i < columns.length; i++) {
+                    if (columns[i].equalsIgnoreCase(colName)) {
+                        col = i + 1;
+                        break;
+                    }
+                }
+                if (col != null) {
+                    Class<?> fieldType = field.getType();
+                    field.setAccessible(true);
+                    field.set(obj, stmtGet(resultSet, fieldType, col, udtMapping));
+                }
+            }
+            if (adapter != null) {
+                adapter.make(obj);
+            }
+            return obj;
+        }
+
 		public DBTable getTable() throws SQLException {
 			return getTable(null, null);
 		}
