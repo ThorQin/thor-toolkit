@@ -20,6 +20,6 @@ public abstract class WebRouterBase extends HttpServlet implements ConfigManager
     }
 
     @Override
-    public void onConfigChanged(ConfigManager config) {
+    public void onConfigChanged(ConfigManager configManager) {
     }
 }

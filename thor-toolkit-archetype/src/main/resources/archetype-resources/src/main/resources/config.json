@@ -1,6 +1,6 @@
 {
-  "traceRouter": true,
-  "traceSecurity": true,
+  "traceRouter": false,
+  "traceAccess": false,
   "sessionTimeout": 900,
   "db": {
 	"driver": "org.postgresql.Driver",
@@ -10,8 +10,8 @@
 	"minConnectionsPerPartition": 5,
 	"maxConnectionsPerPartition": 20,
 	"partitionCount": 1,
-	"trace": true
+	"trace": false
   },
   "defaultAllow": true,
-  "rules": []
+  "accessRules": []
 }

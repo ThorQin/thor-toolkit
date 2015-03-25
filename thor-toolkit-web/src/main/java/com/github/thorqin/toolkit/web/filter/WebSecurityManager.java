@@ -39,7 +39,7 @@ public class WebSecurityManager extends WebFilterBase {
 
     public static class SecuritySetting {
         public boolean defaultAllow = true;
-        public List<Map<String, Object>> rules = new ArrayList<>();
+        public List<Map<String, Object>> accessRules = new ArrayList<>();
     }
 
     private static class RuleAction {
@@ -71,9 +71,9 @@ public class WebSecurityManager extends WebFilterBase {
             return;
         }
         defaultAction.allow = setting.defaultAllow;
-        if (setting.rules == null)
+        if (setting.accessRules == null)
             return;
-        for (Map<String, Object> rule: setting.rules) {
+        for (Map<String, Object> rule: setting.accessRules) {
             Map<String, Pattern> newRule = new HashMap<>();
             RuleAction action = new RuleAction();
             action.allow = !setting.defaultAllow;
@@ -112,7 +112,7 @@ public class WebSecurityManager extends WebFilterBase {
 	}
 
     @Override
-    public synchronized void onConfigChanged(ConfigManager config) {
+    public synchronized void onConfigChanged(ConfigManager configManager) {
         setting = application.getConfigManager().get("/", SecuritySetting.class);
         buildSetting();
     }
@@ -214,7 +214,7 @@ public class WebSecurityManager extends WebFilterBase {
             ServletUtils.sendText((HttpServletResponse)response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
             logger.log(Level.SEVERE, "Error processing", ex);
         } finally {
-            if (application != null && application.getSetting().traceSecurity) {
+            if (application != null && application.getSetting().traceAccess) {
                 Tracer.Info traceInfo = new Tracer.Info();
                 traceInfo.catalog = "security";
                 traceInfo.name = "access";

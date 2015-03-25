@@ -62,7 +62,7 @@ public abstract class WebApplication extends TraceService
 
 	public static class Setting {
 		public boolean traceRouter = false;
-		public boolean traceSecurity = false;
+		public boolean traceAccess = false;
 		public int sessionTimeout = 900;
 	}
 
@@ -157,7 +157,7 @@ public abstract class WebApplication extends TraceService
     }
 
 	@Override
-	public void onConfigChanged(ConfigManager config) {
+	public void onConfigChanged(ConfigManager configManager) {
 		loadConfig();
 	}
 
@@ -228,7 +228,10 @@ public abstract class WebApplication extends TraceService
 	}
 
 	@Override
-	protected void onTraceInfo(Info info) {}
+	protected void onTraceInfo(Info info) {
+		if (logger != null)
+			logger.log(Level.INFO, info.toString());
+	}
 	
 	@Override
 	public final void contextInitialized(ServletContextEvent sce) {}

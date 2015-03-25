@@ -16,7 +16,7 @@ import java.util.logging.Logger;
  */
 public class ConfigManager {
     public static interface ChangeListener {
-        void onConfigChanged(ConfigManager config);
+        void onConfigChanged(ConfigManager configManager);
     }
 
     private static WatchService monitorService = null;
@@ -28,6 +28,7 @@ public class ConfigManager {
     private WatchKey watchKey = null;
     private JsonElement rootObj = null;
     private String rawContent = null;
+    private JsonElement defaultRoot = null;
 
     private static synchronized void setWatchConfig(WatchKey key, ConfigManager config) {
         monitoredMap.put(key, config);
@@ -172,7 +173,7 @@ public class ConfigManager {
         try {
             // If did not sleep a while then it maybe will load failed.
             Thread.sleep(100);
-            loadFile(_file);
+            loadFile(_file, false);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -194,32 +195,57 @@ public class ConfigManager {
      * @throws IOException Not found file either in data dir or in resource.
      */
     public void load(String dataDir, String configFileName) throws IOException {
+        loadDefaultResource(configFileName);
+        rawContent = null;
+        rootObj = null;
         if (dataDir == null) {
-            loadResource(configFileName);
             return;
         }
         dataDir = dataDir.replace('\\', '/');
         String path = (dataDir.endsWith("/") ? dataDir : dataDir + "/") + configFileName;
         File configFile = new File(path);
         try {
-            loadFile(configFile);
+            loadFile(configFile, false);
         } catch (IOException ex) {
-            loadResource(configFileName);
+            System.err.println("Load configuration file error: " + configFile);
+            ex.printStackTrace();
+        }
+    }
+
+    private void loadDefaultResource(String resource) {
+        try {
+            defaultRoot = Serializer.fromJson(
+                    Serializer.loadTextResource(resource), JsonElement.class);
+        } catch (Exception ex) {
+            System.err.println("Load configuration resource error: " + resource);
+            ex.printStackTrace();
+            defaultRoot = null;
         }
     }
 
     public void loadResource(String resource) throws IOException {
-        rawContent = null;
+        rawContent = null; // Should set to null because loadTextResource maybe throw exception
         rootObj = null;
+        defaultRoot = null;
         rawContent = Serializer.loadTextResource(resource);
     }
 
     public void loadFile(File file) throws IOException {
+        loadFile(file, true);
+    }
+
+    private void loadFile(File file, boolean clearDefault) throws IOException {
         setMonitorFileChange(false);
         rawContent = null;
         rootObj = null;
+        if (clearDefault) {
+            defaultRoot = null;
+        }
         try {
-            rawContent = Serializer.loadTextFile(file);
+            if (file.exists())
+                rawContent = Serializer.loadTextFile(file);
+            else
+                System.out.println("Configuration file does not exist!");
         } finally {
             _file = file;
         }
@@ -228,6 +254,7 @@ public class ConfigManager {
     public void loadURL(URL url) throws IOException {
         rawContent = null;
         rootObj = null;
+        defaultRoot = null;
         rawContent = Serializer.loadTextURL(url);
     }
 
@@ -235,18 +262,9 @@ public class ConfigManager {
         return rawContent;
     }
 
-    /**
-     * Get the value which is indicated by the json path.
-     * @param jsonPath JSON path to indicate where we should extract info from the configuration.
-     * @return JsonElement depends on which type of the JSON path pointed to.
-     */
-    public JsonElement get(String jsonPath) {
-        if (rawContent == null)
-            return null;
-        if (rootObj == null)
-            rootObj = Serializer.fromJson(rawContent, JsonElement.class);
+    private JsonElement getFromRoot(String jsonPath, JsonElement root) {
         String[] paths = jsonPath.split("(?<!\\\\)/");
-        JsonElement obj = rootObj;
+        JsonElement obj = root;
         for (String p : paths) {
             if (obj != null) {
                 p = p.replace("\\/", "/");
@@ -271,6 +289,23 @@ public class ConfigManager {
         return obj;
     }
 
+    /**
+     * Get the value which is indicated by the json path.
+     * @param jsonPath JSON path to indicate where we should extract info from the configuration.
+     * @return JsonElement depends on which type of the JSON path pointed to.
+     */
+    public JsonElement get(String jsonPath) {
+        if (rawContent == null)
+            return getFromRoot(jsonPath, defaultRoot);
+        if (rootObj == null)
+            rootObj = Serializer.fromJson(rawContent, JsonElement.class);
+        JsonElement result = getFromRoot(jsonPath, rootObj);
+        if (result == null)
+            return getFromRoot(jsonPath, defaultRoot);
+        else
+            return result;
+    }
+
     public <T> T get(String jsonPath, Class<T> type) {
         JsonElement obj = get(jsonPath);
         if (obj != null)
@@ -289,150 +324,90 @@ public class ConfigManager {
     }
 
     public String getString(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsString() : null;
+        return get(jsonPath, String.class);
     }
 
     public String getString(String jsonPath, String defaultValue) {
-        try {
-            String val = getString(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, String.class, defaultValue);
     }
 
     public Integer getInteger(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsInt() : null;
+        return get(jsonPath, Integer.class);
     }
 
     public Integer getInteger(String jsonPath, Integer defaultValue) {
-        try {
-            Integer val = getInteger(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, Integer.class, defaultValue);
     }
 
     public Long getLong(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsLong() : null;
+        return get(jsonPath, Long.class);
     }
 
     public Long getLong(String jsonPath, Long defaultValue) {
-        try {
-            Long val = getLong(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, Long.class, defaultValue);
     }
 
     public Short getShort(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsShort() : null;
+        return get(jsonPath, Short.class);
     }
 
     public Short getShort(String jsonPath, Short defaultValue) {
-        try {
-            Short val = getShort(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, Short.class, defaultValue);
     }
 
     public Byte getByte(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsByte() : null;
+        return get(jsonPath, Byte.class);
     }
 
     public Byte getByte(String jsonPath, Byte defaultValue) {
-        try {
-            Byte val = getByte(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, Byte.class, defaultValue);
     }
 
     public BigInteger getBigInteger(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsBigInteger() : null;
+        return get(jsonPath, BigInteger.class);
     }
 
     public BigInteger getBigInteger(String jsonPath, BigInteger defaultValue) {
-        try {
-            BigInteger val = getBigInteger(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, BigInteger.class, defaultValue);
     }
 
     public BigDecimal getBigDecimal(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsBigDecimal() : null;
+        return get(jsonPath, BigDecimal.class);
     }
 
     public BigDecimal getBigDecimal(String jsonPath, BigDecimal defaultValue) {
-        try {
-            BigDecimal val = getBigDecimal(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, BigDecimal.class, defaultValue);
     }
 
     public Boolean getBoolean(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsBoolean() : null;
+        return get(jsonPath, Boolean.class);
     }
 
     public Boolean getBoolean(String jsonPath, Boolean defaultValue) {
-        try {
-            Boolean val = getBoolean(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, Boolean.class, defaultValue);
     }
 
     public Float getFloat(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsFloat() : null;
+        return get(jsonPath, Float.class);
     }
 
     public Float getFloat(String jsonPath, Float defaultValue) {
-        try {
-            Float val = getFloat(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, Float.class, defaultValue);
     }
 
     public Double getDouble(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        return obj != null ? obj.getAsDouble() : null;
+        return get(jsonPath, Double.class);
     }
 
     public Double getDouble(String jsonPath, Double defaultValue) {
-        try {
-            Double val = getDouble(jsonPath);
-            return (val != null ? val : defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        return get(jsonPath, Double.class, defaultValue);
     }
 
     public DateTime getDateTime(String jsonPath) {
-        JsonElement obj = get(jsonPath);
-        if (obj != null)
-            return StringUtils.parseISO8601(obj.getAsString());
-        else
+        String str = getString(jsonPath);
+        if (str != null) {
+            return StringUtils.parseISO8601(str);
+        } else
             return null;
     }
 

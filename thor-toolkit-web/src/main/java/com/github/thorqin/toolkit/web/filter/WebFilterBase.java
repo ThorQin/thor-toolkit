@@ -20,6 +20,6 @@ public abstract class WebFilterBase implements Filter, ConfigManager.ChangeListe
     }
 
     @Override
-    public void onConfigChanged(ConfigManager config) {
+    public void onConfigChanged(ConfigManager configManager) {
     }
 }
