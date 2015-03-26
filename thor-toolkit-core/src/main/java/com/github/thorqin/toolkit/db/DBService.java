@@ -1357,6 +1357,15 @@ public final class DBService {
 		return boneCP.getConnection();
 	}
 
+	@SuppressWarnings("unchecked")
+	public <T> T getProxy(Class<T> interfaceType) throws SQLException {
+		Object instance = Proxy.newProxyInstance(
+				DBProxy.class.getClassLoader(),
+				new Class<?>[]{interfaceType},
+				new DBProxy(this));
+		return (T)instance;
+	}
+
     // convenient methods
 
     public int execute(String queryString, Object... args) throws SQLException {
@@ -1427,6 +1436,18 @@ public final class DBService {
             }
         }
     }
+	public <T> T queryFirst(String queryString,
+							 Class<T> type,
+							 Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+		try (DBSession session = getSession()) {
+			try (DBCursor cursor = session.query(queryString, args)) {
+				if (cursor.next()) {
+					return cursor.get(type);
+				} else
+					return null;
+			}
+		}
+	}
 
     public <T> T invoke(String procName, Class<T> returnType, Object... args)
             throws SQLException {

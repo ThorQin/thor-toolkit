@@ -22,7 +22,8 @@ import java.sql.SQLException;
  * @author nuo.qin
  */
 public class DBProxy implements InvocationHandler {
-	private DBSession session;
+	private final DBSession session;
+	private final DBService db;
 
 	/**
 	 * Obtain a DBProxy object
@@ -30,6 +31,12 @@ public class DBProxy implements InvocationHandler {
 	 */
 	public DBProxy(DBSession session) {
 		this.session = session;
+		this.db = null;
+	}
+
+	public DBProxy(DBService db) {
+		this.session = null;
+		this.db = db;
 	}
 
 	@Override
@@ -48,10 +55,16 @@ public class DBProxy implements InvocationHandler {
 			procName = prefix + StringUtils.camelToUnderline(method.getName());
 		}
 		Class<?>[] paramTypes = method.getParameterTypes();
-		return invokeCall(args, paramTypes, method, session, procName);
+		if (session != null)
+			return invokeCall(args, paramTypes, method, procName, session);
+		else {
+			try (DBSession newSession = db.getSession()) {
+				return invokeCall(args, paramTypes, method, procName, newSession);
+			}
+		}
 	}
 
-	private Object invokeCall(Object[] args, Class<?>[] paramTypes, Method method, final DBSession session, String procName) throws SQLException, InstantiationException, IllegalAccessException {
+	private Object invokeCall(Object[] args, Class<?>[] paramTypes, Method method, String procName, final DBSession session) throws SQLException, InstantiationException, IllegalAccessException {
 		if (args != null) {
 			for (int i = 0; i < args.length; i++) {
 				Class<?> superClass = paramTypes[i].getSuperclass();
