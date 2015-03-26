@@ -1107,7 +1107,7 @@ public final class DBService {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T> T getProxy(Class<T> interfaceType) throws SQLException {
+		public <T> T getProxy(Class<T> interfaceType) {
 			Object instance = Proxy.newProxyInstance(
 					DBProxy.class.getClassLoader(),
 					new Class<?>[]{interfaceType},
@@ -1358,7 +1358,7 @@ public final class DBService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> T getProxy(Class<T> interfaceType) throws SQLException {
+	public <T> T getProxy(Class<T> interfaceType) {
 		Object instance = Proxy.newProxyInstance(
 				DBProxy.class.getClassLoader(),
 				new Class<?>[]{interfaceType},
