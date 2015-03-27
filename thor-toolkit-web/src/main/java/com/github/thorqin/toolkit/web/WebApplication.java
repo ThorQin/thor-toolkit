@@ -302,12 +302,17 @@ public abstract class WebApplication extends TraceService
 		if (dbMapping.containsKey(name))
 			return dbMapping.get(name);
 		else {
-			DBService.DBSetting setting = configManager.get(name, DBService.DBSetting.class);
-			DBService db = new DBService(setting);
-			if (setting.trace)
-				db.setTracer(this);
-			dbMapping.put(name, db);
-			return db;
+			try {
+				DBService.DBSetting setting = configManager.get(name, DBService.DBSetting.class);
+				DBService db = new DBService(setting);
+				if (setting.trace)
+					db.setTracer(this);
+				dbMapping.put(name, db);
+				return db;
+			} catch (Exception ex) {
+				logger.log(Level.SEVERE, "Create DBService instance failed!", ex);
+				return null;
+			}
 		}
 	}
 	public final DBService getDBService() throws ValidateException {
@@ -337,9 +342,13 @@ public abstract class WebApplication extends TraceService
 				routers.add(new RouterInfo(new String[]{"/*"}, inst));
 			} else {
 				for (WebRouter router: webApp.routers()) {
-                    WebRouterBase inst = createInstance(router.type(), this);
-                    configManager.addChangeListener(inst);
-                    routers.add(new RouterInfo(router.value(), inst));
+					try {
+						WebRouterBase inst = createInstance(router.type(), this);
+						configManager.addChangeListener(inst);
+						routers.add(new RouterInfo(router.value(), inst));
+					} catch (Exception ex) {
+						logger.log(Level.SEVERE, "Create router failed!", ex);
+					}
 				}
 			}
 		}
@@ -351,14 +360,18 @@ public abstract class WebApplication extends TraceService
 			filters = new LinkedList<>();
 			WebApp webApp = this.getClass().getAnnotation(WebApp.class);
 			if (webApp == null) {
-                WebFilterBase inst =new WebSecurityManager(this);
+                WebFilterBase inst = new WebSecurityManager(this);
                 configManager.addChangeListener(inst);
 				filters.add(new FilterInfo(new String[]{"/*"}, inst));
 			} else {
 				for (WebFilter filter: webApp.filters()) {
-                    WebFilterBase inst = createInstance(filter.type(), this);
-                    configManager.addChangeListener(inst);
-                    filters.add(new FilterInfo(filter.value(), inst));
+					try {
+						WebFilterBase inst = createInstance(filter.type(), this);
+						configManager.addChangeListener(inst);
+						filters.add(new FilterInfo(filter.value(), inst));
+					} catch (Exception ex) {
+						logger.log(Level.SEVERE, "Create filter failed!", ex);
+					}
 				}
 			}
 		}

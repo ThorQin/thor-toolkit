@@ -29,7 +29,7 @@ public @interface DBRouter {
      * Set this value to empty if do not need this feature.
      * @return Name of the entry
      */
-    public String refreshEntry() default "refreshRouter";
+    public String refreshEntry() default "";
 
     /**
      * Use specified properties file to translate DB raised http message.

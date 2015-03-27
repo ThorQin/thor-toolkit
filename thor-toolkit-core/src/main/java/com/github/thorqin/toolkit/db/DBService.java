@@ -46,6 +46,8 @@ public final class DBService {
 		public int maxConnectionsPerPartition = 20;
 		@ValidateNumber(min = 1)
 		public int partitionCount = 1;
+		public int connectionTimeout = 0; // When get connection from pool exceed timeout value then exception
+		public boolean lazyInit = true;
 		public boolean trace = false;
 	}
 	private static final Logger logger =
@@ -1023,9 +1025,11 @@ public final class DBService {
 	}
 
 	/* Private properties. */
-	final private BoneCP boneCP;
+	private BoneCPConfig boneCPConfig;
+	private BoneCP boneCP = null;
 	final private DBSetting setting;
 	private Tracer tracer = null;
+	private Long lastInitTime = null;
 
 	public synchronized void setTracer(Tracer tracer) {
 		this.tracer = tracer;
@@ -1040,7 +1044,7 @@ public final class DBService {
 		this.setting = dbSetting;
 		try {
 			Class.forName(setting.driver);
-			BoneCPConfig boneCPConfig = new BoneCPConfig();
+			boneCPConfig = new BoneCPConfig();
 			boneCPConfig.setDefaultAutoCommit(true);
 			boneCPConfig.setJdbcUrl(setting.uri);
 			boneCPConfig.setJdbcUrl(setting.uri);
@@ -1049,15 +1053,32 @@ public final class DBService {
 			boneCPConfig.setMinConnectionsPerPartition(setting.minConnectionsPerPartition);
 			boneCPConfig.setMaxConnectionsPerPartition(setting.maxConnectionsPerPartition);
 			boneCPConfig.setPartitionCount(setting.partitionCount);
-			boneCP = new BoneCP(boneCPConfig);
+			boneCPConfig.setConnectionTimeoutInMs(setting.connectionTimeout);
+			boneCPConfig.setLazyInit(false);
+			if (!setting.lazyInit) {
+				init();
+			}
 		} catch (Exception ex) {
 			throw new ServiceConfigurationError("Initialize DB Service failed.", ex);
 		}
 	}
 
+	private void init() throws SQLException {
+		boneCP = new BoneCP(boneCPConfig);
+	}
+
 	public void close() {
 		try {
-			boneCP.close();
+			if (boneCP != null) {
+				boneCP.close();
+				boneCPConfig = null;
+			} else {
+				synchronized (this) {
+					if (boneCP != null)
+						boneCP.close();
+					boneCPConfig = null;
+				}
+			}
 		} catch (Exception ex) {
 			logger.log(Level.SEVERE, "Shutdown boneCP failed!", ex);
 		}
@@ -1415,6 +1436,21 @@ public final class DBService {
         return dbSession;
 	}
 	public Connection getConnection() throws SQLException {
+		if (boneCP == null) {
+			synchronized (this) {
+				if (boneCP == null) {
+					if (lastInitTime != null && System.currentTimeMillis() < lastInitTime + 1000) {
+						// If last try failed in 1 second then throw exception directly.
+						throw new SQLException("Cannot connect to database.");
+					}
+					try {
+						init();
+					} finally {
+						lastInitTime = System.currentTimeMillis();
+					}
+				}
+			}
+		}
 		return boneCP.getConnection();
 	}
 

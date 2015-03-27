@@ -6,7 +6,6 @@ import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
-import com.github.thorqin.toolkit.web.HttpException;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.DBRouter;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
@@ -19,7 +18,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.security.InvalidParameterException;
 import java.sql.SQLException;
@@ -45,7 +43,7 @@ public abstract class WebDBRouter extends WebRouterBase {
     protected final DBService db;
     protected final String indexProcedure;
     protected final String localeBundle;
-    private Map<String, MappingInfo> mapping = new HashMap<>();
+    protected Map<String, MappingInfo> mapping = new HashMap<>();
 
     public WebDBRouter(WebApplication application) throws ValidateException {
         super(application);
@@ -87,17 +85,16 @@ public abstract class WebDBRouter extends WebRouterBase {
             this.refreshEntry = refreshEntry;
     }
 
+    protected Map<String, List<String>> getRouterDefinition() throws Exception {
+        String json = db.invoke(indexProcedure, String.class);
+        Type type = new TypeToken<Map<String, List<String>>>() {}.getType();
+        return Serializer.fromJson(json, type);
+    }
 
-    /**
-     * Generate db mapping and put in 'newMapping' map.
-     * Developer can override this method to customize mapping information.
-     * @param newMapping
-     */
-    protected void makeMapping(Map<String, MappingInfo> newMapping) {
+    public void makeMapping() {
         try {
-            String json = db.invoke(indexProcedure, String.class);
-            Type type = new TypeToken<Map<String, List<String>>>() {}.getType();
-            Map<String, List<String>> procedures = Serializer.fromJson(json, type);
+            mapping.clear();
+            Map<String, List<String>> procedures = getRouterDefinition();
             ANALYSE_PROCEDURE:
             for (String key : procedures.keySet()) {
                 if (key == null)
@@ -163,7 +160,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                 for (String m: methods) {
                     if (m.matches("^(?i)POST|GET|PUT|DELETE$")) {
                         String k = m.toUpperCase() + ":" + entryName;
-                        newMapping.put(k, info);
+                        mapping.put(k, info);
                         System.out.println("Add DB Mapping: " + k);
                     } else {
                         logger.log(Level.WARNING, "Invalid procedure web entry define: " +
@@ -184,8 +181,7 @@ public abstract class WebDBRouter extends WebRouterBase {
         try {
             String sessionTypeName = config.getInitParameter("sessionClass");
             sessionFactory.setSessionType(sessionTypeName);
-            mapping.clear();
-            makeMapping(mapping);
+            makeMapping();
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Initialize WebDBRouter failed!", ex);
             throw new ServletException(ex);
@@ -216,8 +212,7 @@ public abstract class WebDBRouter extends WebRouterBase {
 
         if (refreshEntry != null && requestPath.equals(refreshEntry)) {
             System.out.println("NOTE: Refresh db route table!!");
-            mapping.clear();
-            makeMapping(mapping);
+            makeMapping();
             ServletUtils.sendText(response, "Route table has been refreshed!");
             return true;
         }
