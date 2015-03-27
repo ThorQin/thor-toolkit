@@ -1265,6 +1265,67 @@ public final class DBService {
 			}
 		}
 
+		public DBTable queryTable(String queryString,
+							 TableAdjuster adjuster,
+							 Map<String, Class<?>> udtMapping,
+							 Object... args) throws SQLException {
+			try (DBCursor cursor = query(queryString, args)) {
+				return cursor.getTable(adjuster, udtMapping);
+			}
+		}
+
+		public DBTable queryTable(String queryString,
+							 TableAdjuster adjuster,
+							 Object... args) throws SQLException {
+			try (DBCursor cursor = query(queryString, args)) {
+				return cursor.getTable(adjuster, null);
+			}
+		}
+
+		public DBTable queryTable(String queryString,
+							 Object... args) throws SQLException {
+			try (DBCursor cursor = query(queryString, args)) {
+				return cursor.getTable(null, null);
+			}
+		}
+
+		public <T> List<T> queryList(String queryString,
+								 Class<T> type,
+								 RowTypeAdapter<T> adapter,
+								 Map<String, Class<?>> udtMapping,
+								 Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+			try (DBCursor cursor = query(queryString, args)) {
+				return cursor.getList(type, adapter, udtMapping);
+			}
+		}
+
+		public <T> List<T> queryList(String queryString,
+								 Class<T> type,
+								 RowTypeAdapter<T> adapter,
+								 Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+			try (DBCursor cursor = query(queryString, args)) {
+				return cursor.getList(type, adapter, null);
+			}
+		}
+
+		public <T> List<T> queryList(String queryString,
+								 Class<T> type,
+								 Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+			try (DBCursor cursor = query(queryString, args)) {
+				return cursor.getList(type, null, null);
+			}
+		}
+		public <T> T queryFirst(String queryString,
+								Class<T> type,
+								Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+			try (DBCursor cursor = query(queryString, args)) {
+				if (cursor.next()) {
+					return cursor.get(type);
+				} else
+					return null;
+			}
+		}
+
 		public <T> T invoke(String procName, Class<T> returnType, Object... args)
 				throws SQLException {
 			return invoke(procName, returnType, null, args);
@@ -1374,7 +1435,7 @@ public final class DBService {
         }
     }
 
-    public DBTable query(String queryString,
+    public DBTable queryTable(String queryString,
                          TableAdjuster adjuster,
                          Map<String, Class<?>> udtMapping,
                          Object... args) throws SQLException {
@@ -1385,7 +1446,7 @@ public final class DBService {
         }
     }
 
-    public DBTable query(String queryString,
+    public DBTable queryTable(String queryString,
                          TableAdjuster adjuster,
                          Object... args) throws SQLException {
         try (DBSession session = getSession()) {
@@ -1395,7 +1456,7 @@ public final class DBService {
         }
     }
 
-    public DBTable query(String queryString,
+    public DBTable queryTable(String queryString,
                          Object... args) throws SQLException {
         try (DBSession session = getSession()) {
             try (DBCursor cursor = session.query(queryString, args)) {
@@ -1404,7 +1465,7 @@ public final class DBService {
         }
     }
 
-    public <T> List<T> query(String queryString,
+    public <T> List<T> queryList(String queryString,
                              Class<T> type,
                              RowTypeAdapter<T> adapter,
                              Map<String, Class<?>> udtMapping,
@@ -1416,7 +1477,7 @@ public final class DBService {
         }
     }
 
-    public <T> List<T> query(String queryString,
+    public <T> List<T> queryList(String queryString,
                              Class<T> type,
                              RowTypeAdapter<T> adapter,
                              Object... args) throws SQLException, InstantiationException, IllegalAccessException {
@@ -1427,7 +1488,7 @@ public final class DBService {
         }
     }
 
-    public <T> List<T> query(String queryString,
+    public <T> List<T> queryList(String queryString,
                              Class<T> type,
                              Object... args) throws SQLException, InstantiationException, IllegalAccessException {
         try (DBSession session = getSession()) {
