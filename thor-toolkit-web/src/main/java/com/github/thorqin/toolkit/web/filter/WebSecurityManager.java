@@ -42,15 +42,25 @@ public class WebSecurityManager extends WebFilterBase {
         public List<Map<String, Object>> accessRules = new ArrayList<>();
     }
 
-    private static class RuleAction {
+    private static class Action {
         public boolean allow = false;
         public String redirection = null;
     }
 
+    private static class Rule {
+        public final Map<String, Pattern> rule;
+        public final Action action;
+
+        public Rule(boolean allow) {
+            rule = new HashMap<>();
+            action = new Action();
+            action.allow = allow;
+        }
+    }
+
     private SecuritySetting setting = null;
-    private List<Map<String, Pattern>> rules = new ArrayList<>();
-    private List<RuleAction> actions = new ArrayList<>();
-    private RuleAction defaultAction = new RuleAction();
+    private List<Rule> rules = new ArrayList<>();
+    private Action defaultAction = new Action();
 
 	private SessionFactory sessionFactory = new SessionFactory();
 
@@ -65,8 +75,7 @@ public class WebSecurityManager extends WebFilterBase {
     }
 
     private void buildSetting() {
-        List<Map<String, Pattern>> newRules = new ArrayList<>();
-        List<RuleAction> newActions = new ArrayList<>();
+        List<Rule> newRules = new ArrayList<>();
         if (setting == null) {
             return;
         }
@@ -74,33 +83,30 @@ public class WebSecurityManager extends WebFilterBase {
         if (setting.accessRules == null)
             return;
         for (Map<String, Object> rule: setting.accessRules) {
-            Map<String, Pattern> newRule = new HashMap<>();
-            RuleAction action = new RuleAction();
-            action.allow = !setting.defaultAllow;
-            action.redirection = null;
+            Rule newRule = new Rule(!setting.defaultAllow);
             for (String key: rule.keySet()) {
                 if (key.equals("action")) {
                     Object value = rule.get(key);
                     if (value != null) {
                         if (value.getClass().equals(boolean.class) ||
                                 value.getClass().equals(Boolean.class)) {
-                            action.allow = (boolean)value;
+                            newRule.action.allow = (boolean)value;
                         } else if (value.getClass().equals(String.class)) {
-                            action.allow = false;
-                            action.redirection = (String)value;
+                            newRule.action.allow = false;
+                            newRule.action.redirection = (String)value;
+                        } else {
+                            newRule.action.allow = false;
                         }
                     }
                     continue;
                 }
                 String value = (String)rule.get(key);
                 Pattern pattern = Pattern.compile(value);
-                newRule.put(key, pattern);
+                newRule.rule.put(key, pattern);
             }
             newRules.add(newRule);
-            newActions.add(action);
         }
         rules = newRules;
-        actions = newActions;
     }
 
 	@Override
@@ -117,26 +123,31 @@ public class WebSecurityManager extends WebFilterBase {
         buildSetting();
     }
 
-    private synchronized RuleAction checkPermission(HttpServletRequest request, HttpServletResponse response) throws ServletException {
+    private synchronized Action checkPermission(HttpServletRequest request, HttpServletResponse response) throws ServletException {
         if (setting == null)
-            return new RuleAction();
+            return new Action();
         WebSession session = null;
         Map<String, String> queryString = null;
         try {
             MATCHE_RULE:
             for (int i = 0; i < rules.size(); i++) {
-                Map<String, Pattern> rule = rules.get(i);
-                for (String key: rule.keySet()) {
-                    Pattern pattern = rule.get(key);
+                Rule rule = rules.get(i);
+                for (String key: rule.rule.keySet()) {
+                    boolean shouldMatch = true;
+                    if (key.startsWith("~")) {
+                        shouldMatch = false;
+                        key = key.substring(1);
+                    }
+                    Pattern pattern = rule.rule.get(key);
                     if (key.equals("path")) {
                         String path = request.getServletPath();
                         if (request.getPathInfo() != null)
                             path += request.getPathInfo();
-                        if (!pattern.matcher(path).matches()) {
+                        if (pattern.matcher(path).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.equals("method")) {
-                        if (!pattern.matcher(request.getMethod().toUpperCase()).matches()) {
+                        if (pattern.matcher(request.getMethod().toUpperCase()).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.startsWith("s:")) { // Session value
@@ -145,33 +156,33 @@ public class WebSecurityManager extends WebFilterBase {
                         }
                         Object value = session.get(key.substring(2));
                         String valStr = value == null ? "" : value.toString();
-                        if (!pattern.matcher(valStr).matches()) {
+                        if (pattern.matcher(valStr).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.equals("server")) {
-                        if (!pattern.matcher(request.getServerName()).matches()) {
+                        if (pattern.matcher(request.getServerName()).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.equals("scheme")) {
-                        if (!pattern.matcher(request.getScheme()).matches()) {
+                        if (pattern.matcher(request.getScheme()).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.equals("port")) {
-                        if (!pattern.matcher(String.valueOf(request.getServerPort())).matches()) {
+                        if (pattern.matcher(String.valueOf(request.getServerPort())).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.equals("client")) {
-                        if (!pattern.matcher(request.getRemoteAddr()).matches()) {
+                        if (pattern.matcher(request.getRemoteAddr()).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.equals("uri")) {
-                        if (!pattern.matcher(request.getRequestURI()).matches()) {
+                        if (pattern.matcher(request.getRequestURI()).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.startsWith("h:")) { // Header value
                         Object value = request.getHeader(key.substring(2));
                         String valStr = value == null ? "" : value.toString();
-                        if (!pattern.matcher(valStr).matches()) {
+                        if (pattern.matcher(valStr).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     } else if (key.startsWith("q:")) { // Query string value
@@ -179,17 +190,17 @@ public class WebSecurityManager extends WebFilterBase {
                             queryString = Serializer.fromUrlEncoding(request.getQueryString());
                         }
                         String value = queryString.get(key.substring(2));
-                        if (!pattern.matcher(value).matches()) {
+                        if (pattern.matcher(value).matches() != shouldMatch) {
                             continue MATCHE_RULE;
                         }
                     }
                 }
                 // Matched
-                return actions.get(i);
+                return rule.action;
             }
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Invalid security configuration.", ex);
-            return new RuleAction();
+            return new Action();
         }
         return defaultAction;
     }
@@ -200,7 +211,7 @@ public class WebSecurityManager extends WebFilterBase {
         HttpServletRequest req = (HttpServletRequest)request;
         boolean allow = false;
         try {
-            RuleAction action = checkPermission(req, (HttpServletResponse)response);
+            Action action = checkPermission(req, (HttpServletResponse)response);
             allow = action.allow;
             if (action.allow) {
                 chain.doFilter(request, response);
