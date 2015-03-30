@@ -133,12 +133,12 @@ public class WebSecurityManager extends WebFilterBase {
             for (int i = 0; i < rules.size(); i++) {
                 Rule rule = rules.get(i);
                 for (String key: rule.rule.keySet()) {
+                    Pattern pattern = rule.rule.get(key);
                     boolean shouldMatch = true;
                     if (key.startsWith("~")) {
                         shouldMatch = false;
                         key = key.substring(1);
                     }
-                    Pattern pattern = rule.rule.get(key);
                     if (key.equals("path")) {
                         String path = request.getServletPath();
                         if (request.getPathInfo() != null)

@@ -254,6 +254,11 @@ public final class Serializer {
 		}
 		return obj;
 	}
+
+	public static <T> T clone(T obj) {
+		Kryo kryo = getKryo();
+		return kryo.copy(obj);
+	}
 	
 	/**
 	 * Deep copy

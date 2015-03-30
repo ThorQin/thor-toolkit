@@ -214,7 +214,7 @@ public class ConfigManager {
         }
     }
 
-    private void loadDefaultResource(String resource) {
+    public void loadDefaultResource(String resource) {
         try {
             defaultRoot = Serializer.fromJson(
                     Serializer.loadTextResource(resource), JsonElement.class);
@@ -250,18 +250,92 @@ public class ConfigManager {
                 System.out.println("Configuration file does not exist!");
         } finally {
             _file = file;
+            merge();
         }
     }
-
     public void loadURL(URL url) throws IOException {
+        loadURL(url, true);
+    }
+    public void loadURL(URL url, boolean clearDefault) throws IOException {
         rawContent = null;
         rootObj = null;
-        defaultRoot = null;
-        rawContent = Serializer.loadTextURL(url);
+        if (clearDefault) {
+            defaultRoot = null;
+        }
+        try {
+            rawContent = Serializer.loadTextURL(url);
+        } finally {
+            merge();
+        }
     }
 
     public String getRawContent() {
         return rawContent;
+    }
+
+    private void margeChild(JsonElement parent, JsonElement defaultObj, JsonElement newObj, String key) {
+        // Both defaultObj and newObj must not be null.
+        JsonElement result;
+        if (newObj.isJsonArray() && defaultObj.isJsonArray()) {
+            JsonArray resultArray = new JsonArray();
+            JsonArray newArray = newObj.getAsJsonArray();
+            JsonArray defaultArray = defaultObj.getAsJsonArray();
+            int i = 0;
+            for (; i < newArray.size(); i++) {
+                if (i < defaultArray.size()) {
+                    margeChild(resultArray, defaultArray.get(i), newArray.get(i), null);
+                } else
+                    resultArray.add(newArray.get(i));
+            }
+            for (; i < defaultArray.size(); i++) {
+                resultArray.add(defaultArray.get(i));
+            }
+            result = resultArray;
+        } else if (newObj.isJsonObject() && defaultObj.isJsonObject()) {
+            JsonObject resultObject = new JsonObject();
+            JsonObject newObject = newObj.getAsJsonObject();
+            JsonObject defaultObject = defaultObj.getAsJsonObject();
+            for (Map.Entry<String, JsonElement> entry: newObject.entrySet()) {
+                String k = entry.getKey();
+                if (defaultObject.has(k)) {
+                    margeChild(resultObject, defaultObject.get(k), entry.getValue(), k);
+                } else {
+                    resultObject.add(k, entry.getValue());
+                }
+            }
+            for (Map.Entry<String, JsonElement> entry: defaultObject.entrySet()) {
+                if (!newObject.has(entry.getKey())) {
+                    resultObject.add(entry.getKey(), entry.getValue());
+                }
+            }
+            result = resultObject;
+        } else
+            result = newObj;
+        if (parent.isJsonObject()) {
+            parent.getAsJsonObject().add(key, result);
+        } else if (parent.isJsonArray()) {
+            parent.getAsJsonArray().add(result);
+        }
+    }
+
+    private void merge() {
+        JsonElement newRoot;
+        if (rawContent == null) {
+            newRoot = null;
+        } else
+            newRoot = Serializer.fromJson(rawContent, JsonElement.class);
+        if (defaultRoot == null) {
+            rootObj = newRoot;
+            return;
+        } else if (newRoot == null) {
+            rootObj = defaultRoot;
+            return;
+        } else {
+            JsonArray container = new JsonArray();
+            margeChild(container, defaultRoot, newRoot, null);
+            rootObj = container.get(0);
+            rawContent = Serializer.toJsonString(rootObj);
+        }
     }
 
     private JsonElement getFromRoot(String jsonPath, JsonElement root) {
@@ -297,15 +371,7 @@ public class ConfigManager {
      * @return JsonElement depends on which type of the JSON path pointed to.
      */
     public JsonElement get(String jsonPath) {
-        if (rawContent == null)
-            return getFromRoot(jsonPath, defaultRoot);
-        if (rootObj == null)
-            rootObj = Serializer.fromJson(rawContent, JsonElement.class);
-        JsonElement result = getFromRoot(jsonPath, rootObj);
-        if (result == null)
-            return getFromRoot(jsonPath, defaultRoot);
-        else
-            return result;
+        return getFromRoot(jsonPath, rootObj);
     }
 
     public <T> T get(String jsonPath, Class<T> type) {
@@ -510,6 +576,17 @@ public class ConfigManager {
         } else
             return new HashMap<>();
     }
+
+    public String getJson(String jsonPath, boolean prettyPrint) {
+        JsonElement obj = get(jsonPath);
+        return Serializer.toJsonString(obj, prettyPrint);
+    }
+
+    public String getJson(String jsonPath) {
+        JsonElement obj = get(jsonPath);
+        return Serializer.toJsonString(obj, false);
+    }
+
 
 
     /**

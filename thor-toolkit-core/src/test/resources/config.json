@@ -1,0 +1,20 @@
+{
+  "traceRouter": true,
+  "traceSecurity": true,
+  "sessionTimeout": 900,
+  "db": {
+	"driver": "org.postgresql.Driver",
+	"uri": "jdbc:postgresql://10.63.2.111:5432/qvmdb",
+	"user": "postgres",
+	"password": "admin",
+	"minConnectionsPerPartition": 5,
+	"maxConnectionsPerPartition": 20,
+	"partitionCount": 1,
+	"trace": true,
+	"test": ["abc", 123, {
+		"child1": true
+	}]
+  },
+  "defaultAllow": true,
+  "rules": []
+}

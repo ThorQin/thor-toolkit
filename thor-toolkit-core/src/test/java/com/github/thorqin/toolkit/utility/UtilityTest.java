@@ -28,5 +28,11 @@ public class UtilityTest {
         String str = byteArrayOutputStream.toString("utf-8");
     }
 
+    @Test
+    public void testConfigManager() throws IOException {
+        ConfigManager configManager = new ConfigManager();
+        configManager.load("/home/thor/Workspace/AppData", "config.json");
+        System.out.println(configManager.getJson("/", true));
+    }
 }
 
