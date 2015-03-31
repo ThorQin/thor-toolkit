@@ -201,6 +201,7 @@ public class ConfigManager {
         rawContent = null;
         rootObj = null;
         if (dataDir == null) {
+            merge();
             return;
         }
         dataDir = dataDir.replace('\\', '/');
@@ -237,13 +238,13 @@ public class ConfigManager {
     }
 
     private void loadFile(File file, boolean clearDefault) throws IOException {
-        setMonitorFileChange(false);
         rawContent = null;
         rootObj = null;
         if (clearDefault) {
             defaultRoot = null;
         }
         try {
+            setMonitorFileChange(false);
             if (file.exists())
                 rawContent = Serializer.loadTextFile(file);
             else
