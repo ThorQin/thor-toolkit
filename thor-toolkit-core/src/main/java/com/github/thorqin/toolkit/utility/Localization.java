@@ -89,7 +89,7 @@ public class Localization {
 	}
 
 	/**
-     * Construct by language & country
+     * Construct by language &amp; country
 	 * @param bundleName Bundle name
 	 * @param language "zh"
 	 * @param country "CN"
