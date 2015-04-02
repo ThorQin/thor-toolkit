@@ -58,7 +58,7 @@
 		<repository> 
 			<id>nexus-releases</id> 
 			<name>Internal Releases</name> 
-			<url>http://10.63.2.111:8081/nexus/content/repositories/release</url> 
+			<url>http://10.63.2.111:8081/nexus/content/repositories/releases</url> 
 		</repository> 
 		<snapshotRepository> 
 			<id>nexus-snapshots</id>

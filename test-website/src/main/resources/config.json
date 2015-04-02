@@ -1,17 +1,17 @@
 {
-  "traceRouter": true,
-  "traceSecurity": true,
+  "traceRouter": false,
+  "traceAccess": false,
   "sessionTimeout": 900,
   "db": {
 	"driver": "org.postgresql.Driver",
-	"uri": "jdbc:postgresql://10.63.2.111:5432/qvmdb",
+	"uri": "jdbc:postgresql://<IP_ADDRESS>:5432/<DB_NAME>",
 	"user": "postgres",
-	"password": "admin",
+	"password": "<PASSWORD>",
 	"minConnectionsPerPartition": 5,
 	"maxConnectionsPerPartition": 20,
 	"partitionCount": 1,
-	"trace": true
+	"trace": false
   },
   "defaultAllow": true,
-  "rules": []
+  "accessRules": []
 }

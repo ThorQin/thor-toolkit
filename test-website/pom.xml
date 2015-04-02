@@ -6,6 +6,8 @@
 	<artifactId>test-website</artifactId>
 	<version>1.0-SNAPSHOT</version>
 	<packaging>war</packaging>
+
+    <name>test-website</name>
 	
 	<properties>
 		<endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
@@ -18,7 +20,7 @@
         <repository>
             <id>nexus-releases</id>
             <name>Internal Releases</name>
-            <url>http://10.63.2.111:8081/nexus/content/repositories/release</url>
+            <url>http://10.63.2.111:8081/nexus/content/repositories/releases</url>
         </repository>
         <repository>
             <id>nexus-snapshots</id>
@@ -48,7 +50,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>9.3-1102-jdbc41</version>
+			<version>9.4-1201-jdbc41</version>
 		</dependency>
 	</dependencies>
 
@@ -70,7 +72,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-war-plugin</artifactId>
-				<version>2.3</version>
+				<version>2.6</version>
 				<configuration>
 					<failOnMissingWebXml>false</failOnMissingWebXml>
 					<useCache>false</useCache>
@@ -82,15 +84,28 @@
 			<plugin>
 				<groupId>org.eclipse.jetty</groupId>
 				<artifactId>jetty-maven-plugin</artifactId>
-				<version>9.2.2.v20140723</version>
+				<version>9.2.10.v20150310</version>
 				<configuration>
                     <systemProperties>
+                    
+                    	<!--
+                    	Uncomment following lines, if you want to setup configuration & 
+                    	data store dir from this project POM file, 
+                    	or instead using project setting in POM file, 
+                    	you can setup system environment variable "APP_DATA_DIR" to indicate the location.
+                        
                         <systemProperty>
                             <name>app.data.dir</name>
-                            <value>C:\Users\nuo.qin\Workspace\AppData</value>
+                            <value>path/to/your/dir</value>
                         </systemProperty>
+                        -->
+                        
                     </systemProperties>
-					<!--<webAppSourceDirectory>${project.build.directory}/${project.build.finalName}</webAppSourceDirectory>-->
+					
+					<!-- If want to set jetty app source directory...
+					<webAppSourceDirectory>${project.build.directory}/${project.build.finalName}</webAppSourceDirectory>
+					-->
+                    
                     <webApp>
                         <contextPath>/</contextPath>
                     </webApp>
