@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.web.utility;
 
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.MimeUtils;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.UserAgentUtils;
@@ -343,15 +344,26 @@ public final class ServletUtils {
     }
 
     public static void error(Integer status, Exception ex) throws HttpException {
+        error(status, ex, null);
+    }
+
+    public static void error(Integer status, Exception ex, Localization loc) throws HttpException {
         Throwable e = ex;
         Throwable cause;
         while ((cause = e.getCause()) != null)
             e = cause;
-        throw new HttpException(status, e.getMessage(), ex);
+        if (loc != null)
+            throw new HttpException(status, loc.get(e.getMessage()), ex);
+        else
+            throw new HttpException(status, e.getMessage(), ex);
     }
 
     public static void error(Exception ex) throws HttpException {
         error(500, ex);
+    }
+
+    public static void error(Exception ex, Localization loc) throws HttpException {
+        error(500, ex, loc);
     }
 
     public static void error(Integer status, String message, Throwable ex) throws HttpException {
