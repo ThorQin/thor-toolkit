@@ -337,6 +337,15 @@ public final class UploadManager {
 		return this.saveUploadFiles(request, maxSize);
 	}
 
+	/**
+	 * Save upload file to disk
+	 * @param request HttpServletRequest
+	 * @param maxSize maximum size of the upload file, in bytes.
+	 * @return Saved file info list
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws FileUploadException
+	 */
 	public List<FileInfo> saveUploadFiles(HttpServletRequest request, int maxSize)
 			throws ServletException, IOException, FileUploadException {
 		List<FileInfo> uploadList = new LinkedList<>();

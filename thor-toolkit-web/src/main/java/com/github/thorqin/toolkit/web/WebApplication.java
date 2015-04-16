@@ -38,6 +38,7 @@ import com.github.thorqin.toolkit.web.router.WebBasicRouter;
 import com.github.thorqin.toolkit.web.router.WebRouterBase;
 import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.WebSession;
+import com.github.thorqin.toolkit.web.utility.UploadManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -292,6 +293,19 @@ public abstract class WebApplication extends TraceService
 			else
 				return baseDir + "/" + subDir;
 		}
+	}
+
+	public final UploadManager getUploadManager(String uploadFolderName, boolean storeDetail) throws MalformedURLException, URISyntaxException {
+		File filePath = new File(getDataPath(uploadFolderName));
+		return new UploadManager(filePath, storeDetail);
+	}
+
+	public final UploadManager getUploadManager(String uploadFolderName) throws MalformedURLException, URISyntaxException {
+		return getUploadManager(uploadFolderName, true);
+	}
+
+	public final UploadManager getUploadManager() throws MalformedURLException, URISyntaxException {
+		return getUploadManager("upload", true);
 	}
 
 	public final ConfigManager getConfigManager() {
