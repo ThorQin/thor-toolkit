@@ -343,38 +343,47 @@ public final class ServletUtils {
         }
     }
 
-    public static void error(Integer status, Exception ex) throws HttpException {
-        error(status, ex, null);
+    public static void error(Integer status, Throwable ex) throws HttpException {
+        error(status, null, ex, null);
     }
 
-    public static void error(Integer status, Exception ex, Localization loc) throws HttpException {
-        Throwable e = ex;
-        Throwable cause;
-        while ((cause = e.getCause()) != null)
-            e = cause;
-        if (loc != null)
-            throw new HttpException(status, loc.get(e.getMessage()), ex);
-        else
-            throw new HttpException(status, e.getMessage(), ex);
+    public static void error(Integer status, Throwable ex, Localization loc) throws HttpException {
+        error(status, null, ex, loc);
     }
 
-    public static void error(Exception ex) throws HttpException {
-        error(500, ex);
+    public static void error(Throwable ex) throws HttpException {
+        error(null, null, ex, null);
     }
 
-    public static void error(Exception ex, Localization loc) throws HttpException {
-        error(500, ex, loc);
+    public static void error(Throwable ex, Localization loc) throws HttpException {
+        error(null, null, ex, loc);
     }
 
     public static void error(Integer status, String message, Throwable ex) throws HttpException {
-        throw new HttpException(status, message, ex);
+        error(status, message, ex, null);
     }
 
     public static void error(Integer status, String message) throws HttpException {
-        throw new HttpException(status, message);
+        error(status, message, null, null);
     }
 
     public static void error(Integer status) throws HttpException {
-        throw new HttpException(status);
+        error(status, null, null, null);
+    }
+
+    public static void error(Integer status, String message, Localization loc) throws HttpException {
+        error(status, message, null, loc);
+    }
+
+    public static void error(String message, Localization loc) throws HttpException {
+        error(null, message, null, loc);
+    }
+
+    public static void error(String message) throws HttpException {
+        error(null, message, null, null);
+    }
+
+    public static void error(Integer status, String message, Throwable ex, Localization loc) throws HttpException {
+        throw new HttpException(status, message, ex, loc);
     }
 }
