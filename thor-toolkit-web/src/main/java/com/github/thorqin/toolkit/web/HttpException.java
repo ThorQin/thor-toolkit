@@ -66,6 +66,10 @@ public class HttpException extends RuntimeException {
 	public HttpException(Integer httpStatus, Throwable throwable) {
 		this(httpStatus, null, throwable, null);
 	}
+
+	public HttpException(Integer httpStatus, Throwable throwable, Localization loc) {
+		this(httpStatus, null, throwable, loc);
+	}
 	
 	public HttpException(Integer httpStatus, String message) {
 		this(httpStatus, message, null, null);
