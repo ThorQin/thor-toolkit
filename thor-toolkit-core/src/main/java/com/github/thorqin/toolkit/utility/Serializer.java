@@ -120,7 +120,7 @@ public final class Serializer {
 			.setPrettyPrinting()
 			.create();
 	
-	private static interface StringConvertor {
+	public interface StringConvertor {
 		void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException;
 	}
 	
@@ -227,6 +227,10 @@ public final class Serializer {
 		else {
 			return obj.getClass().getName();
 		}
+	}
+
+	public static StringConvertor getStringConvertor(Class<?> type) {
+		return convertMapping.get(type);
 	}
 	
 	private static Kryo getKryo() {
