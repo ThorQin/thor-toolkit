@@ -295,17 +295,22 @@ public abstract class WebApplication extends TraceService
 		}
 	}
 
-	public final UploadManager getUploadManager(String uploadFolderName, boolean storeDetail) throws MalformedURLException, URISyntaxException {
-		File filePath = new File(getDataPath(uploadFolderName));
-		return new UploadManager(filePath, storeDetail);
+	public final UploadManager getUploadManager(String uploadFolderName, boolean storeDetail) {
+		try {
+			File filePath = new File(getDataPath(uploadFolderName));
+			return new UploadManager(filePath, storeDetail);
+		} catch (MalformedURLException | URISyntaxException ex) {
+			throw new RuntimeException(ex);
+		}
 	}
 
-	public final UploadManager getUploadManager(String uploadFolderName) throws MalformedURLException, URISyntaxException {
+	public final UploadManager getUploadManager(String uploadFolderName) {
 		return getUploadManager(uploadFolderName, true);
 	}
 
-	public final UploadManager getUploadManager() throws MalformedURLException, URISyntaxException {
+	public final UploadManager getUploadManager() {
 		return getUploadManager("upload", true);
+
 	}
 
 	public final ConfigManager getConfigManager() {
