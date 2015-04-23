@@ -223,6 +223,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             return false;
 
         String language=request.getHeader("Accept-Language");
+        WebSession session = null;
         try {
             RequestPostType postType;
             String httpBody = null;
@@ -242,7 +243,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                 httpBody = ServletUtils.readHttpBody(request);
 
             Map<String, String> headers = null;
-            WebSession session = sessionFactory.getSession(application, request, response);
+            session = sessionFactory.getSession(application, request, response);
             if (session != null && !session.isNew()) {
                 session.touch();
             }
@@ -337,6 +338,8 @@ public abstract class WebDBRouter extends WebRouterBase {
                 ServletUtils.send(response, status);
             }
         } catch (SQLException ex) {
+            if (session != null && !session.isSaved() && !session.isNew())
+                session.save();
             if (ex.getMessage() != null) {
                 Pattern pattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
                 Matcher matcher = pattern.matcher(ex.getMessage());
@@ -355,6 +358,8 @@ public abstract class WebDBRouter extends WebRouterBase {
                 logger.log(Level.SEVERE, ex.getMessage(), ex);
             }
         } catch (Exception ex) {
+            if (session != null && !session.isSaved() && !session.isNew())
+                session.save();
             ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
             logger.log(Level.SEVERE, "Error processing!!", ex);
         } finally {

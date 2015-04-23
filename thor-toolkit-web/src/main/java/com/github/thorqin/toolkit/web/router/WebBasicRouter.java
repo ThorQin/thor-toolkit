@@ -539,9 +539,13 @@ public final class WebBasicRouter extends WebRouterBase {
 			for (int i = 0; i < params.length; i++) {
 				realParameters.add(makeParam(params[i], annos[i], mInfo));
 			}
-			Object result = info.method.invoke(inst, realParameters.toArray());
-			if (mInfo.session != null && !mInfo.session.isSaved() && !mInfo.session.isNew())
-				mInfo.session.save();
+			Object result;
+			try {
+				result = info.method.invoke(inst, realParameters.toArray());
+			} finally {
+				if (mInfo.session != null && !mInfo.session.isSaved() && !mInfo.session.isNew())
+					mInfo.session.save();
+			}
 
             if (result != null) {
                 boolean supportGzip = ServletUtils.supportGZipCompression(request);
