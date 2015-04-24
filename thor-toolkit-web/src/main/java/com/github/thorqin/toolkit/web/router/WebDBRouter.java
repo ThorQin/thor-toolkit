@@ -200,6 +200,8 @@ public abstract class WebDBRouter extends WebRouterBase {
         UNKNOWN
     }
 
+    private final static Pattern errorPattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
+
     private boolean dispatch(HttpServletRequest request, HttpServletResponse response) {
         long beginTime = System.currentTimeMillis();
 
@@ -341,12 +343,14 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
             if (ex.getMessage() != null) {
-                Pattern pattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
-                Matcher matcher = pattern.matcher(ex.getMessage());
+                Matcher matcher = errorPattern.matcher(ex.getMessage());
                 if (matcher.find()) {
                     int status = Integer.valueOf(matcher.group(1));
                     String msg = matcher.group(2);
-                    ServletUtils.sendText(response, status,
+                    if (msg == null)
+                        ServletUtils.send(response, status);
+                    else
+                        ServletUtils.sendText(response, status,
                             Localization.get(localeBundle, language, msg));
                     logger.log(Level.WARNING, "Return HTTP error: " + ex.getMessage());
                 } else {

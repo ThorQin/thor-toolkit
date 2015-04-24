@@ -8,6 +8,9 @@ package com.github.thorqin.toolkit.web;
 
 import com.github.thorqin.toolkit.utility.Localization;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  *
  * @author nuo.qin
@@ -28,33 +31,47 @@ public class HttpException extends RuntimeException {
 		return e.getMessage();
 	}
 
-	private static String makeMessage(Integer status, String message, Throwable ex, Localization loc) {
-		if (loc != null) {
-			if (message != null)
-				return loc.get(message);
-			else {
-				if (ex != null) {
-					return loc.get(getCauseMessage(ex));
-				} else {
-					if (status == null)
-						status = 500;
-					return String.valueOf(status);
-				}
-			}
-		} else {
-			if (message != null)
-				return message;
-			else {
-				if (ex != null) {
-					return getCauseMessage(ex);
-				} else {
-					if (status == null)
-						status = 500;
-					return String.valueOf(status);
-				}
-			}
-		}
-	}
+    private static int getHttpStatus(Integer httpStatus, String message, Throwable throwable) {
+        if (message == null) {
+            if (throwable != null) {
+                message = getCauseMessage(throwable);
+            } else {
+                if (httpStatus == null)
+                    httpStatus = 500;
+                message = String.valueOf(httpStatus);
+            }
+        }
+        Matcher matcher = errorPattern.matcher(message);
+        if (matcher.find()) {
+            int status = Integer.valueOf(matcher.group(1));
+            if (httpStatus == null)
+                httpStatus = status;
+        }
+        if (httpStatus == null)
+            httpStatus = 500;
+        return httpStatus;
+    }
+
+    private static String getHttpMessage(Integer httpStatus, String message, Throwable throwable, Localization loc) {
+        if (message == null) {
+            if (throwable != null) {
+                message = getCauseMessage(throwable);
+            } else {
+                if (httpStatus == null)
+                    httpStatus = 500;
+                message = String.valueOf(httpStatus);
+            }
+        }
+        Matcher matcher = errorPattern.matcher(message);
+        if (matcher.find()) {
+            String msg = matcher.group(2);
+            if (msg != null) {
+                message = msg;
+            }
+        }
+        return message;
+    }
+
 	
 	public HttpException(Integer httpStatus) {
 		super(String.valueOf(httpStatus));
@@ -83,11 +100,11 @@ public class HttpException extends RuntimeException {
 		this(httpStatus, message, throwable, null);
 	}
 
+    private final static Pattern errorPattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
+
 	public HttpException(Integer httpStatus, String message, Throwable throwable, Localization loc) {
-		super(makeMessage(httpStatus, message, throwable, loc), throwable);
-		if (httpStatus == null)
-			httpStatus = 500;
-		this.httpStatus = httpStatus;
+        super(getHttpMessage(httpStatus, message, throwable, loc));
+		this.httpStatus = getHttpStatus(httpStatus, message, throwable);
 		jsonObj = null;
 		isJson = false;
 	}

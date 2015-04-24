@@ -137,43 +137,64 @@ public final class Serializer {
 		convertMapping.put(Byte.class, new StringConvertor() {
 			@Override
 			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, Byte.valueOf(value));
+				if (value == null)
+                    field.set(obj, null);
+                else
+                    field.set(obj, Byte.valueOf(value));
 			}
 		});
 		convertMapping.put(Short.class, new StringConvertor() {
 			@Override
 			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, Short.valueOf(value));
+                if (value == null)
+                    field.set(obj, null);
+                else
+                    field.set(obj, Short.valueOf(value));
 			}
 		});
 		convertMapping.put(Integer.class, new StringConvertor() {
 			@Override
 			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, Integer.valueOf(value));
+                if (value == null)
+                    field.set(obj, null);
+                else
+                    field.set(obj, Integer.valueOf(value));
 			}
 		});
 		convertMapping.put(Long.class, new StringConvertor() {
 			@Override
 			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, Long.valueOf(value));
+                if (value == null)
+                    field.set(obj, null);
+                else
+                    field.set(obj, Long.valueOf(value));
 			}
 		});
 		convertMapping.put(Float.class, new StringConvertor() {
 			@Override
 			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, Float.valueOf(value));
+                if (value == null)
+                    field.set(obj, null);
+                else
+                    field.set(obj, Float.valueOf(value));
 			}
 		});
 		convertMapping.put(Double.class, new StringConvertor() {
 			@Override
 			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, Double.valueOf(value));
+                if (value == null)
+                    field.set(obj, null);
+                else
+                    field.set(obj, Double.valueOf(value));
 			}
 		});
 		convertMapping.put(Boolean.class, new StringConvertor() {
 			@Override
 			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, Boolean.valueOf(value));
+                if (value == null)
+                    field.set(obj, null);
+                else
+                    field.set(obj, Boolean.valueOf(value));
 			}
 		});
 		
