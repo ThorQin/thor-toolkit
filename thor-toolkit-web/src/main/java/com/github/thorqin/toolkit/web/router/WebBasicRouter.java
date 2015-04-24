@@ -39,6 +39,7 @@ import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.RuleMatcher;
 import com.github.thorqin.toolkit.web.utility.ServletUtils;
+import com.google.gson.JsonSyntaxException;
 import javassist.bytecode.AnnotationsAttribute;
 import javassist.bytecode.ClassFile;
 import javax.servlet.ServletConfig;
@@ -568,7 +569,7 @@ public final class WebBasicRouter extends WebRouterBase {
                     ServletUtils.sendJsonObject(response, result, supportGzip);
                 }
             }
-		} catch (ValidateException ex) {
+		} catch (JsonSyntaxException | ValidateException ex) {
 			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, "Bad request: invalid parameters!");
 			logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),

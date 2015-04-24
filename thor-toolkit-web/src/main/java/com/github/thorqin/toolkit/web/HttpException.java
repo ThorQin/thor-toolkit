@@ -31,6 +31,14 @@ public class HttpException extends RuntimeException {
 		return e.getMessage();
 	}
 
+    public static String getHttpMessage(Throwable ex, Localization loc) {
+        return getHttpMessage(null, null, ex, loc);
+    }
+
+    public static String getHttpMessage(Throwable ex) {
+        return getHttpMessage(null, null, ex, null);
+    }
+
     private static int getHttpStatus(Integer httpStatus, String message, Throwable throwable) {
         if (message == null) {
             if (throwable != null) {
@@ -69,7 +77,10 @@ public class HttpException extends RuntimeException {
                 message = msg;
             }
         }
-        return message;
+        if (loc != null)
+            return loc.get(message);
+        else
+            return message;
     }
 
 	
