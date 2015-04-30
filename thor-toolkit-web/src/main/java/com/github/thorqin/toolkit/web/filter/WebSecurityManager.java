@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -219,7 +220,26 @@ public class WebSecurityManager extends WebFilterBase {
                 ServletUtils.sendText((HttpServletResponse)response, HttpServletResponse.SC_FORBIDDEN, "Forbidden!");
             } else {
                 HttpServletResponse resp = ((HttpServletResponse)response);
-                resp.sendRedirect(action.redirection);
+                Pattern pattern = Pattern.compile("^:([1-5][0-9]{2})(?::(.*))?$");
+                Matcher matcher = pattern.matcher(action.redirection);
+                if (matcher != null && matcher.find()) {
+                    int status = Integer.parseInt(matcher.group(1));
+                    String msg = matcher.group(2);
+                    if (msg != null)
+                        ServletUtils.sendText(resp, status, msg);
+                    else
+                        ServletUtils.send(resp, status);
+                } else {
+                    String contextPath = ((HttpServletRequest) request).getContextPath();
+                    contextPath += "/";
+                    if (action.redirection.startsWith("$/")) {
+                        resp.sendRedirect(contextPath + action.redirection.substring(2));
+                    } else if (action.redirection.startsWith("$")) {
+                        resp.sendRedirect(contextPath + action.redirection.substring(1));
+                    } else {
+                        resp.sendRedirect(action.redirection);
+                    }
+                }
             }
         } catch (Exception ex) {
             ServletUtils.sendText((HttpServletResponse)response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
