@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.utility;
 
+import com.github.thorqin.toolkit.service.TaskService;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -33,6 +34,29 @@ public class UtilityTest {
         ConfigManager configManager = new ConfigManager();
         configManager.load("/home/thor/Workspace/AppData", "config.json");
         System.out.println(configManager.getJson("/", true));
+    }
+
+    @Test
+    public void testTaskService() throws InterruptedException {
+        TaskService<String> taskService = new TaskService<String>(new TaskService.TaskHandler<String>() {
+            @Override
+            public void process(String task) {
+                System.out.println("in task: " + task);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        for (int i = 0; i < 5; i++) {
+            taskService.offer("test" + i);
+        }
+        System.out.println("All task submitted!");
+        //taskService.shutdown(100);
+        Thread.sleep(1500);
+        System.out.println(taskService.getOfferCount());
+        taskService.shutdown();
     }
 }
 

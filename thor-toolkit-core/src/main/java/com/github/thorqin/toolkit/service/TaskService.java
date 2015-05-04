@@ -1,8 +1,8 @@
 package com.github.thorqin.toolkit.service;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by thor on 3/12/15.
@@ -15,6 +15,7 @@ public class TaskService<T> {
 
     private final ExecutorService executorService;
     private final TaskHandler<T> handler;
+    private AtomicInteger offerTaskCount = new AtomicInteger(0);
 
     public TaskService(TaskHandler<T> handler) {
         this(handler, 1);
@@ -25,14 +26,20 @@ public class TaskService<T> {
         this.executorService = Executors.newFixedThreadPool(threadCount);
     }
 
-    public void offser(final T task) {
+    public void offer(final T task) {
+        offerTaskCount.incrementAndGet();
         executorService.execute(new Runnable() {
             @Override
             public void run() {
+                offerTaskCount.decrementAndGet();
                 if (handler != null)
                     handler.process(task);
             }
         });
+    }
+
+    public int getOfferCount() {
+        return offerTaskCount.get();
     }
 
     public void shutdown() throws InterruptedException {
@@ -42,5 +49,9 @@ public class TaskService<T> {
     public void shutdown(long waitTime) throws InterruptedException {
         executorService.shutdown();
         executorService.awaitTermination(waitTime, TimeUnit.SECONDS);
+    }
+
+    public List<Runnable> shutdownNow() {
+        return executorService.shutdownNow();
     }
 }
