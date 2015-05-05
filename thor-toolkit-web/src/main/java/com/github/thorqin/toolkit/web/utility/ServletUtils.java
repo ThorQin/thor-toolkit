@@ -20,6 +20,7 @@ import java.util.zip.GZIPOutputStream;
  * Created by nuo.qin on 12/25/2014.
  */
 public final class ServletUtils {
+    public final static int COMPRESSION_MIN_SIZE = 2048;
     private static Logger logger = Logger.getLogger(ServletUtils.class.getName());
 
     public static void setCrossSiteHeaders(HttpServletResponse response) {
@@ -114,13 +115,17 @@ public final class ServletUtils {
         response.setDateHeader("Expires", 0);
         if (message == null)
             return;
+        compress = compress && message.length() > ServletUtils.COMPRESSION_MIN_SIZE;
         if (compress) {
             response.addHeader("Content-Encoding", "gzip");
             response.addHeader("Transfer-Encoding", "chunked");
-            try (GZIPOutputStream gzipStream = new GZIPOutputStream(response.getOutputStream())) {
+            try (GZIPOutputStream gzipStream = new GZIPOutputStream(response.getOutputStream(), true)) {
                 try (OutputStreamWriter writer = new OutputStreamWriter(gzipStream, "utf-8")) {
                     writer.write(message);
+                    writer.flush();
                 }
+                gzipStream.finish();
+                gzipStream.flush();
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, "Send message to client failed!", ex);
             }
@@ -205,16 +210,20 @@ public final class ServletUtils {
         if (compress) {
             response.addHeader("Content-Encoding", "gzip");
             response.addHeader("Transfer-Encoding", "chunked");
-            try (GZIPOutputStream gzipStream = new GZIPOutputStream(response.getOutputStream())) {
+            try (GZIPOutputStream gzipStream = new GZIPOutputStream(response.getOutputStream(), true)) {
                 try (OutputStreamWriter writer = new OutputStreamWriter(gzipStream, "utf-8")) {
                     Serializer.toJson(obj, writer);
+                    writer.flush();
                 }
+                gzipStream.finish();
+                gzipStream.flush();
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, "Send message to client failed!", ex);
             }
         } else {
             try (PrintWriter writer = response.getWriter()) {
                 Serializer.toJson(obj, writer);
+                writer.flush();
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, "Send message to client failed!", ex);
             }

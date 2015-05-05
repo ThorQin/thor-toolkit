@@ -62,11 +62,16 @@ public final class WebBasicRouter extends WebRouterBase {
 	private List<MappingInfo> startup = new LinkedList<>();
 	private List<MappingInfo> cleanups = new LinkedList<>();
 	private SessionFactory sessionFactory = new SessionFactory();
+    private boolean enableGzip = true;
 
 
 	public WebBasicRouter(WebApplication application) {
 		super(application);
-        logger = application.getLogger();
+        if (application != null) {
+            logger = application.getLogger();
+            enableGzip = application.getConfigManager().getBoolean("enableGZip", enableGzip);
+        } else
+            logger = Logger.getLogger(WebBasicRouter.class.getName());
 	}
 
 	public WebBasicRouter() {
@@ -550,11 +555,11 @@ public final class WebBasicRouter extends WebRouterBase {
 
             if (result != null) {
                 boolean supportGzip = ServletUtils.supportGZipCompression(request);
+                supportGzip = (enableGzip && supportGzip);
                 if (result.getClass().equals(WebContent.class)) {
                     WebContent content = (WebContent)result;
                     String strContent = content.toString();
                     if (strContent != null) {
-                        supportGzip = (supportGzip && strContent.length() > 1024);
                         if (content.getType() == WebContent.Type.JSON) {
                             ServletUtils.sendJsonString(response, strContent, supportGzip);
                         } else if (content.getType() == WebContent.Type.HTML) {

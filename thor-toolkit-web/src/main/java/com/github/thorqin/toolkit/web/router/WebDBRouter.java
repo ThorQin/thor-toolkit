@@ -44,15 +44,20 @@ public abstract class WebDBRouter extends WebRouterBase {
     protected final String indexProcedure;
     protected final String localeBundle;
     protected Map<String, MappingInfo> mapping = new HashMap<>();
+    private boolean enableGzip = true;
 
     public WebDBRouter(WebApplication application) throws ValidateException {
         super(application);
-        logger = application.getLogger();
+        if (application != null)
+            logger = application.getLogger();
+        else
+            logger = Logger.getLogger(WebDBRouter.class.getName());
         try {
             DBRouter dbRouter = this.getClass().getAnnotation(DBRouter.class);
             if (application == null)
                 throw new InstantiationError("Parameter 'application' is null. " +
                         "Must use this router under web application environment.");
+            enableGzip = application.getConfigManager().getBoolean("enableGZip", enableGzip);
             if (dbRouter == null)
                 throw new InstantiationError("Must either provide @DBRouter annotation or use 3 parameters constructor.");
             if (dbRouter.value().isEmpty())
@@ -334,7 +339,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (outResponse != null && outResponse.getValue() != null) {
                 responseString = outResponse.getValue();
                 boolean supportGzip = ServletUtils.supportGZipCompression(request);
-                supportGzip = (supportGzip && responseString.length() > 1024);
+                supportGzip = (enableGzip && supportGzip);
                 ServletUtils.sendText(response, status, responseString, contentType, supportGzip);
             } else {
                 ServletUtils.send(response, status);
