@@ -114,7 +114,7 @@ public class HttpException extends RuntimeException {
     private final static Pattern errorPattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
 
 	public HttpException(Integer httpStatus, String message, Throwable throwable, Localization loc) {
-        super(getHttpMessage(httpStatus, message, throwable, loc));
+        super(getHttpMessage(httpStatus, message, throwable, loc), throwable);
 		this.httpStatus = getHttpStatus(httpStatus, message, throwable);
 		jsonObj = null;
 		isJson = false;

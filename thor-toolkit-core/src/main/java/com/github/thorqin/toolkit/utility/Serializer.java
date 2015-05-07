@@ -578,4 +578,23 @@ public final class Serializer {
 			sb.append(buffer, 0, size);
 		return sb.toString();
 	}
+
+    public static void saveTextFile(String content, String filename, String encoding) throws IOException {
+        try (OutputStream stream = new FileOutputStream(filename);
+             OutputStreamWriter writer = new OutputStreamWriter(stream, encoding)) {
+            writer.write(content);
+        }
+    }
+    public static void saveTextFile(String content, File file, String encoding) throws IOException {
+        try (OutputStream stream = new FileOutputStream(file);
+             OutputStreamWriter writer = new OutputStreamWriter(stream, encoding)) {
+            writer.write(content);
+        }
+    }
+    public static void saveTextFile(String content, String filename) throws IOException {
+        saveTextFile(content, filename, "utf-8");
+    }
+    public static void saveTextFile(String content, File file) throws IOException {
+        saveTextFile(content, file, "utf-8");
+    }
 }
