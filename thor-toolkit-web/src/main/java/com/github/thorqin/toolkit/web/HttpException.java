@@ -22,13 +22,20 @@ public class HttpException extends RuntimeException {
 	private final boolean isJson;
 
 	public static String getCauseMessage(Throwable ex) {
-		if (ex == null)
-			return null;
-		Throwable e = ex;
-		Throwable cause;
-		while ((cause = e.getCause()) != null)
-			e = cause;
-		return e.getMessage();
+        Throwable e = null;
+        while (ex != null) {
+            e = ex;
+            ex = ex.getCause();
+        }
+        if (e == null)
+            return null;
+        else {
+            String msg = e.getMessage();
+            if (msg == null)
+                return e.getClass().getName();
+            else
+                return msg;
+        }
 	}
 
     public static String getHttpMessage(Throwable ex, Localization loc) {
@@ -41,12 +48,11 @@ public class HttpException extends RuntimeException {
 
     private static int getHttpStatus(Integer httpStatus, String message, Throwable throwable) {
         if (message == null) {
-            if (throwable != null) {
-                message = getCauseMessage(throwable);
-            } else {
+            message = getCauseMessage(throwable);
+            if (message == null) {
                 if (httpStatus == null)
                     httpStatus = 500;
-                message = String.valueOf(httpStatus);
+                return httpStatus;
             }
         }
         Matcher matcher = errorPattern.matcher(message);
@@ -62,12 +68,11 @@ public class HttpException extends RuntimeException {
 
     private static String getHttpMessage(Integer httpStatus, String message, Throwable throwable, Localization loc) {
         if (message == null) {
-            if (throwable != null) {
-                message = getCauseMessage(throwable);
-            } else {
+            message = getCauseMessage(throwable);
+            if (message == null) {
                 if (httpStatus == null)
                     httpStatus = 500;
-                message = String.valueOf(httpStatus);
+                return String.valueOf(httpStatus);
             }
         }
         Matcher matcher = errorPattern.matcher(message);
