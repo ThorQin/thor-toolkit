@@ -111,6 +111,14 @@ public class HttpException extends RuntimeException {
 		this(httpStatus, message, throwable, null);
 	}
 
+    public HttpException(Throwable throwable) {
+        this(null, null, throwable, null);
+    }
+
+    public HttpException(Throwable throwable, Localization loc) {
+        this(null, null, throwable, loc);
+    }
+
     private final static Pattern errorPattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
 
 	public HttpException(Integer httpStatus, String message, Throwable throwable, Localization loc) {
