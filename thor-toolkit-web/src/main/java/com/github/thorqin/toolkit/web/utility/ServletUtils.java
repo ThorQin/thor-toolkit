@@ -187,6 +187,39 @@ public final class ServletUtils {
         response.setStatus(status);
     }
 
+    public static void sendDownloadHeader(HttpServletRequest req, HttpServletResponse resp, String fileName, String mimeType) {
+        try {
+            if (fileName != null) {
+                fileName = URLEncoder.encode(fileName, "utf-8").replace("+", "%20");
+            } else {
+                fileName = "download.dat";
+            }
+        } catch (UnsupportedEncodingException e1) {
+            fileName = "download.dat";
+            e1.printStackTrace();
+        }
+        if (mimeType == null) {
+            String extName = "";
+            if (fileName.lastIndexOf(".") > 0)
+                extName = fileName.substring(fileName.lastIndexOf(".") + 1);
+            mimeType = MimeUtils.getFileMime(extName);
+        }
+        resp.setHeader("Cache-Control", "no-store");
+        resp.setHeader("Pragma", "no-cache");
+        resp.setDateHeader("Expires", 0);
+        resp.setContentType(mimeType);
+
+        String userAgent = req.getHeader("User-Agent").toLowerCase();
+        UserAgentUtils.UserAgentInfo uaInfo = UserAgentUtils.parse(userAgent);
+        if (uaInfo.browser == UserAgentUtils.BrowserType.FIREFOX) {
+            resp.addHeader("Content-Disposition", "attachment; filename*=\"utf-8''"
+                    + fileName + "\"");
+        } else {
+            resp.addHeader("Content-Disposition", "attachment; filename=\""
+                    + fileName + "\"");
+        }
+    }
+
     public static void sendJsonObject(HttpServletResponse response, Integer status, Object obj, boolean compress) {
         response.setStatus(status);
         sendJsonObject(response, obj, compress);
@@ -313,36 +346,7 @@ public final class ServletUtils {
                                 HttpServletResponse resp,
                                 InputStream inputStream,
                                 String fileName, String mimeType) throws IOException {
-        try {
-            if (fileName != null) {
-                fileName = URLEncoder.encode(fileName, "utf-8").replace("+", "%20");
-            } else {
-                fileName = "download.dat";
-            }
-        } catch (UnsupportedEncodingException e1) {
-            fileName = "download.dat";
-            e1.printStackTrace();
-        }
-        if (mimeType == null) {
-            String extName = "";
-            if (fileName.lastIndexOf(".") > 0)
-                extName = fileName.substring(fileName.lastIndexOf(".") + 1);
-            mimeType = MimeUtils.getFileMime(extName);
-        }
-        resp.setHeader("Cache-Control", "no-store");
-        resp.setHeader("Pragma", "no-cache");
-        resp.setDateHeader("Expires", 0);
-        resp.setContentType(mimeType);
-
-        String userAgent = req.getHeader("User-Agent").toLowerCase();
-        UserAgentUtils.UserAgentInfo uaInfo = UserAgentUtils.parse(userAgent);
-        if (uaInfo.browser == UserAgentUtils.BrowserType.FIREFOX) {
-            resp.addHeader("Content-Disposition", "attachment; filename*=\"utf-8''"
-                    + fileName + "\"");
-        } else {
-            resp.addHeader("Content-Disposition", "attachment; filename=\""
-                    + fileName + "\"");
-        }
+        sendDownloadHeader(req, resp, fileName, mimeType);
         try (OutputStream outputStream = resp.getOutputStream()) {
             int length;
             byte[] buffer = new byte[4096];
