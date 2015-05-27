@@ -1,6 +1,7 @@
 package com.github.thorqin.toolkit.web.router;
 
 import com.github.thorqin.toolkit.db.DBService;
+import com.github.thorqin.toolkit.mail.MailService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
@@ -217,16 +218,25 @@ public final class WebBasicRouter extends WebRouterBase {
 
 		for (Field field : clazz.getDeclaredFields()) {
 			Class<?> fieldType = field.getType();
-			DBInstance dbAnno = field.getAnnotation(DBInstance.class);
-			if (dbAnno != null && application != null) {
-				if (fieldType.equals(DBService.class)) {
+            if (fieldType.equals(DBService.class)) {
+                DBInstance dbAnno = field.getAnnotation(DBInstance.class);
+                if (dbAnno != null && application != null) {
 					field.setAccessible(true);
 					if (dbAnno.value().isEmpty())
 						field.set(inst, application.getDBService());
 					else
 						field.set(inst, application.getDBService(dbAnno.value()));
 				}
-			}
+			} else if (fieldType.equals(MailService.class)) {
+                MailInstance mailAnno = field.getAnnotation(MailInstance.class);
+                if (mailAnno != null && application != null) {
+                    field.setAccessible(true);
+                    if (mailAnno.value().isEmpty())
+                        field.set(inst, application.getMailService());
+                    else
+                        field.set(inst, application.getMailService(mailAnno.value()));
+                }
+            }
 		}
 
 		if (LifeCycleListener.class.isAssignableFrom(clazz)) {

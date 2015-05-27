@@ -25,6 +25,7 @@
 package com.github.thorqin.toolkit.web;
 
 import com.github.thorqin.toolkit.db.DBService;
+import com.github.thorqin.toolkit.mail.MailService;
 import com.github.thorqin.toolkit.trace.TraceService;
 import com.github.thorqin.toolkit.utility.AppClassLoader;
 import com.github.thorqin.toolkit.utility.ConfigManager;
@@ -95,6 +96,7 @@ public abstract class WebApplication extends TraceService
 	private List<FilterInfo> filters = null;
 	private Class<? extends WebSession> sessionType = ClientSession.class;
 	private final Map<String, DBService> dbMapping = new HashMap<>();
+    private final Map<String, MailService> mailMapping = new HashMap<>();
 	private Setting setting;
     private String appDataEnv = null;
 
@@ -174,6 +176,16 @@ public abstract class WebApplication extends TraceService
 			else
 				dbService.setTracer(null);
 		}
+        for (String mailKey: mailMapping.keySet()) {
+            MailService mailService = mailMapping.get(mailKey);
+            if (mailService == null)
+                continue;
+            boolean useTrace = configManager.getBoolean(mailKey + "/trace", false);
+            if (useTrace)
+                mailService.setTracer(this);
+            else
+                mailService.setTracer(null);
+        }
 	}
 
     public Logger getLogger() {
@@ -239,7 +251,14 @@ public abstract class WebApplication extends TraceService
 
 	@Override
 	public final synchronized void contextDestroyed(ServletContextEvent sce) {
-		try {
+        try {
+            for (Map.Entry<String, MailService> mailService: mailMapping.entrySet()) {
+                mailService.getValue().stop();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        try {
 			for (Map.Entry<String, DBService> db: dbMapping.entrySet()) {
 				db.getValue().close();
 			}
@@ -337,6 +356,28 @@ public abstract class WebApplication extends TraceService
 	public final DBService getDBService() throws ValidateException {
 		return getDBService("db");
 	}
+
+    public final MailService getMailService(String name) throws ValidateException {
+        if (mailMapping.containsKey(name))
+            return mailMapping.get(name);
+        else {
+            try {
+                MailService.MailSetting setting = configManager.get(name, MailService.MailSetting.class);
+                MailService mailService = new MailService(setting);
+                if (setting.trace)
+                    mailService.setTracer(this);
+                mailMapping.put(name, mailService);
+                return mailService;
+            } catch (Exception ex) {
+                logger.log(Level.SEVERE, "Create MailService instance failed!", ex);
+                return null;
+            }
+        }
+    }
+
+    public final MailService getMailService() throws ValidateException {
+        return getMailService("mail");
+    }
 
     public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<? extends T> constructor;

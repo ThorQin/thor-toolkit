@@ -59,5 +59,10 @@ public class UtilityTest {
         System.out.println(taskService.getOfferCount());
         taskService.shutdown();
     }
+
+    @Test
+    public void someTest() {
+        System.out.println(System.getProperty("user.home"));
+    }
 }
 

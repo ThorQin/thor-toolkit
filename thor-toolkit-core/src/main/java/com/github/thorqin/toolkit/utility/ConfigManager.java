@@ -603,15 +603,24 @@ public class ConfigManager {
         String envStyle = environmentValueName.replace('.', '_').toUpperCase();
         String javaStyle = environmentValueName.replace('_', '.').toLowerCase();
         String dataDir = System.getProperty(javaStyle);
-        if (dataDir == null) {
+        if (dataDir == null) { // there have many nested blocks because for performance reason
             dataDir = System.getProperty(envStyle);
             if (dataDir == null) {
                 dataDir = System.getenv(envStyle);
                 if (dataDir == null) {
                     dataDir = System.getenv(javaStyle);
+                    if (dataDir == null) {
+                        String osName = System.getProperty("os.name");
+                        if (osName.matches("(?i)windows.*")) {
+                            dataDir = System.getenv("APPDATA");
+                        } else {
+                            dataDir = System.getProperty("user.home") + "/.webapp";
+                        }
+                    }
                 }
             }
         }
+
         if (dataDir != null) {
             if (appName == null) {
                 return dataDir;
