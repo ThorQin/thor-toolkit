@@ -5,4 +5,5 @@
 /thor-toolkit-core/target
 /thor-toolkit-web/target
 /thor-toolkit-archetype/target
+/thor-toolkit-amq/target
 /test-website/target

@@ -2,6 +2,7 @@ package com.github.thorqin.toolkit.web.router;
 
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.trace.Tracer;
+import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.StringUtils;
@@ -40,36 +41,44 @@ public abstract class WebDBRouter extends WebRouterBase {
 
     private SessionFactory sessionFactory = new SessionFactory();
     private final String refreshEntry;
-    protected final DBService db;
+    protected DBService db;
     protected final String indexProcedure;
     protected final String localeBundle;
     protected Map<String, MappingInfo> mapping = new HashMap<>();
     private boolean enableGzip = true;
+    protected String dbServiceName = null;
+    private ConfigManager.ChangeListener changeListener = new ConfigManager.ChangeListener() {
+        @Override
+        public void onConfigChanged(ConfigManager configManager) {
+            db = application.getService(dbServiceName);
+            enableGzip = configManager.getBoolean("enableGZip", enableGzip);
+        }
+    };
 
-    public WebDBRouter(WebApplication application) throws ValidateException {
+    public WebDBRouter(final WebApplication application) throws ValidateException {
         super(application);
         if (application != null)
             logger = application.getLogger();
         else
             logger = Logger.getLogger(WebDBRouter.class.getName());
+
         try {
-            DBRouter dbRouter = this.getClass().getAnnotation(DBRouter.class);
+            final DBRouter dbRouter = this.getClass().getAnnotation(DBRouter.class);
             if (application == null)
                 throw new InstantiationError("Parameter 'application' is null. " +
                         "Must use this router under web application environment.");
             enableGzip = application.getConfigManager().getBoolean("enableGZip", enableGzip);
             if (dbRouter == null)
                 throw new InstantiationError("Must either provide @DBRouter annotation or use 3 parameters constructor.");
-            if (dbRouter.value().isEmpty())
-                db = application.getDBService();
-            else
-                db = application.getDBService(dbRouter.value());
+            dbServiceName = dbRouter.value();
+            db = application.getService(dbRouter.value());
             indexProcedure = dbRouter.index();
             localeBundle = dbRouter.localeMessage();
             if (dbRouter.refreshEntry().isEmpty())
                 refreshEntry = null;
             else
                 refreshEntry = dbRouter.refreshEntry();
+            application.getConfigManager().addChangeListener(changeListener);
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Create WebDBRouter instance failed!", ex);
             throw new RuntimeException(ex);
@@ -195,6 +204,8 @@ public abstract class WebDBRouter extends WebRouterBase {
 
     @Override
     public final void destroy() {
+        if (application != null)
+            application.getConfigManager().removeChangeListener(changeListener);
         // Servlet destroy
         super.destroy();
     }

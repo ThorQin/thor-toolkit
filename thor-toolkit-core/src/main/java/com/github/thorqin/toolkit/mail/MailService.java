@@ -30,16 +30,22 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import com.github.thorqin.toolkit.service.ISettingComparable;
+import com.github.thorqin.toolkit.service.IStartable;
+import com.github.thorqin.toolkit.service.IStoppable;
 import com.github.thorqin.toolkit.service.TaskService;
 import com.github.thorqin.toolkit.trace.Tracer;
+import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.StringUtils;
+import com.github.thorqin.toolkit.validation.ValidateException;
 import org.apache.commons.codec.binary.Base64;
 
 /**
  *
  * @author nuo.qin
  */
-public class MailService {
+public class MailService implements IStartable, IStoppable, ISettingComparable {
 
     public final static String SECURE_STARTTLS = "starttls";
     public final static String SECURE_SSL = "ssl";
@@ -76,7 +82,16 @@ public class MailService {
     private TaskService<Mail> taskService = null;
 	private final MailSetting setting;
     private Tracer tracer = null;
-	
+
+    @Override
+    public boolean isSettingChanged(ConfigManager configManager, String configName) {
+        MailService.MailSetting newSetting = configManager.get(configName, MailService.MailSetting.class);
+        return !Serializer.equals(newSetting, setting);
+    }
+
+    public MailService(ConfigManager configManager, String configName, Tracer tracer) throws ValidateException {
+        this(configManager.get(configName, MailService.MailSetting.class), tracer);
+    }
 	
 	public MailService(MailSetting mailSetting) {
         setting = mailSetting;
@@ -191,7 +206,8 @@ public class MailService {
 			logger.log(Level.SEVERE, "Send mail failed!", ex);
 		}
 	}
-	
+
+    @Override
 	public synchronized void start() {
         if (taskService != null)
             return;
@@ -208,6 +224,8 @@ public class MailService {
             tracer.trace(info);
         }
 	}
+
+    @Override
 	public synchronized void stop() {
         if (taskService == null)
             return;

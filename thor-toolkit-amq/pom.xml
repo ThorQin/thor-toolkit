@@ -7,7 +7,7 @@
 		<version>1.1-SNAPSHOT</version>
 	</parent>
 	<groupId>com.github.thorqin.thor-toolkit</groupId>
-	<artifactId>thor-toolkit-web</artifactId>
+	<artifactId>thor-toolkit-amq</artifactId>
 	<version>1.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<properties>
@@ -15,21 +15,15 @@
 	</properties>
 	<dependencies>
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>3.1.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>commons-fileupload</groupId>
-			<artifactId>commons-fileupload</artifactId>
-			<version>1.3.1</version>
-		</dependency>
-		<dependency>
 			<groupId>com.github.thorqin.thor-toolkit</groupId>
 			<artifactId>thor-toolkit-core</artifactId>
 			<version>1.1-SNAPSHOT</version>
 		</dependency>
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-client</artifactId>
+            <version>5.11.1</version>
+        </dependency>
 	</dependencies>
 	<build>
 		<plugins>

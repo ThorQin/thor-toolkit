@@ -60,9 +60,18 @@ public class UtilityTest {
         taskService.shutdown();
     }
 
+    class A {
+        public String abc = "s";
+        public int def;
+    }
+
     @Test
     public void someTest() {
-        System.out.println(System.getProperty("user.home"));
+        A a = new A();
+        a.abc = null;
+        A b = new A();
+        System.out.println(Serializer.toJsonString(a));
+        System.out.println(Serializer.toJsonString(b));
     }
 }
 

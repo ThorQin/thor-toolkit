@@ -13,7 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 @WebModule
 public class MyModule {
 	/*
-    @DBInstance
+    @Service("db")
     DBService db;
 	*/
 

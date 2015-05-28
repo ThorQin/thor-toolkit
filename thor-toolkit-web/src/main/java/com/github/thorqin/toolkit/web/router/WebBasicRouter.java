@@ -1,8 +1,7 @@
 package com.github.thorqin.toolkit.web.router;
 
-import com.github.thorqin.toolkit.db.DBService;
-import com.github.thorqin.toolkit.mail.MailService;
 import com.github.thorqin.toolkit.trace.Tracer;
+import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.validation.ValidateException;
@@ -15,17 +14,11 @@ import com.github.thorqin.toolkit.web.annotation.Entity;
 import com.github.thorqin.toolkit.web.annotation.Entity.ParseEncoding;
 import com.github.thorqin.toolkit.web.annotation.Entity.SourceType;
 import com.github.thorqin.toolkit.web.annotation.*;
-import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -53,17 +46,36 @@ public final class WebBasicRouter extends WebRouterBase {
 	private static final long serialVersionUID = -4658671798328062327L;
 	private final Logger logger;
 	
-	protected class MappingInfo {
+	private static class MappingInfo {
 		public Object instance;
 		public Method method;
         public String localeMessage;
 	}
+
+    private static class ServiceInfo {
+        public Object instance;
+        public Field field;
+        public String serviceName;
+    }
 	
 	private RuleMatcher<MappingInfo> mapping = null;
 	private List<MappingInfo> startup = new LinkedList<>();
 	private List<MappingInfo> cleanups = new LinkedList<>();
+    private List<ServiceInfo> serviceMapping = new LinkedList<>();
 	private SessionFactory sessionFactory = new SessionFactory();
     private boolean enableGzip = true;
+    private ConfigManager.ChangeListener changeListener = new ConfigManager.ChangeListener() {
+        @Override
+        public void onConfigChanged(ConfigManager configManager) {
+            for (ServiceInfo serviceInfo: serviceMapping) {
+                try {
+                    serviceInfo.field.set(serviceInfo.instance, application.getService(serviceInfo.serviceName));
+                } catch (Exception ex) {
+                    logger.log(Level.SEVERE, "Reassign service instance failed!", ex);
+                }
+            }
+        }
+    };
 
 
 	public WebBasicRouter(WebApplication application) {
@@ -97,6 +109,9 @@ public final class WebBasicRouter extends WebRouterBase {
                     throw new ServletException("Initialize dispatcher servlet error.", ex);
                 }
             }
+            if (application != null) {
+                application.getConfigManager().addChangeListener(changeListener);
+            }
             for (MappingInfo info : startup) {
                 try {
                     info.method.invoke(info.instance);
@@ -113,6 +128,9 @@ public final class WebBasicRouter extends WebRouterBase {
 
 	@Override
 	public void destroy() {
+        if (application != null) {
+            application.getConfigManager().removeChangeListener(changeListener);
+        }
 		// Servlet destroy
 		for (MappingInfo info : cleanups) {
 			try {
@@ -217,25 +235,16 @@ public final class WebBasicRouter extends WebRouterBase {
         String localeMessage = classAnno.localeMessage();
 
 		for (Field field : clazz.getDeclaredFields()) {
-			Class<?> fieldType = field.getType();
-            if (fieldType.equals(DBService.class)) {
-                DBInstance dbAnno = field.getAnnotation(DBInstance.class);
-                if (dbAnno != null && application != null) {
-					field.setAccessible(true);
-					if (dbAnno.value().isEmpty())
-						field.set(inst, application.getDBService());
-					else
-						field.set(inst, application.getDBService(dbAnno.value()));
-				}
-			} else if (fieldType.equals(MailService.class)) {
-                MailInstance mailAnno = field.getAnnotation(MailInstance.class);
-                if (mailAnno != null && application != null) {
-                    field.setAccessible(true);
-                    if (mailAnno.value().isEmpty())
-                        field.set(inst, application.getMailService());
-                    else
-                        field.set(inst, application.getMailService(mailAnno.value()));
-                }
+			// Class<?> fieldType = field.getType();
+            Service annotation = field.getAnnotation(Service.class);
+            if (annotation != null && application != null) {
+                field.setAccessible(true);
+                field.set(inst, application.getService(annotation.value()));
+                ServiceInfo info = new ServiceInfo();
+                info.instance = inst;
+                info.field = field;
+                info.serviceName = annotation.value();
+                serviceMapping.add(info);
             }
 		}
 
@@ -300,6 +309,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		if (path == null) {
 			return;
 		}
+        serviceMapping.clear();
 		if (path.isDirectory()) {
             File[] files = path.listFiles();
             if (files != null) {

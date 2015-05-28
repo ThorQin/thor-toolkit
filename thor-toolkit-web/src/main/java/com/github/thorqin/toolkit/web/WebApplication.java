@@ -24,13 +24,15 @@
 
 package com.github.thorqin.toolkit.web;
 
-import com.github.thorqin.toolkit.db.DBService;
-import com.github.thorqin.toolkit.mail.MailService;
+import com.github.thorqin.toolkit.service.ISettingComparable;
+import com.github.thorqin.toolkit.service.IStartable;
+import com.github.thorqin.toolkit.service.IStoppable;
 import com.github.thorqin.toolkit.trace.TraceService;
+import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.AppClassLoader;
 import com.github.thorqin.toolkit.utility.ConfigManager;
-import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.web.annotation.WebApp;
+import com.github.thorqin.toolkit.web.annotation.WebAppService;
 import com.github.thorqin.toolkit.web.annotation.WebFilter;
 import com.github.thorqin.toolkit.web.annotation.WebRouter;
 import com.github.thorqin.toolkit.web.filter.WebFilterBase;
@@ -40,11 +42,13 @@ import com.github.thorqin.toolkit.web.router.WebRouterBase;
 import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.UploadManager;
+import com.google.common.base.Strings;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -61,6 +65,7 @@ public abstract class WebApplication extends TraceService
 
 	private static final String NO_APP_NAME_MESSAGE = "Web application name is null or empty, use @WebApp annotation or explicitly call super constructor by pass application name!";
 	private static final String APP_NAME_DUP_MESSAGE = "Web application name duplicated!";
+    private static final String INVALID_SERVICE_NAME = "Invalid service name!";
 
 	public static class Setting {
 		public boolean traceRouter = false;
@@ -86,6 +91,7 @@ public abstract class WebApplication extends TraceService
 		}
 	}
 
+
 	private static Map<String, WebApplication> applicationMap = new HashMap<>();
 
     private final Logger logger;
@@ -95,8 +101,10 @@ public abstract class WebApplication extends TraceService
 	private List<RouterInfo> routers = null;
 	private List<FilterInfo> filters = null;
 	private Class<? extends WebSession> sessionType = ClientSession.class;
-	private final Map<String, DBService> dbMapping = new HashMap<>();
-    private final Map<String, MailService> mailMapping = new HashMap<>();
+//	private final Map<String, DBService> dbMapping = new HashMap<>();
+//    private final Map<String, MailService> mailMapping = new HashMap<>();
+    private final Map<String, Class<?>> serviceTypes = new HashMap<>();
+    private final Map<String, Object> serviceMapping = new HashMap<>();
 	private Setting setting;
     private String appDataEnv = null;
 
@@ -124,8 +132,69 @@ public abstract class WebApplication extends TraceService
 		applicationName = name;
 		sessionType = appAnno.sessionType();
         logger = Logger.getLogger(applicationName);
+        for (WebAppService service: appAnno.service()) {
+            if (Strings.isNullOrEmpty(service.name()))
+                throw new RuntimeException(INVALID_SERVICE_NAME);
+            serviceTypes.put(service.name(), service.type());
+        }
 		init();
 	}
+
+    public synchronized void unregisterService(String name) {
+        serviceTypes.remove(name);
+        serviceMapping.remove(name);
+    }
+
+    public synchronized void registerService(String name, Class<?> type) {
+        if (serviceTypes.containsKey(name))
+            throw new RuntimeException("Service name already in used.");
+        serviceTypes.put(name, type);
+        createServiceInstance(name);
+    }
+
+    private void createServiceInstance(String name) {
+        Class<?> type = serviceTypes.get(name);
+        if (type == null)
+            throw new RuntimeException("Service name not registered.");
+        try {
+            Constructor<?> constructor = type.getConstructor(ConfigManager.class, String.class, Tracer.class);
+            constructor.setAccessible(true);
+            Object obj = constructor.newInstance(configManager, name, this);
+            serviceMapping.put(name, obj);
+            callServiceStart(obj);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private void callServiceStart(Object serviceInstance) {
+        if (IStartable.class.isAssignableFrom(serviceInstance.getClass())) {
+            IStartable service = (IStartable)serviceInstance;
+            service.start();
+        }
+    }
+
+    private void callServiceStop(Object serviceInstance) {
+        if (IStoppable.class.isAssignableFrom(serviceInstance.getClass())) {
+            IStoppable service = (IStoppable)serviceInstance;
+            service.stop();
+        } else if (AutoCloseable.class.isAssignableFrom(serviceInstance.getClass())) {
+            AutoCloseable closeable = (AutoCloseable)serviceInstance;
+            try {
+                closeable.close();
+            } catch (Exception ex) {
+                logger.log(Level.SEVERE, "Close service exception.", ex);
+            }
+        }
+    }
+
+    private boolean isServiceSettingChanged(Object serviceInstance, ConfigManager configManager, String configName) {
+        if (ISettingComparable.class.isAssignableFrom(serviceInstance.getClass())) {
+            ISettingComparable service = (ISettingComparable)serviceInstance;
+            return service.isSettingChanged(configManager, configName);
+        } else
+            return true;
+    }
 
 	public final Class<? extends WebSession> getSessionType() {
 		return sessionType;
@@ -166,25 +235,15 @@ public abstract class WebApplication extends TraceService
 
 	private synchronized void loadConfig() {
 		setting = configManager.get("/", Setting.class, new Setting());
-		for (String dbKey: dbMapping.keySet()) {
-			DBService dbService = dbMapping.get(dbKey);
-			if (dbService == null)
-				continue;
-			boolean useTrace = configManager.getBoolean(dbKey + "/trace", false);
-			if (useTrace)
-				dbService.setTracer(this);
-			else
-				dbService.setTracer(null);
-		}
-        for (String mailKey: mailMapping.keySet()) {
-            MailService mailService = mailMapping.get(mailKey);
-            if (mailService == null)
-                continue;
-            boolean useTrace = configManager.getBoolean(mailKey + "/trace", false);
-            if (useTrace)
-                mailService.setTracer(this);
-            else
-                mailService.setTracer(null);
+        for (String key: serviceTypes.keySet()) {
+            if (serviceMapping.containsKey(key)) {
+                Object service = serviceMapping.get(key);
+                if (isServiceSettingChanged(service, configManager, key)) {
+                    callServiceStop(service);
+                    createServiceInstance(key);
+                }
+            } else
+                createServiceInstance(key);
         }
 	}
 
@@ -220,6 +279,7 @@ public abstract class WebApplication extends TraceService
         }
 		this.start(); // Start trace service
 		this.configManager = new ConfigManager();
+        this.configManager.setAppName(applicationName);
 		configManager.addChangeListener(this);
 		try {
 			configManager.load(dataDir, "config.json");
@@ -251,20 +311,24 @@ public abstract class WebApplication extends TraceService
 
 	@Override
 	public final synchronized void contextDestroyed(ServletContextEvent sce) {
-        try {
-            for (Map.Entry<String, MailService> mailService: mailMapping.entrySet()) {
-                mailService.getValue().stop();
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        for (String name : serviceMapping.keySet()) {
+            Object service = serviceMapping.get(name);
+            callServiceStop(service);
         }
-        try {
-			for (Map.Entry<String, DBService> db: dbMapping.entrySet()) {
-				db.getValue().close();
-			}
-		} catch (Exception ex) {
-            ex.printStackTrace();
-		}
+//        try {
+//            for (Map.Entry<String, MailService> mailService: mailMapping.entrySet()) {
+//                mailService.getValue().stop();
+//            }
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//        }
+//        try {
+//			for (Map.Entry<String, DBService> db: dbMapping.entrySet()) {
+//				db.getValue().close();
+//			}
+//		} catch (Exception ex) {
+//            ex.printStackTrace();
+//		}
 		try {
             this.onShutdown();
         } catch (Exception ex) {
@@ -336,48 +400,56 @@ public abstract class WebApplication extends TraceService
 		return configManager;
 	}
 
-	public final synchronized DBService getDBService(String name) throws ValidateException {
-		if (dbMapping.containsKey(name))
-			return dbMapping.get(name);
-		else {
-			try {
-				DBService.DBSetting setting = configManager.get(name, DBService.DBSetting.class);
-				DBService db = new DBService(setting);
-				if (setting.trace)
-					db.setTracer(this);
-				dbMapping.put(name, db);
-				return db;
-			} catch (Exception ex) {
-				logger.log(Level.SEVERE, "Create DBService instance failed!", ex);
-				return null;
-			}
-		}
-	}
-	public final DBService getDBService() throws ValidateException {
-		return getDBService("db");
-	}
-
-    public final MailService getMailService(String name) throws ValidateException {
-        if (mailMapping.containsKey(name))
-            return mailMapping.get(name);
-        else {
-            try {
-                MailService.MailSetting setting = configManager.get(name, MailService.MailSetting.class);
-                MailService mailService = new MailService(setting);
-                if (setting.trace)
-                    mailService.setTracer(this);
-                mailMapping.put(name, mailService);
-                return mailService;
-            } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Create MailService instance failed!", ex);
-                return null;
-            }
-        }
+    @SuppressWarnings("unchecked")
+    public final synchronized <T> T getService(String name) {
+        if (serviceMapping.containsKey(name)) {
+            return (T)serviceMapping.get(name);
+        } else
+            throw new RuntimeException("Service not registered: " + name);
     }
 
-    public final MailService getMailService() throws ValidateException {
-        return getMailService("mail");
-    }
+//	public final synchronized DBService getDBService(String name) throws ValidateException {
+//		if (dbMapping.containsKey(name))
+//			return dbMapping.get(name);
+//		else {
+//			try {
+//				DBService.DBSetting setting = configManager.get(name, DBService.DBSetting.class);
+//				DBService db = new DBService(setting);
+//				if (setting.trace)
+//					db.setTracer(this);
+//				dbMapping.put(name, db);
+//				return db;
+//			} catch (Exception ex) {
+//				logger.log(Level.SEVERE, "Create DBService instance failed!", ex);
+//				return null;
+//			}
+//		}
+//	}
+//	public final DBService getDBService() throws ValidateException {
+//		return getDBService("db");
+//	}
+//
+//    public final MailService getMailService(String name) throws ValidateException {
+//        if (mailMapping.containsKey(name))
+//            return mailMapping.get(name);
+//        else {
+//            try {
+//                MailService.MailSetting setting = configManager.get(name, MailService.MailSetting.class);
+//                MailService mailService = new MailService(setting);
+//                if (setting.trace)
+//                    mailService.setTracer(this);
+//                mailMapping.put(name, mailService);
+//                return mailService;
+//            } catch (Exception ex) {
+//                logger.log(Level.SEVERE, "Create MailService instance failed!", ex);
+//                return null;
+//            }
+//        }
+//    }
+//
+//    public final MailService getMailService() throws ValidateException {
+//        return getMailService("mail");
+//    }
 
     public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<? extends T> constructor;

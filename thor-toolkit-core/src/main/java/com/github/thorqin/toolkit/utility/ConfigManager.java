@@ -17,7 +17,7 @@ import java.util.logging.Logger;
  * Created by nuo.qin on 12/11/2014.
  */
 public class ConfigManager {
-    public static interface ChangeListener {
+    public interface ChangeListener {
         void onConfigChanged(ConfigManager configManager);
     }
 
@@ -31,6 +31,7 @@ public class ConfigManager {
     private JsonElement rootObj = null;
     private String rawContent = null;
     private JsonElement defaultRoot = null;
+    private String appName = null;
 
     private static synchronized void setWatchConfig(WatchKey key, ConfigManager config) {
         monitoredMap.put(key, config);
@@ -149,6 +150,14 @@ public class ConfigManager {
     }
 
     public ConfigManager() {
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
+    }
+
+    public String getAppName() {
+        return this.appName;
     }
 
     private void fireChanged() {

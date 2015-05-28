@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package com.github.thorqin.toolkit.web.annotation;
+package com.github.thorqin.toolkit.amq.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -16,11 +16,7 @@ import java.lang.annotation.Target;
  * @author nuo.qin
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
-public @interface DBInstance {
-    /**
-     * Database configuration name in config.json
-     * @return Configuration name
-     */
-	public String value() default "db";
+@Target({ElementType.METHOD})
+public @interface AMQMethod {
+	boolean waitResponse() default true;
 }

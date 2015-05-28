@@ -597,4 +597,14 @@ public final class Serializer {
     public static void saveTextFile(String content, File file) throws IOException {
         saveTextFile(content, file, "utf-8");
     }
+
+    /**
+     * If object1's content equals object2's content then return true
+     * @param obj1 Object 1
+     * @param obj2 Object 2
+     * @return Whether objects content are equal.
+     */
+    public static boolean equals(Object obj1, Object obj2) {
+        return toJsonString(obj1).equals(toJsonString(obj2));
+    }
 }

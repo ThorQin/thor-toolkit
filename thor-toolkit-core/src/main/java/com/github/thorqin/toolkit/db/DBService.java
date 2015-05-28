@@ -1,6 +1,9 @@
 package com.github.thorqin.toolkit.db;
 
+import com.github.thorqin.toolkit.service.ISettingComparable;
 import com.github.thorqin.toolkit.trace.*;
+import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.validation.annotation.ValidateNumber;
@@ -30,7 +33,7 @@ import java.util.logging.Logger;
  * @author nuo.qin
  *
  **********************************************************/
-public final class DBService {
+public final class DBService implements AutoCloseable, ISettingComparable {
 	public static class DBSetting {
 		@ValidateString
 		public String driver;
@@ -1034,6 +1037,23 @@ public final class DBService {
 	public synchronized void setTracer(Tracer tracer) {
 		this.tracer = tracer;
 	}
+
+    @Override
+    public boolean isSettingChanged(ConfigManager configManager, String configName) {
+        DBService.DBSetting newSetting = configManager.get(configName, DBService.DBSetting.class);
+        return !Serializer.equals(newSetting, setting);
+    }
+
+    /**
+     * In order to support registration of WebApplication service.
+     * @param configManager
+     * @param configName
+     * @param tracer
+     */
+    public DBService(ConfigManager configManager, String configName, Tracer tracer) throws ValidateException {
+        this(configManager.get(configName, DBService.DBSetting.class), tracer);
+    }
+
 	public DBService(DBSetting dbSetting) throws ValidateException {
 		this(dbSetting, null);
 	}
@@ -1067,6 +1087,7 @@ public final class DBService {
 		boneCP = new BoneCP(boneCPConfig);
 	}
 
+    @Override
 	public void close() {
 		try {
 			if (boneCP != null) {
@@ -1431,7 +1452,7 @@ public final class DBService {
     }
 
 	public DBSession getSession(boolean autoCommit) throws SQLException {
-        DBSession dbSession = new DBSession(getConnection(), tracer);
+        DBSession dbSession = new DBSession(getConnection(), setting.trace ? tracer : null);
         dbSession.setAutoCommit(autoCommit);
         return dbSession;
 	}
