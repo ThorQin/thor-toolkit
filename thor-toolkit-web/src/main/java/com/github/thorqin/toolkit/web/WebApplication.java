@@ -408,49 +408,6 @@ public abstract class WebApplication extends TraceService
             throw new RuntimeException("Service not registered: " + name);
     }
 
-//	public final synchronized DBService getDBService(String name) throws ValidateException {
-//		if (dbMapping.containsKey(name))
-//			return dbMapping.get(name);
-//		else {
-//			try {
-//				DBService.DBSetting setting = configManager.get(name, DBService.DBSetting.class);
-//				DBService db = new DBService(setting);
-//				if (setting.trace)
-//					db.setTracer(this);
-//				dbMapping.put(name, db);
-//				return db;
-//			} catch (Exception ex) {
-//				logger.log(Level.SEVERE, "Create DBService instance failed!", ex);
-//				return null;
-//			}
-//		}
-//	}
-//	public final DBService getDBService() throws ValidateException {
-//		return getDBService("db");
-//	}
-//
-//    public final MailService getMailService(String name) throws ValidateException {
-//        if (mailMapping.containsKey(name))
-//            return mailMapping.get(name);
-//        else {
-//            try {
-//                MailService.MailSetting setting = configManager.get(name, MailService.MailSetting.class);
-//                MailService mailService = new MailService(setting);
-//                if (setting.trace)
-//                    mailService.setTracer(this);
-//                mailMapping.put(name, mailService);
-//                return mailService;
-//            } catch (Exception ex) {
-//                logger.log(Level.SEVERE, "Create MailService instance failed!", ex);
-//                return null;
-//            }
-//        }
-//    }
-//
-//    public final MailService getMailService() throws ValidateException {
-//        return getMailService("mail");
-//    }
-
     public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<? extends T> constructor;
         try {

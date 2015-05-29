@@ -1,7 +1,7 @@
 package com.github.thorqin.toolkit.amq;
 
-import com.github.thorqin.toolkit.db.DBProxy;
 import com.github.thorqin.toolkit.service.ISettingComparable;
+import com.github.thorqin.toolkit.service.IStartable;
 import com.github.thorqin.toolkit.service.IStoppable;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
@@ -9,8 +9,12 @@ import com.github.thorqin.toolkit.utility.Serializer;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
@@ -25,8 +29,58 @@ import javax.jms.Session;
 import com.google.common.base.Strings;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ConfigurationException;
+import org.apache.activemq.transport.TransportListener;
 
-public class AMQService implements IStoppable, ISettingComparable {
+public class AMQService implements IStartable, IStoppable, ISettingComparable, TransportListener {
+
+    public interface ConnectionListener {
+        void onConnect();
+        void onDisconnect();
+    }
+
+    @Override
+    public void onCommand(Object o) {
+        synchronized (transportListeners) {
+            for (TransportListener listener : transportListeners) {
+                listener.onCommand(o);
+            }
+        }
+    }
+
+    @Override
+    public void onException(IOException e) {
+        synchronized (transportListeners) {
+            for (TransportListener listener : transportListeners) {
+                listener.onException(e);
+            }
+        }
+        connection = null;
+        synchronized (connectionListeners) {
+            for (ConnectionListener listener : connectionListeners) {
+                listener.onDisconnect();
+            }
+        }
+        tryConnect();
+    }
+
+    @Override
+    public void transportInterupted() {
+        synchronized (transportListeners) {
+            for (TransportListener listener : transportListeners) {
+                listener.transportInterupted();
+            }
+        }
+    }
+
+    @Override
+    public void transportResumed() {
+        synchronized (transportListeners) {
+            for (TransportListener listener : transportListeners) {
+                listener.transportResumed();
+            }
+        }
+    }
+
     public static class AMQSetting {
         public String uri;
         public String user;
@@ -36,10 +90,56 @@ public class AMQService implements IStoppable, ISettingComparable {
         public boolean trace = false;
     }
 
+    private static final Logger logger =
+            Logger.getLogger(AMQService.class.getName());
+    private ActiveMQConnectionFactory connectionFactory;
 	private AMQSetting setting;
 	private Connection connection = null;
     private Tracer tracer = null;
 	private final ThreadLocal<ProducerHolder> localProducer = new ThreadLocal<>();
+    private Set<TransportListener> transportListeners = new HashSet<>();
+    private Set<ConnectionListener> connectionListeners = new HashSet<>();
+    private boolean isRunning = false;
+
+    private void addTransportListener(TransportListener listener) {
+        synchronized (transportListeners) {
+            if (!transportListeners.contains(listener))
+                transportListeners.add(listener);
+        }
+    }
+
+    private void removeTransportListener(TransportListener listener) {
+        synchronized (transportListeners) {
+            if (!transportListeners.contains(listener))
+                transportListeners.remove(listener);
+        }
+    }
+
+    private void clearTransportListener() {
+        synchronized (transportListeners) {
+            transportListeners.clear();
+        }
+    }
+
+    public void addConnectionListener(ConnectionListener listener) {
+        synchronized (connectionListeners) {
+            if (!connectionListeners.contains(listener))
+                connectionListeners.add(listener);
+        }
+    }
+
+    public void removeConnectionListener(ConnectionListener listener) {
+        synchronized (connectionListeners) {
+            if (!connectionListeners.contains(listener))
+                connectionListeners.remove(listener);
+        }
+    }
+
+    public void clearConnectionListener() {
+        synchronized (connectionListeners) {
+            connectionListeners.clear();
+        }
+    }
 	
 	private class ProducerHolder implements AutoCloseable {
 		public Session session = null;
@@ -47,10 +147,13 @@ public class AMQService implements IStoppable, ISettingComparable {
 		public Destination replyQueue = null;
 		public MessageConsumer replyConsumer = null;
 		public ProducerHolder() throws JMSException {
-			session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-			producer = session.createProducer(null);
-			replyQueue = session.createTemporaryQueue();
-			replyConsumer = session.createConsumer(replyQueue);
+            if (connection == null) {
+                throw new JMSException("Connection isn't established!");
+            }
+            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            producer = session.createProducer(null);
+            replyQueue = session.createTemporaryQueue();
+            replyConsumer = session.createConsumer(replyQueue);
 		}
 
         @Override
@@ -75,6 +178,10 @@ public class AMQService implements IStoppable, ISettingComparable {
 		}
 		return obj;
 	}
+
+    private void clearHolder() {
+        localProducer.remove();
+    }
 	
 	public class IncomingMessage {
 		private final String address;
@@ -396,10 +503,19 @@ public class AMQService implements IStoppable, ISettingComparable {
 				throw new JMSException("Connection not allocate.");
 			this.address = address;
 			holder = createHolder();
-			if (broadcast)
-				dest = holder.session.createTopic(address);
-			else
-				dest = holder.session.createQueue(address);
+            try {
+                if (broadcast)
+                    dest = holder.session.createTopic(address);
+                else
+                    dest = holder.session.createQueue(address);
+            } catch (javax.jms.IllegalStateException ex) {
+                clearHolder();
+                holder = createHolder();
+                if (broadcast)
+                    dest = holder.session.createTopic(address);
+                else
+                    dest = holder.session.createQueue(address);
+            }
 			deliveryMode = persistent ? DeliveryMode.PERSISTENT : DeliveryMode.NON_PERSISTENT;
 		}
 		public String getAddress() {
@@ -856,18 +972,65 @@ public class AMQService implements IStoppable, ISettingComparable {
     public AMQService(AMQSetting setting, Tracer tracer) throws JMSException {
         this.setting = setting;
         this.tracer = tracer;
-        ActiveMQConnectionFactory connectionFactory;
         if (Strings.isNullOrEmpty(setting.uri))
             throw new ConfigurationException("Must provide the ActiveMQ URI info.");
         if (!Strings.isNullOrEmpty(setting.user))
             connectionFactory = new ActiveMQConnectionFactory(setting.user, setting.password, setting.uri);
         else
             connectionFactory = new ActiveMQConnectionFactory(setting.uri);
+        connectionFactory.setTransportListener(this);
+        connection = null;
+    }
+
+    @Override
+    public void start() {
+        if (isRunning)
+            return;
+        isRunning = true;
+        tryConnect();
+    }
+
+    public void connect() throws JMSException {
         connection = connectionFactory.createConnection();
         connection.start();
     }
-	
-	private static void closeResource(MessageConsumer resource) {
+
+    private void tryConnect() {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isRunning && connection == null) {
+                    try {
+                        connect();
+                        synchronized (connectionListeners) {
+                            for (ConnectionListener listener : connectionListeners) {
+                                listener.onConnect();
+                            }
+                        }
+                    } catch (JMSException e) {
+                        connection = null;
+                        logger.log(Level.SEVERE, "Try connect failed: " + e.getMessage());
+                        try {
+                            Thread.sleep(1000);
+                        } catch (Exception ex)  {}
+                    }
+                }
+            }
+        });
+        thread.start();
+    }
+
+    @Override
+    public void stop() {
+        if (!isRunning)
+            return;
+        isRunning = false;
+        closeResource(connection);
+        connection = null;
+    }
+
+
+    private static void closeResource(MessageConsumer resource) {
 		try {
 			if (resource != null)
 				resource.close();
@@ -898,12 +1061,7 @@ public class AMQService implements IStoppable, ISettingComparable {
 		}
 	}
 
-    @Override
-	public void stop() {
-		closeResource(connection);
-		connection = null;
-	}
-	
+
 	private byte[] getBytes(Message message) throws IOException, JMSException {
 		if (message == null)
 			return null;

@@ -229,8 +229,7 @@ public class ConfigManager {
             defaultRoot = Serializer.fromJson(
                     Serializer.loadTextResource(resource), JsonElement.class);
         } catch (Exception ex) {
-            System.err.println("Load configuration resource error: " + resource);
-            ex.printStackTrace();
+            System.out.println("No default resource found: " + resource);
             defaultRoot = null;
         }
     }
