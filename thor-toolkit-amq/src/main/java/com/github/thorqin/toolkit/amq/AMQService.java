@@ -31,7 +31,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ConfigurationException;
 import org.apache.activemq.transport.TransportListener;
 
-public class AMQService implements IStartable, IStoppable, ISettingComparable, TransportListener {
+public class AMQService implements IStoppable, ISettingComparable, TransportListener {
 
     public interface ConnectionListener {
         void onConnect();
@@ -982,7 +982,6 @@ public class AMQService implements IStartable, IStoppable, ISettingComparable, T
         connection = null;
     }
 
-    @Override
     public void start() {
         if (isRunning)
             return;
