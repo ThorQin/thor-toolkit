@@ -12,6 +12,7 @@ import com.github.thorqin.toolkit.web.annotation.DBRouter;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.ServletUtils;
+import com.google.common.base.Strings;
 import com.google.gson.reflect.TypeToken;
 
 import javax.servlet.ServletConfig;
@@ -44,6 +45,7 @@ public abstract class WebDBRouter extends WebRouterBase {
     protected DBService db;
     protected final String indexProcedure;
     protected final String localeBundle;
+    protected final String configName;
     protected Map<String, MappingInfo> mapping = new HashMap<>();
     private boolean enableGzip = true;
     protected String dbServiceName = null;
@@ -52,6 +54,7 @@ public abstract class WebDBRouter extends WebRouterBase {
         public void onConfigChanged(ConfigManager configManager) {
             db = application.getService(dbServiceName);
             enableGzip = configManager.getBoolean("enableGZip", enableGzip);
+            makeMapping();
         }
     };
 
@@ -69,11 +72,12 @@ public abstract class WebDBRouter extends WebRouterBase {
                         "Must use this router under web application environment.");
             enableGzip = application.getConfigManager().getBoolean("enableGZip", enableGzip);
             if (dbRouter == null)
-                throw new InstantiationError("Must either provide @DBRouter annotation or use 3 parameters constructor.");
+                throw new InstantiationError("Must either provide @DBRouter annotation or use 5 parameters constructor.");
             dbServiceName = dbRouter.value();
             db = application.getService(dbRouter.value());
             indexProcedure = dbRouter.index();
             localeBundle = dbRouter.localeMessage();
+            configName = dbRouter.configName();
             if (dbRouter.refreshEntry().isEmpty())
                 refreshEntry = null;
             else
@@ -85,13 +89,14 @@ public abstract class WebDBRouter extends WebRouterBase {
         }
     }
 
-    public WebDBRouter(DBService dbService, String indexProcedure, String localeBundle, String refreshEntry) throws ValidateException {
+    public WebDBRouter(DBService dbService, String indexProcedure, String localeBundle, String refreshEntry, String configName) throws ValidateException {
         super(null);
         logger = Logger.getLogger(WebDBRouter.class.getName());
         if (dbService == null)
             throw new InstantiationError("Parameter 'dbService' is null. ");
         db = dbService;
         this.indexProcedure = indexProcedure;
+        this.configName = configName;
         this.localeBundle = localeBundle;
         if (refreshEntry == null || refreshEntry.isEmpty())
             this.refreshEntry = null;
@@ -100,6 +105,10 @@ public abstract class WebDBRouter extends WebRouterBase {
     }
 
     protected Map<String, List<String>> getRouterDefinition() throws Exception {
+        if (!Strings.isNullOrEmpty(configName)) {
+            Type valueType = new TypeToken<List<String>>() {}.getType();
+            return application.getConfigManager().getMap(configName, valueType);
+        }
         String json = db.invoke(indexProcedure, String.class);
         Type type = new TypeToken<Map<String, List<String>>>() {}.getType();
         return Serializer.fromJson(json, type);

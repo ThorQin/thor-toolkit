@@ -36,4 +36,10 @@ public @interface DBRouter {
      * @return Message that translated in specified locale
      */
     public String localeMessage() default "message";
+
+    /**
+     * If set configName then use configManager load index mapping from config instead load from database.
+     * @return Config name(path)
+     */
+    public String configName() default "";
 }
