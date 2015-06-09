@@ -11,7 +11,6 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-
 import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -19,7 +18,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.channels.FileLock;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -523,17 +521,59 @@ public final class Serializer {
 		return obj;
 	}
 
+    /**
+     * Load text resource file and auto detect file charset encoding,
+     * but any file without BOM will be regarded as UTF-8 encoding.
+     * @param resourceName Resource to load
+     * @return
+     * @throws IOException
+     */
 	public static String loadTextResource(String resourceName) throws IOException {
 		try (InputStream in = Serializer.class.getClassLoader().getResourceAsStream(resourceName)) {
             return loadTextStream(in);
 		}
 	}
 
+    /**
+     * Load text file and auto detect file charset encoding,
+     * but any file without BOM will be regarded as UTF-8 encoding.
+     * @param file File to load
+     * @return
+     * @throws IOException
+     */
 	public static String loadTextFile(File file) throws IOException {
 		try (FileInputStream in = new FileInputStream(file)) {
 			return loadTextStream(in);
 		}
 	}
+
+
+    /**
+     * Load text file in specifed charset encoding.
+     * @param file File to load
+     * @param charset Specifed charset
+     * @return
+     * @throws IOException
+     */
+    public static String loadTextFile(File file, String charset) throws IOException {
+        try (FileInputStream in = new FileInputStream(file)) {
+            return loadTextStream(in, charset);
+        }
+    }
+
+    /**
+     * Load text file and auto detect file charset encoding,
+     * default charset use JVM file.encoding property
+     * @param file File to load
+     * @return
+     * @throws IOException
+     */
+    public static String loadTextFile2(File file) throws IOException {
+        String charset = detectCharset(file, null);
+        try (FileInputStream in = new FileInputStream(file)) {
+            return loadTextStream(in, charset);
+        }
+    }
 
 	public static String loadTextURL(URL url) throws IOException {
 		URLConnection conn = url.openConnection();
@@ -552,6 +592,75 @@ public final class Serializer {
 		}
 		return out.toByteArray();
 	}
+
+    public static String detectCharset(File file) throws IOException {
+        return detectCharset(file, null);
+    }
+
+    public static String detectCharset(File file, String defaultCharset) throws IOException {
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            try (PushbackInputStream pIn = new PushbackInputStream(fileInputStream, 3)) {
+                byte[] bom = new byte[3];
+                pIn.read(bom);
+                String charset;
+                if (bom[0] == (byte) 0xEF && bom[1] == (byte) 0xBB && bom[2] == (byte) 0xBF) {
+                    charset = "utf-8";
+                } else if (bom[0] == (byte) 0xFE && bom[1] == (byte) 0xFF) {
+                    charset = "utf-16be";
+                    pIn.unread(bom[2]);
+                } else if (bom[0] == (byte) 0xFF && bom[1] == (byte) 0xFE) {
+                    charset = "utf-16le";
+                    pIn.unread(bom[2]);
+                } else {
+                    // Do not have BOM, so, determine whether it is en UTF-8 charset.
+                    pIn.unread(bom);
+                    boolean utf8 = true;
+                    boolean ansi = true;
+                    byte[] buffer = new byte[1024];
+                    int size;
+                    int checkBytes = 0;
+                    READ_FILE:
+                    while ((size = pIn.read(buffer)) > 0) {
+                        for (int i = 0; i < size; i++) {
+                            if (checkBytes > 0) {
+                                if ((buffer[i] & 0xC0) == 0x80)
+                                    checkBytes--;
+                                else {
+                                    utf8 = false;
+                                    ansi = false;
+                                    break READ_FILE;
+                                }
+                            } else {
+                                if ((buffer[i] & 0x0FF) < 128)
+                                    continue;
+                                ansi = false;
+                                if ((buffer[i] & 0xE0) == 0xC0)
+                                    checkBytes = 1;
+                                else if ((buffer[i] & 0xF0) == 0xE0)
+                                    checkBytes = 2;
+                                else {
+                                    utf8 = false;
+                                    break READ_FILE;
+                                }
+                            }
+                        }
+                    }
+                    if (ansi)
+                        charset = "us-ascii";
+                    else if (utf8)
+                        charset = "utf-8";
+                    else if (defaultCharset != null)
+                        charset = defaultCharset;
+                    else {
+                        charset = System.getProperty("file.encoding");
+                        if (charset == null)
+                            charset = "utf-8";
+                    }
+                }
+                return charset.trim().toLowerCase();
+            }
+        }
+    }
 
 	public static String loadTextStream(InputStream in) throws IOException {
 		PushbackInputStream pIn = new PushbackInputStream(in, 3);
@@ -578,6 +687,16 @@ public final class Serializer {
 			sb.append(buffer, 0, size);
 		return sb.toString();
 	}
+
+    public static String loadTextStream(InputStream in, String charset) throws IOException {
+        InputStreamReader reader = new InputStreamReader(in, charset);
+        StringBuilder sb = new StringBuilder();
+        char[] buffer = new char[1024];
+        int size;
+        while ((size = reader.read(buffer)) > 0)
+            sb.append(buffer, 0, size);
+        return sb.toString();
+    }
 
     public static void saveTextFile(String content, String filename, String encoding) throws IOException {
         try (OutputStream stream = new FileOutputStream(filename);

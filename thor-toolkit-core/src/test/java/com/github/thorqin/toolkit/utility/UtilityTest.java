@@ -4,6 +4,7 @@ import com.github.thorqin.toolkit.service.TaskService;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -66,12 +67,8 @@ public class UtilityTest {
     }
 
     @Test
-    public void someTest() {
-        A a = new A();
-        a.abc = null;
-        A b = new A();
-        System.out.println(Serializer.toJsonString(a));
-        System.out.println(Serializer.toJsonString(b));
+    public void someTest() throws Exception {
+        System.out.println(Serializer.detectCharset(new File("/home/thor/Documents/XuQiu/创建工程.txt.txt"), "GBK"));
     }
 }
 
