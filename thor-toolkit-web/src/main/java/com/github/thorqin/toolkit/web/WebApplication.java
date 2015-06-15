@@ -68,6 +68,7 @@ public abstract class WebApplication extends TraceService
     private static final String INVALID_SERVICE_NAME = "Invalid service name!";
 
 	public static class Setting {
+        public boolean compressJs = true;
 		public boolean traceRouter = false;
 		public boolean traceAccess = false;
 		public int sessionTimeout = 900;
@@ -201,7 +202,10 @@ public abstract class WebApplication extends TraceService
 	}
 
 	public static WebApplication get(String appName) {
-		return applicationMap.get(appName);
+        if (appName == null)
+            return get();
+        else
+		    return applicationMap.get(appName);
 	}
 
 	public static WebApplication get() {
@@ -315,20 +319,6 @@ public abstract class WebApplication extends TraceService
             Object service = serviceMapping.get(name);
             callServiceStop(service);
         }
-//        try {
-//            for (Map.Entry<String, MailService> mailService: mailMapping.entrySet()) {
-//                mailService.getValue().stop();
-//            }
-//        } catch (Exception ex) {
-//            ex.printStackTrace();
-//        }
-//        try {
-//			for (Map.Entry<String, DBService> db: dbMapping.entrySet()) {
-//				db.getValue().close();
-//			}
-//		} catch (Exception ex) {
-//            ex.printStackTrace();
-//		}
 		try {
             this.onShutdown();
         } catch (Exception ex) {

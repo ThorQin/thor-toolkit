@@ -11,7 +11,13 @@ if (!JSON) {
     }
     if (typeof Date.prototype.toJSON !== 'function') {
         Date.prototype.toJSON = function (key) {
-            return isFinite(this.valueOf()) ? this.getUTCFullYear() + '-' + f(this.getUTCMonth() + 1) + '-' + f(this.getUTCDate()) + 'T' + f(this.getUTCHours()) + ':' + f(this.getUTCMinutes()) + ':' + f(this.getUTCSeconds()) + 'Z' : null;
+            return isFinite(this.valueOf()) ?
+                this.getUTCFullYear() + '-' +
+                    f(this.getUTCMonth() + 1) + '-' +
+                    f(this.getUTCDate()) + 'T' +
+                    f(this.getUTCHours()) + ':' +
+                    f(this.getUTCMinutes()) + ':' +
+                    f(this.getUTCSeconds()) + 'Z' : null;
         };
         String.prototype.toJSON = Number.prototype.toJSON = Boolean.prototype.toJSON = function (key) {
             return this.valueOf();
@@ -30,12 +36,14 @@ if (!JSON) {
         escapable.lastIndex = 0;
         return escapable.test(string) ? '"' + string.replace(escapable, function (a) {
             var c = meta[a];
-            return typeof c === 'string' ? c : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+            return typeof c === 'string' ? c :
+                '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
         }) + '"' : '"' + string + '"';
     }
     function str(key, holder) {
         var i, k, v, length, mind = gap, partial, value = holder[key];
-        if (value && typeof value === 'object' && typeof value.toJSON === 'function') {
+        if (value && typeof value === 'object' &&
+            typeof value.toJSON === 'function') {
             value = value.toJSON(key);
         }
         if (typeof rep === 'function') {
@@ -60,7 +68,9 @@ if (!JSON) {
                     for (i = 0; i < length; i += 1) {
                         partial[i] = str(i, value) || 'null';
                     }
-                    v = partial.length === 0 ? '[]' : gap ? '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' : '[' + partial.join(',') + ']';
+                    v = partial.length === 0 ? '[]' : gap ?
+                        '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' :
+                        '[' + partial.join(',') + ']';
                     gap = mind;
                     return v;
                 }
@@ -86,7 +96,9 @@ if (!JSON) {
                         }
                     }
                 }
-                v = partial.length === 0 ? '{}' : gap ? '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' : '{' + partial.join(',') + '}';
+                v = partial.length === 0 ? '{}' : gap ?
+                    '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' :
+                    '{' + partial.join(',') + '}';
                 gap = mind;
                 return v;
         }
@@ -105,7 +117,9 @@ if (!JSON) {
                 indent = space;
             }
             rep = replacer;
-            if (replacer && typeof replacer !== 'function' && (typeof replacer !== 'object' || typeof replacer.length !== 'number')) {
+            if (replacer && typeof replacer !== 'function' &&
+                (typeof replacer !== 'object' ||
+                    typeof replacer.length !== 'number')) {
                 throw new Error('JSON.stringify');
             }
             return str('', { '': value });
@@ -135,12 +149,17 @@ if (!JSON) {
             cx.lastIndex = 0;
             if (cx.test(text)) {
                 text = text.replace(cx, function (a) {
-                    return '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+                    return '\\u' +
+                        ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
                 });
             }
-            if (/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+            if (/^[\],:{}\s]*$/
+                .test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
+                .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
+                .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
                 j = eval('(' + text + ')');
-                return typeof reviver === 'function' ? walk({ '': j }, '') : j;
+                return typeof reviver === 'function' ?
+                    walk({ '': j }, '') : j;
             }
             throw new SyntaxError('JSON.parse');
         };
@@ -786,7 +805,8 @@ var tui;
      */
     tui.ieVer = (function () {
         var rv = -1; // Return value assumes failure.
-        if (navigator.appName === "Microsoft Internet Explorer" || navigator.appName === "Netscape") {
+        if (navigator.appName === "Microsoft Internet Explorer" ||
+            navigator.appName === "Netscape") {
             var ua = navigator.userAgent;
             var re = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
             if (re.exec(ua) !== null)
@@ -837,7 +857,11 @@ var tui;
             expires = expires * 1000 * 60 * 60 * 24;
         }
         var expires_date = new Date(today.getTime() + (expires));
-        document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + ((expires) ? ";expires=" + expires_date.toUTCString() : "") + ((path) ? ";path=" + path : "") + ((domain) ? ";domain=" + domain : "") + ((secure) ? ";secure" : "");
+        document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) +
+            ((expires) ? ";expires=" + expires_date.toUTCString() : "") +
+            ((path) ? ";path=" + path : "") +
+            ((domain) ? ";domain=" + domain : "") +
+            ((secure) ? ";secure" : "");
     }
     tui.saveCookie = saveCookie;
     /**
@@ -858,7 +882,10 @@ var tui;
      */
     function deleteCookie(name, path, domain) {
         if (loadCookie(name))
-            document.cookie = name + "=" + ((path) ? ";path=" + path : "") + ((domain) ? ";domain=" + domain : "") + ";expires=Thu, 01-Jan-1970 00:00:01 GMT";
+            document.cookie = name + "=" +
+                ((path) ? ";path=" + path : "") +
+                ((domain) ? ";domain=" + domain : "") +
+                ";expires=Thu, 01-Jan-1970 00:00:01 GMT";
     }
     tui.deleteCookie = deleteCookie;
     /**
@@ -1092,10 +1119,10 @@ var tui;
 /// <reference path="tui.core.ts" />
 var tui;
 (function (tui) {
-    var shortWeeks = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    var weeks = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    var shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    tui.shortWeeks = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    tui.weeks = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    tui.shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    tui.months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     /**
      * Get today
      */
@@ -1184,25 +1211,47 @@ var tui;
      * Get new date of dt add specified unit of values.
      * @param dt The day of the target
      * @param val Increased value
-     * @param unit "d", "h", "m", "s" or "ms"
+     * @param unit "y", "M", "d", "h", "m", "s" or "ms"
      */
     function dateAdd(dt, val, unit) {
         if (unit === void 0) { unit = "d"; }
-        var d = dt.getTime();
-        if (unit === "d") {
-            return new Date(d + val * 86400000);
+        var tm = dt.getTime();
+        if (unit === "y") {
+            var y = dt.getFullYear(), m = dt.getMonth(), d = dt.getDate();
+            var h = dt.getHours(), mi = dt.getMinutes(), s = dt.getSeconds(), ms = dt.getMilliseconds();
+            var totalMonth = y * 12 + m + (val * 12);
+            y = Math.floor(totalMonth / 12);
+            m = totalMonth % 12;
+            var newDate = new Date(y, m, 1);
+            if (d > tui.totalDaysOfMonth(newDate))
+                d = tui.totalDaysOfMonth(newDate);
+            return new Date(y, m, d, h, mi, s, ms);
+        }
+        else if (unit === "M") {
+            var y = dt.getFullYear(), m = dt.getMonth(), d = dt.getDate();
+            var h = dt.getHours(), mi = dt.getMinutes(), s = dt.getSeconds(), ms = dt.getMilliseconds();
+            var totalMonth = y * 12 + m + val;
+            y = Math.floor(totalMonth / 12);
+            m = totalMonth % 12;
+            var newDate = new Date(y, m, 1);
+            if (d > tui.totalDaysOfMonth(newDate))
+                d = tui.totalDaysOfMonth(newDate);
+            return new Date(y, m, d, h, mi, s, ms);
+        }
+        else if (unit === "d") {
+            return new Date(tm + val * 86400000);
         }
         else if (unit === "h") {
-            return new Date(d + val * 3600000);
+            return new Date(tm + val * 3600000);
         }
         else if (unit === "m") {
-            return new Date(d + val * 60000);
+            return new Date(tm + val * 60000);
         }
         else if (unit === "s") {
-            return new Date(d + val * 1000);
+            return new Date(tm + val * 1000);
         }
         else if (unit === "ms") {
-            return new Date(d + val);
+            return new Date(tm + val);
         }
         else
             return null;
@@ -1284,10 +1333,10 @@ var tui;
                     return true;
                 }
                 else if (len === 3) {
-                    return matchEnum(v, "month", shortMonths);
+                    return matchEnum(v, "month", tui.shortMonths);
                 }
                 else {
-                    return matchEnum(v, "month", months);
+                    return matchEnum(v, "month", tui.months);
                 }
             },
             "d+": function (v) {
@@ -1320,10 +1369,10 @@ var tui;
                     return true;
                 }
                 else if (len === 3) {
-                    return matchEnum(v, null, shortWeeks);
+                    return matchEnum(v, null, tui.shortWeeks);
                 }
                 else {
-                    return matchEnum(v, null, weeks);
+                    return matchEnum(v, null, tui.weeks);
                 }
             },
             "a|A": function matchNumber(v) {
@@ -1592,17 +1641,17 @@ var tui;
                         if (str.length < 3)
                             return tui.paddingNumber(rule[k], str.length);
                         else if (str.length === 3)
-                            return shortWeeks[rule[k]];
+                            return tui.shortWeeks[rule[k]];
                         else
-                            return weeks[rule[k]];
+                            return tui.weeks[rule[k]];
                     }
                     else if (k === "M+") {
                         if (str.length < 3)
                             return tui.paddingNumber(rule[k], str.length);
                         else if (str.length === 3)
-                            return shortMonths[rule[k] - 1];
+                            return tui.shortMonths[rule[k] - 1];
                         else
-                            return months[rule[k] - 1];
+                            return tui.months[rule[k] - 1];
                     }
                     else if (k === "S+") {
                         return tui.paddingNumber(rule[k], str.length, str.length, true);
@@ -1747,6 +1796,7 @@ var tui;
             this._input = null;
             this._disabled = false;
             if (options) {
+                // Merge the users options with our defaults
                 for (var i in options) {
                     if (options.hasOwnProperty(i)) {
                         this._settings[i] = options[i];
@@ -1793,6 +1843,7 @@ var tui;
             form.setAttribute('target', iframe.name);
             form.style.display = 'none';
             document.body.appendChild(form);
+            // Create hidden input element for each data key
             for (var prop in settings.data) {
                 if (settings.data.hasOwnProperty(prop)) {
                     var el = document.createElement("input");
@@ -1917,7 +1968,9 @@ var tui;
             // getting response
             var toDeleteFlag = false, settings = this._settings;
             $(iframe).on('load', function () {
-                if (iframe.src === "javascript:'%3Chtml%3E%3C/html%3E';" || iframe.src === "javascript:'<html></html>';") {
+                if (iframe.src === "javascript:'%3Chtml%3E%3C/html%3E';" ||
+                    // For FF, IE
+                    iframe.src === "javascript:'<html></html>';") {
                     // First time around, do not delete.
                     // We reload to blank page, so that reloading main page
                     // does not re-submit the post.
@@ -2143,10 +2196,18 @@ var tui;
         };
         ArrayProvider.prototype.sort = function (key, desc, func) {
             if (func === void 0) { func = null; }
+            function toEmpty(v) {
+                if (v === null || typeof v === tui.undef)
+                    return "";
+                else
+                    return v;
+            }
             if (this._src) {
                 if (typeof func === "function") {
                     this._data = this._src.concat();
-                    this._data.sort(func);
+                    this._data.sort(function (a, b) {
+                        return func(a, b, desc);
+                    });
                 }
                 else if (key === null && func === null) {
                     this._data = this._src;
@@ -2158,10 +2219,12 @@ var tui;
                     }
                     this._data = this._src.concat();
                     this._data.sort(function (a, b) {
-                        if (a[key] > b[key]) {
+                        a = toEmpty(a[key]);
+                        b = toEmpty(b[key]);
+                        if (a > b) {
                             return desc ? -1 : 1;
                         }
-                        else if (a[key] < b[key]) {
+                        else if (a < b) {
                             return desc ? 1 : -1;
                         }
                         else {
@@ -2232,10 +2295,13 @@ var tui;
             if (index < 0 || index >= this.length()) {
                 return null;
             }
-            else if (this._invalid || index < this._begin || index >= this._begin + this._data.length) {
+            else if (this._invalid ||
+                index < this._begin ||
+                index >= this._begin + this._data.length) {
                 this.doQuery(index);
             }
-            if (index >= this._begin || index < this._begin + this._data.length)
+            if (index >= this._begin ||
+                index < this._begin + this._data.length)
                 return this._data[index - this._begin];
             else
                 return null;
@@ -2328,6 +2394,7 @@ var tui;
                     self._invalid = false;
                     if (typeof info.head !== tui.undef) {
                         self._head = info.head;
+                        self._realKeyMap = null;
                     }
                     if (typeof self._updateCallback === "function") {
                         self._updateCallback({
@@ -2338,17 +2405,16 @@ var tui;
                     }
                 }
             };
-            if (this._firstQuery) {
-                this._firstQuery = false;
-                this._queryCallback(queryInfo);
-            }
-            else {
-                this._queryTimer = setTimeout(function () {
-                    _this._firstQuery = true;
-                    _this._queryTimer = null;
-                    _this._queryCallback(queryInfo);
-                }, 100);
-            }
+            //if (this._firstQuery) {
+            //	this._firstQuery = false;
+            //	this._queryCallback(queryInfo);
+            //} else {
+            this._queryTimer = setTimeout(function () {
+                _this._firstQuery = true;
+                _this._queryTimer = null;
+                _this._queryCallback(queryInfo);
+            }, 100);
+            //}
         };
         RemoteCursorProvider.prototype.onupdate = function (callback) {
             this._updateCallback = callback;
@@ -2440,6 +2506,10 @@ var tui;
             return;
         var obj = target;
         while (obj) {
+            if (typeof obj.getAttribute !== "function") {
+                obj = null;
+                break;
+            }
             var tooltip = obj.getAttribute("data-tooltip");
             if (tooltip) {
                 if (obj.getAttribute("data-cursor-tooltip") === "true")
@@ -2702,17 +2772,13 @@ var tui;
             Control.prototype.focus = function () {
                 var _this = this;
                 if (this[0]) {
-                    setTimeout(function () {
-                        _this[0].focus();
-                    }, 0);
+                    setTimeout(function () { _this[0].focus(); }, 0);
                 }
             };
             Control.prototype.focusWithoutScroll = function () {
                 var _this = this;
                 if (this[0]) {
-                    setTimeout(function () {
-                        tui.focusWithoutScroll(_this[0]);
-                    }, 0);
+                    setTimeout(function () { tui.focusWithoutScroll(_this[0]); }, 0);
                 }
             };
             Control.prototype.isHover = function () {
@@ -2809,956 +2875,18 @@ var tui;
                 tui.whetherShowTooltip(_hoverElement, e);
             }
         });
-        $(window).scroll(function () {
-            tui.closeTooltip();
-        });
+        $(window).scroll(function () { tui.closeTooltip(); });
         $(window.document).ready(function () {
             initCtrls(document);
             tui.fire("initialized", null);
         });
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
-/// <reference path="tui.ctrl.control.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (_ctrl) {
-        var FormAgent = (function (_super) {
-            __extends(FormAgent, _super);
-            function FormAgent(el) {
-                _super.call(this, "span", FormAgent.CLASS, el);
-                var parent = this[0].parentElement;
-                while (parent) {
-                    if ($(parent).hasClass("tui-form")) {
-                        this.form($(parent).attr("id"));
-                        break;
-                    }
-                    else
-                        parent = parent.parentElement;
-                }
-                if (!this.hasAttr("data-target-property")) {
-                    this.targetProperty("value");
-                }
-            }
-            FormAgent.prototype.validate = function () {
-                var param = { valid: true };
-                if (this.fire("validate", param) === false)
-                    return param.valid;
-                var target = this.target();
-                var isGroup = this.isGroup();
-                if (!target)
-                    return true;
-                if (isGroup) {
-                    var validator = this.groupValidator();
-                    if (!validator)
-                        return true;
-                    var controls = $("." + _ctrl.Radiobox.CLASS + "[data-group='" + target + "'],." + _ctrl.Checkbox.CLASS + "[data-group='" + target + "']");
-                    var values = [];
-                    controls.each(function (index, elem) {
-                        if (tui.parseBoolean($(elem).attr("data-checked")))
-                            values.push($(elem).attr("data-value"));
-                    });
-                    var valid = true;
-                    for (var k in validator) {
-                        if (k && validator.hasOwnProperty(k)) {
-                            if (k.substr(0, 5) === "*max:") {
-                                var imax = parseFloat(k.substr(5));
-                                if (isNaN(imax))
-                                    throw new Error("Invalid validator: '*max:...' must follow a number");
-                                var ival = values.length;
-                                if (ival > imax) {
-                                    valid = false;
-                                }
-                            }
-                            else if (k.substr(0, 5) === "*min:") {
-                                var imin = parseFloat(k.substr(5));
-                                if (isNaN(imin))
-                                    throw new Error("Invalid validator: '*min:...' must follow a number");
-                                var ival = values.length;
-                                if (ival < imin) {
-                                    valid = false;
-                                }
-                            }
-                            else {
-                                valid = values.indexOf(k) >= 0;
-                            }
-                            if (!valid) {
-                                controls.each(function (index, elem) {
-                                    var ctrl = elem["_ctrl"];
-                                    if (ctrl && typeof ctrl.notify === "function")
-                                        ctrl.notify(validator[k]);
-                                });
-                                break;
-                            }
-                        }
-                    }
-                    return valid;
-                }
-                else {
-                    var elem = document.getElementById(target);
-                    if (elem && elem["_ctrl"]) {
-                        var ctrl = elem["_ctrl"];
-                        if (typeof ctrl.validate === "function") {
-                            return ctrl.validate();
-                        }
-                    }
-                    return true;
-                }
-            };
-            FormAgent.prototype.target = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.attr("data-target", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-target");
-            };
-            FormAgent.prototype.targetProperty = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.attr("data-target-property", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-target-property");
-            };
-            FormAgent.prototype.groupValidator = function (val) {
-                if (typeof val === "object" && val) {
-                    this.attr("data-group-validator", JSON.stringify(val));
-                    return this;
-                }
-                else if (val === null) {
-                    this.removeAttr("data-group-validator");
-                    return this;
-                }
-                else {
-                    var strval = this.attr("data-group-validator");
-                    if (strval === null) {
-                        return null;
-                    }
-                    else {
-                        try {
-                            val = eval("(" + strval + ")");
-                            if (typeof val !== "object")
-                                return null;
-                            else
-                                return val;
-                        }
-                        catch (err) {
-                            return null;
-                        }
-                    }
-                }
-            };
-            FormAgent.prototype.isGroup = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.is("data-is-group", !!val);
-                    return this;
-                }
-                else
-                    return this.is("data-is-group");
-            };
-            FormAgent.prototype.value = function (val) {
-                var property = this.targetProperty();
-                var target = this.target();
-                var isGroup = this.isGroup();
-                if (typeof val !== tui.undef) {
-                    var param = { value: val };
-                    if (this.fire("setvalue", param) === false)
-                        return this;
-                    val = param.value;
-                    if (!target) {
-                        this.attr("data-value", JSON.stringify(val));
-                        return this;
-                    }
-                    if (isGroup) {
-                        var controls = $("." + _ctrl.Radiobox.CLASS + "[data-group='" + target + "'],." + _ctrl.Checkbox.CLASS + "[data-group='" + target + "']");
-                        var values;
-                        if (val && typeof val.length === "number")
-                            values = val;
-                        else if (val === null)
-                            values = [];
-                        else
-                            values = [val];
-                        controls.each(function (index, elem) {
-                            var ctrl = elem["_ctrl"];
-                            if (typeof ctrl[property] === "function") {
-                                if (values.indexOf(ctrl[property]()) >= 0) {
-                                    ctrl.checked(true);
-                                }
-                                else
-                                    ctrl.checked(false);
-                            }
-                        });
-                    }
-                    else {
-                        var elem = document.getElementById(target);
-                        if (elem && elem["_ctrl"]) {
-                            var ctrl = elem["_ctrl"];
-                            if (typeof ctrl[property] === "function") {
-                                ctrl[property](val);
-                            }
-                        }
-                        else if (elem) {
-                            if (typeof elem[property] === "function") {
-                                elem[property](val);
-                            }
-                            else {
-                                elem[property] = val;
-                            }
-                        }
-                    }
-                    return this;
-                }
-                else {
-                    var val = null;
-                    if (!target) {
-                        var strval = this.attr("data-value");
-                        if (strval === null) {
-                            val = null;
-                        }
-                        else {
-                            try {
-                                val = eval("(" + strval + ")");
-                            }
-                            catch (err) {
-                                val = null;
-                            }
-                        }
-                    }
-                    else if (isGroup) {
-                        var controls = $("." + _ctrl.Radiobox.CLASS + "[data-group='" + target + "']");
-                        var values = [];
-                        if (controls.length > 0) {
-                            controls.each(function (index, elem) {
-                                var ctrl = elem["_ctrl"];
-                                if (ctrl) {
-                                    if (typeof ctrl.checked === "function" && ctrl.checked() && typeof ctrl[property] === "function") {
-                                        values.push(ctrl[property]());
-                                    }
-                                }
-                            });
-                            if (values.length > 0)
-                                val = values[0];
-                            else
-                                val = null;
-                        }
-                        else {
-                            controls = $("." + _ctrl.Checkbox.CLASS + "[data-group='" + target + "']");
-                            controls.each(function (index, elem) {
-                                var ctrl = elem["_ctrl"];
-                                if (ctrl) {
-                                    if (typeof ctrl.checked === "function" && ctrl.checked() && typeof ctrl[property] === "function") {
-                                        values.push(ctrl[property]());
-                                    }
-                                }
-                            });
-                            val = values;
-                        }
-                    }
-                    else {
-                        var elem = document.getElementById(target);
-                        if (elem && elem["_ctrl"]) {
-                            var ctrl = elem["_ctrl"];
-                            if (typeof ctrl[property] === "function") {
-                                val = ctrl[property]();
-                            }
-                        }
-                        else if (elem) {
-                            if (typeof elem[property] === "function") {
-                                val = elem[property]();
-                            }
-                            else {
-                                val = elem[property];
-                            }
-                        }
-                    }
-                    var param = { value: val };
-                    this.fire("getvalue", param);
-                    return param.value;
-                }
-            };
-            FormAgent.CLASS = "tui-form-agent";
-            return FormAgent;
-        })(_ctrl.Control);
-        _ctrl.FormAgent = FormAgent;
-        function formAgent(param) {
-            return tui.ctrl.control(param, FormAgent);
-        }
-        _ctrl.formAgent = formAgent;
-        tui.ctrl.registerInitCallback(FormAgent.CLASS, formAgent);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
-/// <reference path="tui.ctrl.formagent.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (_ctrl) {
-        var Form = (function (_super) {
-            __extends(Form, _super);
-            function Form(el) {
-                _super.call(this, "span", Form.CLASS, el);
-                if (!this.hasAttr("data-method")) {
-                    this.method("POST");
-                }
-                if (!this.hasAttr("data-timeout")) {
-                    this.timeout(60000);
-                }
-                if (!this.hasAttr("data-target-property")) {
-                    this.targetProperty("value");
-                }
-                if (!this.hasAttr("data-show-error")) {
-                    this.isShowError(true);
-                }
-                if (this.id() === null)
-                    this.id(tui.uuid());
-                for (var i = 0; i < this[0].childNodes.length; i++) {
-                    if (this[0].childNodes[i].nodeName.toLowerCase() === "span") {
-                        var agent = tui.ctrl.formAgent(this[0].childNodes[i]);
-                        agent.form(this.id());
-                    }
-                }
-                var self = this;
-                if (this.isAutoSubmit()) {
-                    tui.on("initialized", function () {
-                        self.submit();
-                    });
-                }
-            }
-            Form.prototype.isAutoSubmit = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.is("data-auto-submit", !!val);
-                    return this;
-                }
-                else
-                    return this.is("data-auto-submit");
-            };
-            Form.prototype.isShowError = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.is("data-show-error", !!val);
-                    return this;
-                }
-                else
-                    return this.is("data-show-error");
-            };
-            Form.prototype.waiting = function (msg) {
-                if (typeof msg === "string") {
-                    this.attr("data-waiting", msg);
-                    return this;
-                }
-                else
-                    return this.attr("data-waiting");
-            };
-            Form.prototype.action = function (url) {
-                if (typeof url === "string") {
-                    this.attr("data-action", url);
-                    return this;
-                }
-                else
-                    return this.attr("data-action");
-            };
-            Form.prototype.method = function (val) {
-                if (typeof val === "string" && Form.METHODS.indexOf(val.toUpperCase()) >= 0) {
-                    this.attr("data-method", val.toUpperCase());
-                    return this;
-                }
-                else
-                    return this.attr("data-method").toUpperCase();
-            };
-            Form.prototype.timeout = function (val) {
-                if (typeof val === "number") {
-                    this.attr("data-timeout", Math.round(val) + "");
-                    return this;
-                }
-                else
-                    return parseInt(this.attr("data-timeout"), 10);
-            };
-            Form.prototype.target = function (val) {
-                if (typeof val === "string") {
-                    this.attr("data-target", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-target");
-            };
-            Form.prototype.targetProperty = function (val) {
-                if (typeof val === "string") {
-                    this.attr("data-target-property", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-target-property");
-            };
-            Form.prototype.targetRedirect = function (val) {
-                if (typeof val === "string") {
-                    this.attr("data-target-redirect", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-target-redirect");
-            };
-            Form.prototype.submitForm = function (val) {
-                if (typeof val === "string") {
-                    this.attr("data-submit-form", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-submit-form");
-            };
-            Form.prototype.validate = function () {
-                var id = this.id();
-                if (!id) {
-                    return true;
-                }
-                var valid = true;
-                $("[data-form='" + id + "']").each(function (index, elem) {
-                    if (typeof this._ctrl.validate === "function")
-                        if (!this._ctrl.validate())
-                            valid = false;
-                });
-                return valid;
-            };
-            Form.prototype.immediateValue = function (val) {
-                if (typeof val !== tui.undef) {
-                    this._immediateValue = val;
-                    return this;
-                }
-                else
-                    return this._immediateValue;
-            };
-            Form.prototype.value = function (val) {
-                if (typeof val !== tui.undef) {
-                    // Dispatch data to other controls
-                    var id = this.id();
-                    id && $("[data-form='" + id + "']").each(function (index, elem) {
-                        var field;
-                        if (this._ctrl) {
-                            field = this._ctrl.field();
-                            if (!field) {
-                                return;
-                            }
-                            else if (field === "*") {
-                                if (typeof this._ctrl.value === "function")
-                                    this._ctrl.value(val);
-                            }
-                            else {
-                                if (typeof this._ctrl.value === "function" && typeof val[field] !== tui.undef) {
-                                    this._ctrl.value(val[field]);
-                                }
-                            }
-                        }
-                        else {
-                            field = $(elem).attr("data-field");
-                            if (!field) {
-                                return;
-                            }
-                            else if (field === "*") {
-                                $(elem).attr("data-value", JSON.stringify(val));
-                            }
-                            else {
-                                if (typeof val[field] !== tui.undef) {
-                                    $(elem).attr("data-value", JSON.stringify(val[field]));
-                                }
-                            }
-                        }
-                    });
-                    return this;
-                }
-                else {
-                    var result = {};
-                    // Collect all fields from other controls
-                    var id = this.id();
-                    id && $("[data-form='" + id + "']").each(function (index, elem) {
-                        var field;
-                        var val;
-                        if (this._ctrl) {
-                            field = this._ctrl.field();
-                            if (!field)
-                                return;
-                            if (this._ctrl.value)
-                                val = this._ctrl.value();
-                            else
-                                return;
-                        }
-                        else {
-                            field = $(elem).attr("data-field");
-                            if (typeof field !== "string")
-                                return;
-                            val = $(elem).attr("data-value");
-                            if (typeof val !== "string")
-                                return;
-                            try {
-                                val = JSON.parse(val);
-                            }
-                            catch (e) {
-                            }
-                        }
-                        if (field === "*")
-                            result = val;
-                        else if (result)
-                            result[field] = val;
-                    });
-                    return result;
-                }
-            };
-            Form.prototype.clear = function () {
-                this._immediateValue = tui.undefVal;
-                var id = this.id();
-                id && $("[data-form='" + id + "']").each(function (index, elem) {
-                    if (elem._ctrl) {
-                        if (typeof elem._ctrl.value === "function")
-                            elem._ctrl.value(null);
-                    }
-                    else {
-                        $(elem).attr("data-value", "");
-                        $(elem).removeAttr("data-value");
-                    }
-                });
-            };
-            Form.prototype.submit = function () {
-                if (!this.validate())
-                    return;
-                var action = this.action();
-                if (!action)
-                    return;
-                var id = this.id();
-                if (!id)
-                    return;
-                var data = this.immediateValue();
-                if (typeof data === tui.undef)
-                    data = this.value();
-                if (this.fire("submit", { id: this.id(), data: data }) === false)
-                    return;
-                var self = this;
-                var waitDlg = null;
-                if (this.waiting()) {
-                    waitDlg = tui.waitbox(tui.str(this.waiting()));
-                }
-                $.ajax({
-                    "type": this.method(),
-                    "timeout": this.timeout(),
-                    "url": action,
-                    "contentType": "application/json",
-                    "data": (this.method() === "GET" ? data : JSON.stringify(data)),
-                    "complete": function (jqXHR, status) {
-                        waitDlg && waitDlg.close();
-                        if (status === "success") {
-                            if (self.fire("success", { jqXHR: jqXHR, status: status }) === false) {
-                                return;
-                            }
-                        }
-                        else {
-                            if (self.fire("error", { jqXHR: jqXHR, status: status }) === false) {
-                                return;
-                            }
-                        }
-                        if (self.fire("complete", { jqXHR: jqXHR, status: status }) === false) {
-                            return;
-                        }
-                        if (status === "success") {
-                            var targetRedirect = self.targetRedirect();
-                            if (targetRedirect) {
-                                window.location.assign(targetRedirect);
-                                return;
-                            }
-                            var target = self.target();
-                            var property = self.targetProperty();
-                            if (target) {
-                                var respJson = /^\s*application\/json\s*(;.+)?/i.test(jqXHR.getResponseHeader("content-type"));
-                                var respVal = (respJson ? jqXHR["responseJSON"] : jqXHR.responseText);
-                                target = document.getElementById(target);
-                                if (target && target["_ctrl"]) {
-                                    var ctrl = target["_ctrl"];
-                                    if (typeof ctrl[property] === "function") {
-                                        ctrl[property](respVal);
-                                    }
-                                }
-                                else if (target) {
-                                    if (typeof target[property] === "function") {
-                                        target[property](respVal);
-                                    }
-                                    else {
-                                        target[property] = respVal;
-                                    }
-                                }
-                            }
-                            var targetSubmitForm = self.submitForm();
-                            if (targetSubmitForm) {
-                                var form = tui.ctrl.form(targetSubmitForm);
-                                form && form.submit();
-                            }
-                        }
-                        else {
-                            if (typeof Form.defaultErrorProc === "function") {
-                                if (Form.defaultErrorProc({ jqXHR: jqXHR, status: status }) === false)
-                                    return;
-                            }
-                            if (self.isShowError() && !(Form.ignoreErrors && Form.ignoreErrors.indexOf(jqXHR.status) >= 0)) {
-                                var respText = /^\s*text\/plain\s*(;.+)?/i.test(jqXHR.getResponseHeader("content-type"));
-                                if (respText && jqXHR.responseText)
-                                    tui.errbox(tui.str(jqXHR.responseText), tui.str("Failed"));
-                                else
-                                    tui.errbox(tui.str(status) + " (" + jqXHR.status + ")", tui.str("Failed"));
-                            }
-                        }
-                    },
-                    "processData": (this.method() === "GET" ? true : false)
-                });
-            };
-            Form.ignoreError = function (errorCodeList) {
-                Form.ignoreErrors = errorCodeList;
-            };
-            Form.defaultError = function (proc) {
-                Form.defaultErrorProc = proc;
-            };
-            Form.CLASS = "tui-form";
-            Form.METHODS = ["GET", "POST", "PUT", "DELETE"];
-            Form.STATUS = [
-                "success",
-                "notmodified",
-                "error",
-                "timeout",
-                "abort",
-                "parsererror"
-            ];
-            Form.ignoreErrors = null;
-            Form.defaultErrorProc = null;
-            return Form;
-        })(_ctrl.Control);
-        _ctrl.Form = Form;
-        function form(param) {
-            return tui.ctrl.control(param, Form);
-        }
-        _ctrl.form = form;
-        tui.ctrl.registerInitCallback(Form.CLASS, form);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
-/// <reference path="tui.ctrl.control.ts" />
-/// <reference path="tui.ctrl.form.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (ctrl) {
-        var Button = (function (_super) {
-            __extends(Button, _super);
-            function Button(el) {
-                var _this = this;
-                _super.call(this, "a", Button.CLASS, el);
-                this._data = null;
-                this._columnKeyMap = null;
-                this._isMenu = false;
-                this.disabled(this.disabled());
-                this.selectable(false);
-                this.exposeEvents("mousedown mouseup mousemove mouseenter mouseleave keydown keyup");
-                var self = this;
-                function openMenu() {
-                    var pos = self.menuPos();
-                    if (self.isMenu()) {
-                        var menu = tui.ctrl.menu(self._data);
-                        menu.show(self[0], pos || "Lb");
-                        menu.on("select", function (data) {
-                            self.fire("select", data);
-                        });
-                        menu.on("close", function () {
-                            self.actived(false);
-                        });
-                        return;
-                    }
-                    var pop = tui.ctrl.popup();
-                    var list = tui.ctrl.list();
-                    list.consumeMouseWheelEvent(true);
-                    list.rowcheckable(false);
-                    pop.on("close", function () {
-                        self.actived(false);
-                    });
-                    function doSelectItem(data) {
-                        var item = list.activeItem();
-                        var link = item[self._linkColumnKey];
-                        if (link) {
-                            pop.close();
-                            window.location.href = link;
-                            return;
-                        }
-                        var action = item["action"];
-                        if (typeof action !== tui.undef) {
-                            if (typeof action === "function") {
-                                action();
-                            }
-                            pop.close();
-                            self.focus();
-                            self.fireClick(data["event"]);
-                            return;
-                        }
-                        self.value(item[self._keyColumnKey]);
-                        var targetElem = self.menuBind();
-                        if (targetElem === null)
-                            self.text(item[self._valueColumnKey]);
-                        else {
-                            targetElem = document.getElementById(targetElem);
-                            if (targetElem) {
-                                if (targetElem._ctrl) {
-                                    if (typeof targetElem._ctrl.text === "function")
-                                        targetElem._ctrl.text(item[self._valueColumnKey]);
-                                }
-                                else
-                                    targetElem.innerHTML = item[self._valueColumnKey];
-                            }
-                        }
-                        pop.close();
-                        self.focus();
-                        self.fireClick(data["event"]);
-                    }
-                    list.on("rowclick", function (data) {
-                        doSelectItem(data);
-                    });
-                    list.on("keydown", function (data) {
-                        if (data["event"].keyCode === 13) {
-                            doSelectItem(data);
-                        }
-                    });
-                    var testDiv = document.createElement("span");
-                    testDiv.className = "tui-list-test-width-cell";
-                    document.body.appendChild(testDiv);
-                    var listWidth = self[0].offsetWidth;
-                    for (var i = 0; i < self._data.length(); i++) {
-                        var item = self._data.at(i);
-                        testDiv.innerHTML = item[self._valueColumnKey];
-                        if (testDiv.offsetWidth + 40 > listWidth) {
-                            listWidth = testDiv.offsetWidth + 40;
-                        }
-                    }
-                    document.body.removeChild(testDiv);
-                    list[0].style.width = listWidth + "px";
-                    list.data(self._data);
-                    pop.show(list[0], self[0], pos || "Rb");
-                    var items = self._data ? self._data.length() : 0;
-                    if (items < 1)
-                        items = 1;
-                    else if (items > 15)
-                        items = 15;
-                    list[0].style.height = items * list.lineHeight() + 4 + "px";
-                    list.refresh();
-                    pop.refresh();
-                    var val = self.value();
-                    if (val && val.length > 0) {
-                        list.activeRowByKey(val);
-                        list.scrollTo(list.activerow());
-                    }
-                    list.focus();
-                }
-                $(this[0]).on("mousedown", function (e) {
-                    if (_this.disabled())
-                        return;
-                    _this.actived(true);
-                    var self = _this;
-                    if (_this.data()) {
-                        setTimeout(openMenu, 50);
-                    }
-                    else {
-                        function releaseMouse(e) {
-                            self.actived(false);
-                            if (tui.isFireInside(self[0], e))
-                                self.fireClick(e);
-                            $(document).off("mouseup", releaseMouse);
-                        }
-                        $(document).on("mouseup", releaseMouse);
-                    }
-                });
-                $(this[0]).on("keydown", function (e) {
-                    if (_this.disabled())
-                        return;
-                    if (e.keyCode === 32) {
-                        _this.actived(true);
-                        e.preventDefault();
-                    }
-                    if (e.keyCode === 13) {
-                        e.preventDefault();
-                        if (_this.data()) {
-                            _this.actived(true);
-                            openMenu();
-                        }
-                        else {
-                            e.type = "click";
-                            setTimeout(function () {
-                                _this.fireClick(e);
-                            }, 100);
-                        }
-                    }
-                });
-                $(this[0]).on("keyup", function (e) {
-                    if (_this.disabled())
-                        return;
-                    if (e.keyCode === 32) {
-                        if (_this.data()) {
-                            openMenu();
-                        }
-                        else {
-                            _this.actived(false);
-                            e.type = "click";
-                            setTimeout(function () {
-                                _this.fireClick(e);
-                            }, 50);
-                        }
-                    }
-                });
-                var predefined = this.attr("data-data");
-                if (predefined) {
-                    predefined = eval("(" + predefined + ")");
-                    this.data(predefined);
-                }
-                predefined = this.attr("data-menu");
-                if (predefined) {
-                    predefined = eval("(" + predefined + ")");
-                    this.menu(predefined);
-                }
-            }
-            Button.prototype.fireClick = function (e) {
-                if (this.fire("click", { "ctrl": this[0], "event": e }) === false)
-                    return;
-                if (tui.fire(this.id(), { "ctrl": this[0], "event": e }) === false)
-                    return;
-                var formId = this.submitForm();
-                if (formId) {
-                    var form = tui.ctrl.form(formId);
-                    form && form.submit();
-                }
-            };
-            Button.prototype.submitForm = function (formId) {
-                if (typeof formId === "string") {
-                    this.attr("data-submit-form", formId);
-                    return this;
-                }
-                else
-                    return this.attr("data-submit-form");
-            };
-            Button.prototype.value = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.attr("data-value", JSON.stringify(val));
-                    return this;
-                }
-                else {
-                    val = this.attr("data-value");
-                    if (val === null) {
-                        return null;
-                    }
-                    else {
-                        try {
-                            return eval("(" + val + ")");
-                        }
-                        catch (err) {
-                            return null;
-                        }
-                    }
-                }
-            };
-            Button.prototype.menuBind = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.attr("data-menu-bind", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-menu-bind");
-            };
-            Button.prototype.menuPos = function (val) {
-                if (typeof val !== tui.undef) {
-                    this.attr("data-menu-pos", val);
-                    return this;
-                }
-                else
-                    return this.attr("data-menu-pos");
-            };
-            Button.prototype.columnKey = function (key) {
-                var val = this._columnKeyMap[key];
-                if (typeof val === "number" && val >= 0)
-                    return val;
-                else
-                    return key;
-            };
-            Button.prototype.isMenu = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-is-menu", val);
-                    return this;
-                }
-                else
-                    return this.is("data-is-menu");
-            };
-            Button.prototype.menu = function (data) {
-                if (data) {
-                    this.isMenu(true);
-                    this.data(data);
-                }
-                else {
-                    if (this.isMenu())
-                        return this._data;
-                    else
-                        return null;
-                }
-            };
-            Button.prototype.data = function (data) {
-                if (data) {
-                    var self = this;
-                    if (data instanceof Array || data.data && data.data instanceof Array) {
-                        data = new tui.ArrayProvider(data);
-                    }
-                    if (typeof data.length !== "function" || typeof data.sort !== "function" || typeof data.at !== "function" || typeof data.columnKeyMap !== "function") {
-                        throw new Error("TUI Button: need a data provider.");
-                    }
-                    this._data = data;
-                    if (data)
-                        this._columnKeyMap = data.columnKeyMap();
-                    else
-                        this._columnKeyMap = {};
-                    this._keyColumnKey = this.columnKey("key");
-                    this._valueColumnKey = this.columnKey("value");
-                    this._childrenColumnKey = this.columnKey("children");
-                    this._linkColumnKey = this.columnKey("link");
-                    return this;
-                }
-                else
-                    return this._data;
-            };
-            Button.prototype.text = function (val) {
-                if (typeof val !== tui.undef) {
-                    $(this[0]).html(val);
-                    return this;
-                }
-                else
-                    return $(this[0]).html();
-            };
-            Button.prototype.html = function (val) {
-                return this.text(val);
-            };
-            Button.prototype.disabled = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-disabled", val);
-                    if (val)
-                        this.removeAttr("tabIndex");
-                    else
-                        this.attr("tabIndex", "0");
-                    return this;
-                }
-                else
-                    return this.is("data-disabled");
-            };
-            Button.CLASS = "tui-button";
-            return Button;
-        })(ctrl.Control);
-        ctrl.Button = Button;
-        /**
-         * Construct a button.
-         * @param el {HTMLElement or element id or construct info}
-         */
-        function button(param) {
-            return tui.ctrl.control(param, Button);
-        }
-        ctrl.button = button;
-        tui.ctrl.registerInitCallback(Button.CLASS, button);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
 /// <reference path="tui.ctrl.button.ts" />
 var tui;
 (function (tui) {
     var ctrl;
-    (function (_ctrl) {
+    (function (ctrl_1) {
         var Checkbox = (function (_super) {
             __extends(Checkbox, _super);
             function Checkbox(el) {
@@ -3921,8 +3049,8 @@ var tui;
             };
             Checkbox.CLASS = "tui-checkbox";
             return Checkbox;
-        })(_ctrl.Control);
-        _ctrl.Checkbox = Checkbox;
+        })(ctrl_1.Control);
+        ctrl_1.Checkbox = Checkbox;
         /**
          * Construct a button.
          * @param el {HTMLElement or element id or construct info}
@@ -3930,7 +3058,7 @@ var tui;
         function checkbox(param) {
             return tui.ctrl.control(param, Checkbox);
         }
-        _ctrl.checkbox = checkbox;
+        ctrl_1.checkbox = checkbox;
         tui.ctrl.registerInitCallback(Checkbox.CLASS, checkbox);
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
@@ -3939,7 +3067,7 @@ var tui;
 var tui;
 (function (tui) {
     var ctrl;
-    (function (_ctrl) {
+    (function (ctrl_2) {
         var Radiobox = (function (_super) {
             __extends(Radiobox, _super);
             function Radiobox(el) {
@@ -4107,8 +3235,8 @@ var tui;
             };
             Radiobox.CLASS = "tui-radiobox";
             return Radiobox;
-        })(_ctrl.Control);
-        _ctrl.Radiobox = Radiobox;
+        })(ctrl_2.Control);
+        ctrl_2.Radiobox = Radiobox;
         /**
          * Construct a button.
          * @param el {HTMLElement or element id or construct info}
@@ -4116,12 +3244,1524 @@ var tui;
         function radiobox(param) {
             return tui.ctrl.control(param, Radiobox);
         }
-        _ctrl.radiobox = radiobox;
+        ctrl_2.radiobox = radiobox;
         tui.ctrl.registerInitCallback(Radiobox.CLASS, radiobox);
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
 /// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.ctrl.radiobox.ts" />
+/// <reference path="tui.ctrl.form.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl_3) {
+        var FormAgent = (function (_super) {
+            __extends(FormAgent, _super);
+            function FormAgent(el) {
+                _super.call(this, "span", FormAgent.CLASS, el);
+                var parent = this[0].parentElement;
+                while (parent) {
+                    if ($(parent).hasClass("tui-form")) {
+                        this.form($(parent).attr("id"));
+                        break;
+                    }
+                    else
+                        parent = parent.parentElement;
+                }
+                if (!this.hasAttr("data-target-property")) {
+                    this.targetProperty("value");
+                }
+            }
+            FormAgent.prototype.validate = function () {
+                var param = { valid: true };
+                if (this.fire("validate", param) === false)
+                    return param.valid;
+                var target = this.target();
+                var isGroup = this.isGroup();
+                if (!target)
+                    return true;
+                if (isGroup) {
+                    var validator = this.groupValidator();
+                    if (!validator)
+                        return true;
+                    var controls = $("." + ctrl_3.Radiobox.CLASS + "[data-group='" + target + "'],." + ctrl_3.Checkbox.CLASS + "[data-group='" + target + "']");
+                    var values = [];
+                    controls.each(function (index, elem) {
+                        if (tui.parseBoolean($(elem).attr("data-checked")))
+                            values.push($(elem).attr("data-value"));
+                    });
+                    var valid = true;
+                    for (var k in validator) {
+                        if (k && validator.hasOwnProperty(k)) {
+                            if (k.substr(0, 5) === "*max:") {
+                                var imax = parseFloat(k.substr(5));
+                                if (isNaN(imax))
+                                    throw new Error("Invalid validator: '*max:...' must follow a number");
+                                var ival = values.length;
+                                if (ival > imax) {
+                                    valid = false;
+                                }
+                            }
+                            else if (k.substr(0, 5) === "*min:") {
+                                var imin = parseFloat(k.substr(5));
+                                if (isNaN(imin))
+                                    throw new Error("Invalid validator: '*min:...' must follow a number");
+                                var ival = values.length;
+                                if (ival < imin) {
+                                    valid = false;
+                                }
+                            }
+                            else {
+                                valid = values.indexOf(k) >= 0;
+                            }
+                            if (!valid) {
+                                controls.each(function (index, elem) {
+                                    var ctrl = elem["_ctrl"];
+                                    if (ctrl && typeof ctrl.notify === "function")
+                                        ctrl.notify(validator[k]);
+                                });
+                                break;
+                            }
+                        }
+                    }
+                    return valid;
+                }
+                else {
+                    var elem = document.getElementById(target);
+                    if (elem && elem["_ctrl"]) {
+                        var ctrl = elem["_ctrl"];
+                        if (typeof ctrl.validate === "function") {
+                            return ctrl.validate();
+                        }
+                    }
+                    return true;
+                }
+            };
+            FormAgent.prototype.target = function (val) {
+                if (typeof val !== tui.undef) {
+                    this.attr("data-target", val);
+                    return this;
+                }
+                else
+                    return this.attr("data-target");
+            };
+            FormAgent.prototype.targetProperty = function (val) {
+                if (typeof val !== tui.undef) {
+                    this.attr("data-target-property", val);
+                    return this;
+                }
+                else
+                    return this.attr("data-target-property");
+            };
+            FormAgent.prototype.groupValidator = function (val) {
+                if (typeof val === "object" && val) {
+                    this.attr("data-group-validator", JSON.stringify(val));
+                    return this;
+                }
+                else if (val === null) {
+                    this.removeAttr("data-group-validator");
+                    return this;
+                }
+                else {
+                    var strval = this.attr("data-group-validator");
+                    if (strval === null) {
+                        return null;
+                    }
+                    else {
+                        try {
+                            val = eval("(" + strval + ")");
+                            if (typeof val !== "object")
+                                return null;
+                            else
+                                return val;
+                        }
+                        catch (err) {
+                            return null;
+                        }
+                    }
+                }
+            };
+            FormAgent.prototype.isGroup = function (val) {
+                if (typeof val !== tui.undef) {
+                    this.is("data-is-group", !!val);
+                    return this;
+                }
+                else
+                    return this.is("data-is-group");
+            };
+            FormAgent.prototype.value = function (val) {
+                var property = this.targetProperty();
+                var target = this.target();
+                var isGroup = this.isGroup();
+                if (typeof val !== tui.undef) {
+                    var param = { value: val };
+                    if (this.fire("setvalue", param) === false)
+                        return this;
+                    val = param.value;
+                    if (!target) {
+                        this.attr("data-value", JSON.stringify(val));
+                        return this;
+                    }
+                    if (isGroup) {
+                        var controls = $("." + ctrl_3.Radiobox.CLASS + "[data-group='" + target + "'],." + ctrl_3.Checkbox.CLASS + "[data-group='" + target + "']");
+                        var values;
+                        if (val && typeof val.length === "number")
+                            values = val;
+                        else if (val === null)
+                            values = [];
+                        else
+                            values = [val];
+                        controls.each(function (index, elem) {
+                            var ctrl = elem["_ctrl"];
+                            if (typeof ctrl[property] === "function") {
+                                if (values.indexOf(ctrl[property]()) >= 0) {
+                                    ctrl.checked(true);
+                                }
+                                else
+                                    ctrl.checked(false);
+                            }
+                        });
+                    }
+                    else {
+                        var elem = document.getElementById(target);
+                        if (elem && elem["_ctrl"]) {
+                            var ctrl = elem["_ctrl"];
+                            if (typeof ctrl[property] === "function") {
+                                ctrl[property](val);
+                            }
+                        }
+                        else if (elem) {
+                            if (typeof elem[property] === "function") {
+                                elem[property](val);
+                            }
+                            else {
+                                elem[property] = val;
+                            }
+                        }
+                    }
+                    return this;
+                }
+                else {
+                    var val = null;
+                    if (!target) {
+                        var strval = this.attr("data-value");
+                        if (strval === null) {
+                            val = null;
+                        }
+                        else {
+                            try {
+                                val = eval("(" + strval + ")");
+                            }
+                            catch (err) {
+                                val = null;
+                            }
+                        }
+                    }
+                    else if (isGroup) {
+                        var controls = $("." + ctrl_3.Radiobox.CLASS + "[data-group='" + target + "']");
+                        var values = [];
+                        if (controls.length > 0) {
+                            controls.each(function (index, elem) {
+                                var ctrl = elem["_ctrl"];
+                                if (ctrl) {
+                                    if (typeof ctrl.checked === "function" &&
+                                        ctrl.checked() &&
+                                        typeof ctrl[property] === "function") {
+                                        values.push(ctrl[property]());
+                                    }
+                                }
+                            });
+                            if (values.length > 0)
+                                val = values[0];
+                            else
+                                val = null;
+                        }
+                        else {
+                            controls = $("." + ctrl_3.Checkbox.CLASS + "[data-group='" + target + "']");
+                            controls.each(function (index, elem) {
+                                var ctrl = elem["_ctrl"];
+                                if (ctrl) {
+                                    if (typeof ctrl.checked === "function" &&
+                                        ctrl.checked() &&
+                                        typeof ctrl[property] === "function") {
+                                        values.push(ctrl[property]());
+                                    }
+                                }
+                            });
+                            val = values;
+                        }
+                    }
+                    else {
+                        var elem = document.getElementById(target);
+                        if (elem && elem["_ctrl"]) {
+                            var ctrl = elem["_ctrl"];
+                            if (typeof ctrl[property] === "function") {
+                                val = ctrl[property]();
+                            }
+                        }
+                        else if (elem) {
+                            if (typeof elem[property] === "function") {
+                                val = elem[property]();
+                            }
+                            else {
+                                val = elem[property];
+                            }
+                        }
+                    }
+                    var param = { value: val };
+                    this.fire("getvalue", param);
+                    return param.value;
+                }
+            };
+            FormAgent.CLASS = "tui-form-agent";
+            return FormAgent;
+        })(ctrl_3.Control);
+        ctrl_3.FormAgent = FormAgent;
+        function formAgent(param) {
+            return tui.ctrl.control(param, FormAgent);
+        }
+        ctrl_3.formAgent = formAgent;
+        tui.ctrl.registerInitCallback(FormAgent.CLASS, formAgent);
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.formagent.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl_4) {
+        var Form = (function (_super) {
+            __extends(Form, _super);
+            function Form(el) {
+                _super.call(this, "span", Form.CLASS, el);
+                if (!this.hasAttr("data-method")) {
+                    this.method("POST");
+                }
+                if (!this.hasAttr("data-timeout")) {
+                    this.timeout(60000);
+                }
+                if (!this.hasAttr("data-target-property")) {
+                    this.targetProperty("value");
+                }
+                if (!this.hasAttr("data-show-error")) {
+                    this.isShowError(true);
+                }
+                if (this.id() === null)
+                    this.id(tui.uuid());
+                // Initialize child SPAN to FormAgent control
+                for (var i = 0; i < this[0].childNodes.length; i++) {
+                    if (this[0].childNodes[i].nodeName.toLowerCase() === "span") {
+                        var agent = tui.ctrl.formAgent(this[0].childNodes[i]);
+                        agent.form(this.id());
+                    }
+                }
+                var self = this;
+                if (this.isAutoSubmit()) {
+                    tui.on("initialized", function () {
+                        self.submit();
+                    });
+                }
+            }
+            Form.prototype.isAutoSubmit = function (val) {
+                if (typeof val !== tui.undef) {
+                    this.is("data-auto-submit", !!val);
+                    return this;
+                }
+                else
+                    return this.is("data-auto-submit");
+            };
+            Form.prototype.isShowError = function (val) {
+                if (typeof val !== tui.undef) {
+                    this.is("data-show-error", !!val);
+                    return this;
+                }
+                else
+                    return this.is("data-show-error");
+            };
+            Form.prototype.waiting = function (msg) {
+                if (typeof msg === "string") {
+                    this.attr("data-waiting", msg);
+                    return this;
+                }
+                else
+                    return this.attr("data-waiting");
+            };
+            Form.prototype.action = function (url) {
+                if (typeof url === "string") {
+                    this.attr("data-action", url);
+                    return this;
+                }
+                else
+                    return this.attr("data-action");
+            };
+            Form.prototype.method = function (val) {
+                if (typeof val === "string" && Form.METHODS.indexOf(val.toUpperCase()) >= 0) {
+                    this.attr("data-method", val.toUpperCase());
+                    return this;
+                }
+                else
+                    return this.attr("data-method").toUpperCase();
+            };
+            Form.prototype.timeout = function (val) {
+                if (typeof val === "number") {
+                    this.attr("data-timeout", Math.round(val) + "");
+                    return this;
+                }
+                else
+                    return parseInt(this.attr("data-timeout"), 10);
+            };
+            Form.prototype.target = function (val) {
+                if (typeof val === "string") {
+                    this.attr("data-target", val);
+                    return this;
+                }
+                else
+                    return this.attr("data-target");
+            };
+            Form.prototype.targetProperty = function (val) {
+                if (typeof val === "string") {
+                    this.attr("data-target-property", val);
+                    return this;
+                }
+                else
+                    return this.attr("data-target-property");
+            };
+            Form.prototype.targetRedirect = function (val) {
+                if (typeof val === "string") {
+                    this.attr("data-target-redirect", val);
+                    return this;
+                }
+                else
+                    return this.attr("data-target-redirect");
+            };
+            Form.prototype.submitForm = function (val) {
+                if (typeof val === "string") {
+                    this.attr("data-submit-form", val);
+                    return this;
+                }
+                else
+                    return this.attr("data-submit-form");
+            };
+            Form.prototype.validate = function () {
+                var id = this.id();
+                if (!id) {
+                    return true;
+                }
+                var valid = true;
+                $("[data-form='" + id + "']").each(function (index, elem) {
+                    if (typeof this._ctrl.validate === "function")
+                        if (!this._ctrl.validate())
+                            valid = false;
+                });
+                return valid;
+            };
+            Form.prototype.immediateValue = function (val) {
+                if (typeof val !== tui.undef) {
+                    this._immediateValue = val;
+                    return this;
+                }
+                else
+                    return this._immediateValue;
+            };
+            Form.prototype.value = function (val) {
+                if (typeof val !== tui.undef) {
+                    // Dispatch data to other controls
+                    var id = this.id();
+                    id && $("[data-form='" + id + "']").each(function (index, elem) {
+                        var field;
+                        if (this._ctrl) {
+                            field = this._ctrl.field();
+                            if (!field) {
+                                return;
+                            }
+                            else if (field === "*") {
+                                if (typeof this._ctrl.value === "function")
+                                    this._ctrl.value(val);
+                            }
+                            else {
+                                if (typeof this._ctrl.value === "function" &&
+                                    typeof val[field] !== tui.undef) {
+                                    this._ctrl.value(val[field]);
+                                }
+                            }
+                        }
+                        else {
+                            field = $(elem).attr("data-field");
+                            if (!field) {
+                                return;
+                            }
+                            else if (field === "*") {
+                                $(elem).attr("data-value", JSON.stringify(val));
+                            }
+                            else {
+                                if (typeof val[field] !== tui.undef) {
+                                    $(elem).attr("data-value", JSON.stringify(val[field]));
+                                }
+                            }
+                        }
+                    });
+                    return this;
+                }
+                else {
+                    var result = {};
+                    // Collect all fields from other controls
+                    var id = this.id();
+                    id && $("[data-form='" + id + "']").each(function (index, elem) {
+                        var field;
+                        var val;
+                        if (this._ctrl) {
+                            field = this._ctrl.field();
+                            if (!field)
+                                return;
+                            if (this._ctrl.value)
+                                val = this._ctrl.value();
+                            else
+                                return;
+                        }
+                        else {
+                            field = $(elem).attr("data-field");
+                            if (typeof field !== "string")
+                                return;
+                            val = $(elem).attr("data-value");
+                            if (typeof val !== "string")
+                                return;
+                            try {
+                                val = JSON.parse(val);
+                            }
+                            catch (e) {
+                            }
+                        }
+                        if (field === "*")
+                            result = val;
+                        else if (result)
+                            result[field] = val;
+                    });
+                    return result;
+                }
+            };
+            Form.prototype.clear = function () {
+                this._immediateValue = tui.undefVal;
+                var id = this.id();
+                id && $("[data-form='" + id + "']").each(function (index, elem) {
+                    if (elem._ctrl) {
+                        if (typeof elem._ctrl.value === "function")
+                            elem._ctrl.value(null);
+                    }
+                    else {
+                        $(elem).attr("data-value", "");
+                        $(elem).removeAttr("data-value");
+                    }
+                });
+            };
+            Form.prototype.submit = function () {
+                if (!this.validate())
+                    return;
+                var action = this.action();
+                if (!action)
+                    return;
+                var id = this.id();
+                if (!id)
+                    return;
+                var data = this.immediateValue();
+                if (typeof data === tui.undef)
+                    data = this.value();
+                if (this.fire("submit", { id: this.id(), data: data }) === false)
+                    return;
+                var self = this;
+                var waitDlg = null;
+                if (this.waiting()) {
+                    waitDlg = tui.waitbox(tui.str(this.waiting()));
+                }
+                $.ajax({
+                    "type": this.method(),
+                    "timeout": this.timeout(),
+                    "url": action,
+                    "contentType": "application/json",
+                    "data": (this.method() === "GET" ? data : JSON.stringify(data)),
+                    "complete": function (jqXHR, status) {
+                        waitDlg && waitDlg.close();
+                        if (status === "success") {
+                            if (self.fire("success", { jqXHR: jqXHR, status: status }) === false) {
+                                return;
+                            }
+                        }
+                        else {
+                            if (self.fire("error", { jqXHR: jqXHR, status: status }) === false) {
+                                return;
+                            }
+                        }
+                        if (self.fire("complete", { jqXHR: jqXHR, status: status }) === false) {
+                            return;
+                        }
+                        if (status === "success") {
+                            var targetRedirect = self.targetRedirect();
+                            if (targetRedirect) {
+                                window.location.assign(targetRedirect);
+                                return;
+                            }
+                            var target = self.target();
+                            var property = self.targetProperty();
+                            var respJson = /^\s*application\/json\s*(;.+)?/i.test(jqXHR.getResponseHeader("content-type"));
+                            var respVal = (respJson ? jqXHR["responseJSON"] : jqXHR.responseText);
+                            if (self.fire("receive", respVal) === false) {
+                                return;
+                            }
+                            if (target) {
+                                target = document.getElementById(target);
+                                if (target && target["_ctrl"]) {
+                                    var ctrl = target["_ctrl"];
+                                    if (typeof ctrl[property] === "function") {
+                                        ctrl[property](respVal);
+                                    }
+                                }
+                                else if (target) {
+                                    if (typeof target[property] === "function") {
+                                        target[property](respVal);
+                                    }
+                                    else {
+                                        target[property] = respVal;
+                                    }
+                                }
+                            }
+                            var targetSubmitForm = self.submitForm();
+                            if (targetSubmitForm) {
+                                var form = tui.ctrl.form(targetSubmitForm);
+                                form && form.submit();
+                            }
+                        }
+                        else {
+                            if (typeof Form.defaultErrorProc === "function") {
+                                if (Form.defaultErrorProc({ jqXHR: jqXHR, status: status }) === false)
+                                    return;
+                            }
+                            if (self.isShowError() && !(Form.ignoreErrors && Form.ignoreErrors.indexOf(jqXHR.status) >= 0)) {
+                                var respText = /^\s*text\/plain\s*(;.+)?/i.test(jqXHR.getResponseHeader("content-type"));
+                                if (respText && jqXHR.responseText)
+                                    tui.errbox(tui.str(jqXHR.responseText), tui.str("Failed"));
+                                else
+                                    tui.errbox(tui.str(status) + " (" + jqXHR.status + ")", tui.str("Failed"));
+                            }
+                        }
+                    },
+                    "processData": (this.method() === "GET" ? true : false)
+                });
+            };
+            Form.ignoreError = function (errorCodeList) {
+                Form.ignoreErrors = errorCodeList;
+            };
+            Form.defaultError = function (proc) {
+                Form.defaultErrorProc = proc;
+            };
+            Form.CLASS = "tui-form";
+            Form.METHODS = ["GET", "POST", "PUT", "DELETE"];
+            Form.STATUS = [
+                "success", "notmodified", "error", "timeout", "abort", "parsererror"
+            ];
+            Form.ignoreErrors = null;
+            Form.defaultErrorProc = null;
+            return Form;
+        })(ctrl_4.Control);
+        ctrl_4.Form = Form;
+        function form(param) {
+            return tui.ctrl.control(param, Form);
+        }
+        ctrl_4.form = form;
+        tui.ctrl.registerInitCallback(Form.CLASS, form);
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.control.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl) {
+        var _currentPopup = null;
+        function closeAllPopup() {
+            var pop = _currentPopup;
+            while (pop) {
+                if (pop.parent())
+                    pop = pop.parent();
+                else {
+                    pop.close();
+                    pop = _currentPopup;
+                }
+            }
+        }
+        var Popup = (function (_super) {
+            __extends(Popup, _super);
+            function Popup() {
+                _super.call(this, "div", Popup.CLASS, null);
+                this._position = null;
+                this._bindElem = null;
+                this._body = document.body || document.getElementsByTagName("BODY")[0];
+                this._parent = null;
+                this._parentPopup = null;
+                this._childPopup = null;
+                this._checkInterval = null;
+                this._showing = false;
+                this._owner = null;
+            }
+            Popup.prototype.getParentPopup = function (elem) {
+                var pop = _currentPopup;
+                while (pop) {
+                    if (pop.isPosterity(elem))
+                        return pop;
+                    else
+                        pop = pop.parent();
+                }
+                return pop;
+            };
+            Popup.prototype.isShowing = function () {
+                return this._showing;
+            };
+            Popup.prototype.owner = function (elem) {
+                if (elem) {
+                    this._owner = elem;
+                    return this;
+                }
+                else
+                    return this._owner;
+            };
+            Popup.prototype.showInternal = function (content, param, bindType) {
+                var _this = this;
+                if (this._showing)
+                    return;
+                this._showing = true;
+                if (typeof param === "string")
+                    param = document.getElementById(param);
+                var elem = null;
+                if (param && param.nodeName && typeof bindType === "string") {
+                    elem = this.elem("div", Popup.CLASS);
+                    this._bindElem = param;
+                    this._bindType = bindType;
+                }
+                else if (param && typeof param.x === "number" && typeof param.y === "number") {
+                    elem = this.elem("div", Popup.CLASS);
+                    this._position = param;
+                    this._bindType = "LT";
+                }
+                else if (typeof param === tui.undef) {
+                    elem = this.elem("div", Popup.CLASS);
+                    this._position = { x: 0, y: 0 };
+                    this._bindType = "LT";
+                }
+                if (elem) {
+                    if (this._bindElem) {
+                        this._parentPopup = this.getParentPopup(this._bindElem);
+                        if (this._parentPopup) {
+                            this._parentPopup.closeChild();
+                            this._parentPopup.child(this);
+                            this.parent(this._parentPopup);
+                            this._parent = this._parentPopup[0];
+                        }
+                        else {
+                            closeAllPopup();
+                            this._parent = this._body;
+                        }
+                    }
+                    else {
+                        closeAllPopup();
+                        this._parent = this._body;
+                    }
+                    _currentPopup = this;
+                    elem.setAttribute("tabIndex", "-1");
+                    this._parent.appendChild(elem);
+                    if (this.owner())
+                        this.owner().focus();
+                    else
+                        elem.focus();
+                    if (typeof content === "string") {
+                        elem.innerHTML = content;
+                    }
+                    else if (content && content.nodeName) {
+                        elem.appendChild(content);
+                    }
+                    tui.ctrl.initCtrls(elem);
+                    this.refresh();
+                    if (this._bindElem) {
+                        var pos = tui.fixedPosition(this._bindElem);
+                        this._checkInterval = setInterval(function () {
+                            var currentPos = tui.fixedPosition(_this._bindElem);
+                            if (currentPos.x !== pos.x || currentPos.y !== pos.y) {
+                                _this.close();
+                            }
+                        }, 100);
+                    }
+                    if (content && content.nodeName) {
+                        content.focus();
+                    }
+                }
+            };
+            Popup.prototype.show = function (content, param, bindType) {
+                var self = this;
+                setTimeout(function () {
+                    self.showInternal(content, param, bindType);
+                }, 0);
+            };
+            Popup.prototype.close = function () {
+                if (!this._showing)
+                    return;
+                this.closeChild();
+                if (this._checkInterval) {
+                    clearInterval(this._checkInterval);
+                    this._checkInterval = null;
+                }
+                try {
+                    this._parent.removeChild(this[0]);
+                }
+                catch (e) {
+                }
+                _currentPopup = this.parent();
+                this.parent(null);
+                if (_currentPopup)
+                    _currentPopup.child(null);
+                this.fire("close", {});
+                this._showing = false;
+            };
+            Popup.prototype.closeChild = function () {
+                if (this._childPopup) {
+                    this._childPopup.close();
+                    this._childPopup = null;
+                }
+            };
+            Popup.prototype.parent = function (pop) {
+                if (typeof pop !== tui.undef) {
+                    this._parentPopup = pop;
+                }
+                return this._parentPopup;
+            };
+            Popup.prototype.child = function (pop) {
+                if (typeof pop !== tui.undef) {
+                    this._childPopup = pop;
+                }
+                return this._childPopup;
+            };
+            Popup.prototype.refresh = function () {
+                if (!this[0])
+                    return;
+                var elem = this[0];
+                var cw = tui.windowSize().width;
+                var ch = tui.windowSize().height;
+                var sw = elem.offsetWidth;
+                var sh = elem.offsetHeight;
+                var box = { x: 0, y: 0, w: 0, h: 0 };
+                var pos = { x: 0, y: 0 };
+                if (this._position) {
+                    box = this._position;
+                    box.w = 0;
+                    box.h = 0;
+                }
+                else if (this._bindElem) {
+                    box = tui.fixedPosition(this._bindElem);
+                    box.w = this._bindElem.offsetWidth;
+                    box.h = this._bindElem.offsetHeight;
+                }
+                // lower case letter means 'next to', upper case letter means 'align to'
+                var compute = {
+                    "l": function () {
+                        pos.x = box.x - sw;
+                        if (pos.x < 2)
+                            pos.x = box.x + box.w;
+                    }, "r": function () {
+                        pos.x = box.x + box.w;
+                        if (pos.x + sw > cw - 2)
+                            pos.x = box.x - sw;
+                    }, "t": function () {
+                        pos.y = box.y - sh;
+                        if (pos.y < 2)
+                            pos.y = box.y + box.h;
+                    }, "b": function () {
+                        pos.y = box.y + box.h;
+                        if (pos.y + sh > ch - 2)
+                            pos.y = box.y - sh;
+                    }, "L": function () {
+                        pos.x = box.x;
+                        if (pos.x + sw > cw - 2)
+                            pos.x = box.x + box.w - sw;
+                    }, "R": function () {
+                        pos.x = box.x + box.w - sw;
+                        if (pos.x < 2)
+                            pos.x = box.x;
+                    }, "T": function () {
+                        pos.y = box.y;
+                        if (pos.y + sh > ch - 2)
+                            pos.y = box.y + box.h - sh;
+                    }, "B": function () {
+                        pos.y = box.y + box.h - sh;
+                        if (pos.y < 2)
+                            pos.y = box.y;
+                    }
+                };
+                compute[this._bindType.substring(0, 1)](); // parse x
+                compute[this._bindType.substring(1, 2)](); // parse y
+                if (pos.x > cw - 2)
+                    pos.x = cw - 2;
+                if (pos.x < 2)
+                    pos.x = 2;
+                if (pos.y > ch - 2)
+                    pos.y = ch - 2;
+                if (pos.y < 2)
+                    pos.y = 2;
+                elem.style.left = pos.x + "px";
+                elem.style.top = pos.y + "px";
+            };
+            Popup.CLASS = "tui-popup";
+            return Popup;
+        })(ctrl.Control);
+        ctrl.Popup = Popup;
+        function checkPopup(e) {
+            setTimeout(function () {
+                var obj = document.activeElement;
+                while (_currentPopup) {
+                    if (_currentPopup.isPosterity(obj) || _currentPopup.owner() === obj)
+                        return;
+                    else
+                        _currentPopup.close();
+                }
+            }, 30);
+        }
+        ctrl.checkPopup = checkPopup;
+        $(document).on("focus mousedown keydown", checkPopup);
+        tui.on("#tui.check.popup", checkPopup);
+        $(window).scroll(function () { closeAllPopup(); });
+        /**
+         * Construct a button.
+         * @param el {HTMLElement or element id or construct info}
+         */
+        function popup() {
+            return new Popup();
+        }
+        ctrl.popup = popup;
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.popup.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl) {
+        var Menu = (function (_super) {
+            __extends(Menu, _super);
+            function Menu(data) {
+                _super.call(this);
+                this._items = [];
+                this._menuDiv = null;
+                this._parentMenu = null;
+                if (data instanceof Array || data.data && data.data instanceof Array) {
+                    data = new tui.ArrayProvider(data);
+                }
+                else if (typeof data === "function" ||
+                    typeof data.length !== "function" ||
+                    typeof data.sort !== "function" ||
+                    typeof data.at !== "function" ||
+                    typeof data.columnKeyMap !== "function") {
+                    throw new Error("TUI Menu: need a data provider.");
+                }
+                this._data = data;
+                var self = this;
+                this.on("close", function () {
+                    self._items = [];
+                    delete self._activedItem;
+                });
+            }
+            Menu.prototype.fireClick = function (item, row) {
+                if (item._showChildTimer)
+                    clearTimeout(item._showChildTimer);
+                if (item._childMenu && (typeof row.key === tui.undef || row.key === null)) {
+                    item._childMenu.show(item.firstChild, "rT");
+                }
+                else {
+                    this.closeAll();
+                    if (this.fire("select", { "ctrl": self[0], "item": row }) === false) {
+                        return;
+                    }
+                    if (typeof row.key !== tui.undef && row.key !== null) {
+                        if (tui.fire(row.key, row) === false)
+                            return;
+                    }
+                    if (row.link) {
+                        window.location.href = row.link;
+                    }
+                }
+            };
+            Menu.prototype.bindMouseEvent = function (item, row) {
+                var self = this;
+                $(item).mousemove(function (e) {
+                    if (item["_menuIndex"] !== self._activedItem) {
+                        self.deactiveItem(self._activedItem);
+                        $(item).addClass("tui-actived");
+                        self._activedItem = item["_menuIndex"];
+                        if (item._childMenu) {
+                            item._showChildTimer = setTimeout(function () {
+                                item._childMenu.show(item.firstChild, "rT");
+                            }, 400);
+                        }
+                    }
+                });
+                $(item).mouseleave(function (e) {
+                    if (!tui.isAncestry(document.activeElement, self._menuDiv))
+                        return;
+                    if (item._showChildTimer)
+                        clearTimeout(item._showChildTimer);
+                    $(item).removeClass("tui-actived");
+                    delete self._activedItem;
+                });
+                $(item).click(function (e) {
+                    self.fireClick(item, row);
+                });
+            };
+            Menu.prototype.deactiveItem = function (itemIndex) {
+                if (itemIndex >= 0 && itemIndex < this._items.length) {
+                    var item = this._items[itemIndex];
+                    $(item).removeClass("tui-actived");
+                    if (item._childMenu)
+                        item._childMenu.close();
+                    if (item._showChildTimer)
+                        clearTimeout(item._showChildTimer);
+                }
+            };
+            Menu.prototype.setParentMenu = function (parent) {
+                this._parentMenu = parent;
+            };
+            Menu.prototype.closeAll = function () {
+                if (this._parentMenu) {
+                    this._parentMenu.closeAll();
+                }
+                else
+                    this.close();
+            };
+            Menu.prototype.focus = function () {
+                this._menuDiv.focus();
+            };
+            Menu.prototype.show = function (param, bindType) {
+                if (this.isShowing())
+                    return;
+                if (!this._data)
+                    return;
+                var self = this;
+                var data;
+                if (typeof this._data === "function") {
+                    data = this._data();
+                    if (typeof data.length !== "function" ||
+                        typeof data.sort !== "function" ||
+                        typeof data.at !== "function" ||
+                        typeof data.columnKeyMap !== "function") {
+                        return;
+                    }
+                }
+                else
+                    data = this._data;
+                var div = document.createElement("div");
+                this._menuDiv = div;
+                div.className = Menu.CLASS;
+                $(div).attr("unselectable", "on");
+                $(div).attr("tabIndex", "-1");
+                for (var i = 0; i < data.length(); i++) {
+                    var row = data.at(i);
+                    var item = document.createElement("div");
+                    if (row.value === "-") {
+                        item.className = "tui-menu-line";
+                    }
+                    else {
+                        var innerBox = document.createElement("div");
+                        item.appendChild(innerBox);
+                        innerBox.innerHTML = row.value;
+                        var icon = document.createElement("i");
+                        icon.className = "tui-menu-icon";
+                        innerBox.insertBefore(icon, innerBox.firstChild);
+                        if (row.checked) {
+                            $(icon).addClass("tui-menu-icon-checked");
+                        }
+                        else if (row.icon) {
+                            $(icon).addClass(row.icon);
+                        }
+                        if (row.children) {
+                            $(item).addClass("tui-menu-has-children");
+                            var childMenu = menu(row.children);
+                            childMenu.on("select", function (data) {
+                                self.fire("select", data);
+                            });
+                            childMenu.setParentMenu(this);
+                            item["_childMenu"] = childMenu;
+                        }
+                        this.bindMouseEvent(item, row);
+                        item["_menuIndex"] = this._items.length;
+                        this._items.push(item);
+                    }
+                    div.appendChild(item);
+                }
+                $(div).keydown(function (e) {
+                    var c = e.keyCode;
+                    if (c === tui.KEY_DOWN || c === tui.KEY_TAB) {
+                        if (typeof self._activedItem !== "number" &&
+                            self._items.length > 0) {
+                            self._activedItem = 0;
+                        }
+                        else {
+                            $(self._items[self._activedItem]).removeClass("tui-actived");
+                            self._activedItem++;
+                            if (self._activedItem > self._items.length - 1)
+                                self._activedItem = 0;
+                        }
+                        if (typeof self._activedItem === "number" &&
+                            self._activedItem >= 0 && self._activedItem < self._items.length)
+                            $(self._items[self._activedItem]).addClass("tui-actived");
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    else if (c === tui.KEY_UP) {
+                        if (typeof self._activedItem !== "number" &&
+                            self._items.length > 0) {
+                            self._activedItem = self._items.length - 1;
+                        }
+                        else {
+                            $(self._items[self._activedItem]).removeClass("tui-actived");
+                            self._activedItem--;
+                            if (self._activedItem < 0)
+                                self._activedItem = self._items.length - 1;
+                        }
+                        if (typeof self._activedItem === "number" &&
+                            self._activedItem >= 0 &&
+                            self._activedItem < self._items.length)
+                            $(self._items[self._activedItem]).addClass("tui-actived");
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    else if (c === tui.KEY_ESC) {
+                        self.close();
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    else if (c === tui.KEY_LEFT) {
+                        if (self._parentMenu) {
+                            self.close();
+                            self._parentMenu.focus();
+                        }
+                    }
+                    else if (c === tui.KEY_RIGHT) {
+                        if (typeof self._activedItem === "number" &&
+                            self._activedItem >= 0 &&
+                            self._activedItem < self._items.length) {
+                            var item = self._items[self._activedItem];
+                            if (item._childMenu) {
+                                item._childMenu.show(item.firstChild, "rT");
+                            }
+                        }
+                    }
+                    else if (c === tui.KEY_ENTER) {
+                        if (typeof self._activedItem === "number" &&
+                            self._activedItem >= 0 &&
+                            self._activedItem < self._items.length) {
+                            var item = self._items[self._activedItem];
+                            var row = data.at(self._activedItem);
+                            self.fireClick(item, row);
+                        }
+                    }
+                });
+                _super.prototype.show.call(this, div, param, bindType);
+            };
+            Menu.CLASS = "tui-menu";
+            return Menu;
+        })(ctrl.Popup);
+        ctrl.Menu = Menu;
+        function menu(data) {
+            return new Menu(data);
+        }
+        ctrl.menu = menu;
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.control.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl) {
+        var Scrollbar = (function (_super) {
+            __extends(Scrollbar, _super);
+            function Scrollbar(el) {
+                var _this = this;
+                _super.call(this, "span", Scrollbar.CLASS, el);
+                this._btnThumb = null;
+                this._btnHead = null;
+                this._btnFoot = null;
+                var self = this;
+                this.attr("unselectable", "on");
+                this[0].innerHTML = "";
+                this._btnHead = document.createElement("span");
+                this._btnHead.className = "tui-scroll-head";
+                this[0].appendChild(this._btnHead);
+                this._btnThumb = document.createElement("span");
+                this._btnThumb.className = "tui-scroll-thumb";
+                $(this._btnThumb).attr("unselectable", "on");
+                this[0].appendChild(this._btnThumb);
+                this._btnFoot = document.createElement("span");
+                this._btnFoot.className = "tui-scroll-foot";
+                this[0].appendChild(this._btnFoot);
+                var scrollTimer = null;
+                var scrollInterval = null;
+                var moveParam = null;
+                function stopMove() {
+                    if (scrollTimer) {
+                        clearTimeout(scrollTimer);
+                        scrollTimer = null;
+                    }
+                    if (scrollInterval) {
+                        clearInterval(scrollInterval);
+                        scrollInterval = null;
+                    }
+                }
+                function moveThumb() {
+                    var val = self.value();
+                    var total = self.total();
+                    var achieve = false;
+                    moveParam.pos = Math.round(moveParam.pos);
+                    moveParam.step = Math.round(moveParam.step);
+                    if (val === moveParam.pos)
+                        return;
+                    if (!moveParam.isIncrease) {
+                        val -= moveParam.step;
+                        if (val - (moveParam.isPage ? moveParam.step / 2 : 0) <= moveParam.pos || val <= 0) {
+                            achieve = true;
+                            if (val < 0)
+                                val = 0;
+                            stopMove();
+                        }
+                        self.value(val);
+                    }
+                    else {
+                        val += moveParam.step;
+                        if (val + (moveParam.isPage ? moveParam.step / 2 : 0) >= moveParam.pos || val >= total) {
+                            achieve = true;
+                            if (val > total)
+                                val = total;
+                            stopMove();
+                        }
+                        self.value(val);
+                    }
+                    self.fire("scroll", { value: self.value(), type: "mousedown" });
+                    return achieve;
+                }
+                function releaseButton(e) {
+                    stopMove();
+                    $(self._btnHead).removeClass("tui-actived");
+                    $(self._btnFoot).removeClass("tui-actived");
+                    $(tui.unmask()).off("mouseup", releaseButton);
+                    $(document).off("mouseup", releaseButton);
+                }
+                ;
+                $(this[0]).mousedown(function (e) {
+                    tui.fire("#tui.check.popup");
+                    // Should check which target object was triggered.
+                    if (!tui.isLButton(e)) {
+                        return;
+                    }
+                    var obj = e.target;
+                    if (obj !== self[0]) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        return;
+                    }
+                    if (_this.total() <= 0)
+                        return;
+                    var dir = self.direction();
+                    var pos, thumbLen;
+                    if (dir === "vertical") {
+                        pos = (typeof e.offsetY === "number" ? e.offsetY : e["originalEvent"].layerY);
+                        thumbLen = _this._btnThumb.offsetHeight;
+                    }
+                    else {
+                        pos = (typeof e.offsetX === "number" ? e.offsetX : e["originalEvent"].layerX);
+                        thumbLen = _this._btnThumb.offsetWidth;
+                    }
+                    var v = _this.posToValue(pos - thumbLen / 2);
+                    moveParam = { pos: v, step: self.page(), isIncrease: v > self.value(), isPage: true };
+                    if (!moveThumb()) {
+                        scrollTimer = setTimeout(function () {
+                            scrollTimer = null;
+                            scrollInterval = setInterval(moveThumb, 20);
+                        }, 300);
+                        $(tui.mask()).on("mouseup", releaseButton);
+                        $(document).on("mouseup", releaseButton);
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                    return false;
+                });
+                $(this._btnHead).mousedown(function (e) {
+                    if (!tui.isLButton(e))
+                        return;
+                    if (self.total() <= 0)
+                        return;
+                    $(self._btnHead).addClass("tui-actived");
+                    moveParam = { pos: 0, step: self.step(), isIncrease: false, isPage: false };
+                    if (!moveThumb()) {
+                        scrollTimer = setTimeout(function () {
+                            scrollTimer = null;
+                            scrollInterval = setInterval(moveThumb, 20);
+                        }, 300);
+                        $(tui.mask()).on("mouseup", releaseButton);
+                        $(document).on("mouseup", releaseButton);
+                    }
+                });
+                $(this._btnFoot).mousedown(function (e) {
+                    if (!tui.isLButton(e))
+                        return;
+                    if (self.total() <= 0)
+                        return;
+                    $(self._btnFoot).addClass("tui-actived");
+                    moveParam = { pos: self.total(), step: self.step(), isIncrease: true, isPage: false };
+                    if (!moveThumb()) {
+                        scrollTimer = setTimeout(function () {
+                            scrollTimer = null;
+                            scrollInterval = setInterval(moveThumb, 20);
+                        }, 300);
+                        $(tui.mask()).on("mouseup", releaseButton);
+                        $(document).on("mouseup", releaseButton);
+                    }
+                });
+                var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel";
+                $(this[0]).on(mousewheelevt, function (e) {
+                    var ev = e.originalEvent;
+                    var delta = ev.detail ? ev.detail * (-120) : ev.wheelDelta;
+                    //delta returns +120 when wheel is scrolled up, -120 when scrolled down
+                    var scrollSize = (Math.round(self.page() / 2) > self.step() ? Math.round(self.page() / 2) : self.step());
+                    var oldValue = self.value();
+                    if (delta <= -120) {
+                        self.value(self.value() + scrollSize);
+                    }
+                    else {
+                        self.value(self.value() - scrollSize);
+                    }
+                    if (oldValue !== self.value())
+                        self.fire("scroll", { value: self.value(), type: "mousewheel" });
+                    e.stopPropagation();
+                    e.preventDefault();
+                });
+                var beginX = 0, beginY = 0, beginLeft = 0, beginTop = 0;
+                function dragThumb(e) {
+                    var diff = 0;
+                    var oldValue = self.value();
+                    var pos;
+                    if (self.direction() === "vertical") {
+                        diff = e.clientY - beginY;
+                        pos = beginTop + diff;
+                    }
+                    else {
+                        diff = e.clientX - beginX;
+                        pos = beginLeft + diff;
+                    }
+                    self.value(self.posToValue(pos));
+                    if (oldValue !== self.value()) {
+                        self.fire("scroll", { value: self.value(), type: "drag" });
+                    }
+                }
+                function dragEnd(e) {
+                    $(tui.unmask()).off("mousemove", dragThumb);
+                    $(document).off("mouseup", dragEnd);
+                    $(self._btnThumb).removeClass("tui-actived");
+                    self.fire("dragend", { value: self.value() });
+                }
+                $(this._btnThumb).mousedown(function (e) {
+                    if (!tui.isLButton(e))
+                        return;
+                    beginX = e.clientX;
+                    beginY = e.clientY;
+                    beginLeft = self._btnThumb.offsetLeft;
+                    beginTop = self._btnThumb.offsetTop;
+                    $(self._btnThumb).addClass("tui-actived");
+                    $(tui.mask()).on("mousemove", dragThumb);
+                    $(document).on("mouseup", dragEnd);
+                    self.fire("dragbegin", { value: self.value() });
+                });
+                this.refresh();
+            }
+            Scrollbar.prototype.total = function (val) {
+                if (typeof val === "number") {
+                    if (val < 0)
+                        val = 0;
+                    val = Math.round(val);
+                    this.attr("data-total", val);
+                    if (this.value() > val)
+                        this.value(val);
+                    else
+                        this.refresh();
+                    return this;
+                }
+                else {
+                    var val = parseInt(this.attr("data-total"), 10);
+                    if (val === null || isNaN(val))
+                        return 0;
+                    else
+                        return val;
+                }
+            };
+            Scrollbar.prototype.value = function (val) {
+                if (typeof val === "number") {
+                    val = Math.round(val);
+                    if (val < 0)
+                        val = 0;
+                    if (val > this.total())
+                        val = this.total();
+                    this.attr("data-value", val);
+                    this.refresh();
+                    return this;
+                }
+                else {
+                    var val = parseInt(this.attr("data-value"), 10);
+                    if (val === null || isNaN(val))
+                        return 0;
+                    else
+                        return val;
+                }
+            };
+            Scrollbar.prototype.step = function (val) {
+                if (typeof val === "number") {
+                    val = Math.round(val);
+                    if (val < 1)
+                        val = 1;
+                    if (val > this.total())
+                        val = this.total();
+                    this.attr("data-step", val);
+                    if (val > this.page())
+                        this.page(val);
+                    else
+                        this.refresh();
+                    return this;
+                }
+                else {
+                    var val = parseInt(this.attr("data-step"), 10);
+                    if (val === null || isNaN(val))
+                        return this.total() > 0 ? 1 : 0;
+                    else
+                        return val;
+                }
+            };
+            Scrollbar.prototype.page = function (val) {
+                if (typeof val === "number") {
+                    val = Math.round(val);
+                    if (val < 1)
+                        val = 1;
+                    if (val > this.total())
+                        val = this.total();
+                    this.attr("data-page", val);
+                    if (val < this.step())
+                        this.step(val);
+                    else
+                        this.refresh();
+                    return this;
+                }
+                else {
+                    var val = parseInt(this.attr("data-page"), 10);
+                    if (val === null || isNaN(val))
+                        return this.total() > 0 ? 1 : 0;
+                    else
+                        return val;
+                }
+            };
+            Scrollbar.prototype.direction = function (val) {
+                if (typeof val === "string") {
+                    if (["horizontal", "vertical"].indexOf(val) >= 0) {
+                        this.attr("data-direction", val);
+                        this.refresh();
+                    }
+                    return this;
+                }
+                else {
+                    var dir = this.attr("data-direction");
+                    if (dir === null)
+                        return "vertical";
+                    else
+                        return dir;
+                }
+            };
+            Scrollbar.prototype.logicLenToRealLen = function (logicLen) {
+                var len = 0;
+                var total = this.total();
+                if (total <= 0)
+                    return 0;
+                if (this.direction() === "vertical") {
+                    len = this[0].clientHeight - this._btnHead.offsetHeight - this._btnFoot.offsetHeight - this._btnThumb.offsetHeight;
+                }
+                else {
+                    len = this[0].clientWidth - this._btnHead.offsetWidth - this._btnFoot.offsetWidth - this._btnThumb.offsetWidth;
+                }
+                return logicLen / total * len;
+            };
+            Scrollbar.prototype.posToValue = function (pos) {
+                var total = this.total();
+                if (total <= 0) {
+                    return 0;
+                }
+                var len = 0;
+                var val = 0;
+                if (this.direction() === "vertical") {
+                    len = this[0].clientHeight - this._btnHead.offsetHeight - this._btnFoot.offsetHeight - this._btnThumb.offsetHeight;
+                    val = (pos - this._btnHead.offsetHeight) / len * total;
+                }
+                else {
+                    len = this[0].clientWidth - this._btnHead.offsetWidth - this._btnFoot.offsetWidth - this._btnThumb.offsetWidth;
+                    val = (pos - this._btnHead.offsetWidth) / len * total;
+                }
+                val = Math.round(val);
+                return val;
+            };
+            Scrollbar.prototype.valueToPos = function (value) {
+                var total = this.total();
+                var step = this.step();
+                var page = this.page();
+                var vertical = (this.direction() === "vertical");
+                var minSize = (vertical ? this._btnHead.offsetHeight : this._btnHead.offsetWidth);
+                if (total <= 0) {
+                    return { pos: 0, thumbLen: 0 };
+                }
+                var len = (vertical ?
+                    this[0].clientHeight - this._btnHead.offsetHeight - this._btnFoot.offsetHeight :
+                    this[0].clientWidth - this._btnHead.offsetWidth - this._btnFoot.offsetWidth);
+                var thumbLen = Math.round(page / total * len);
+                if (thumbLen < minSize)
+                    thumbLen = minSize;
+                if (thumbLen > len - 10)
+                    thumbLen = len - 10;
+                var scale = (value / total);
+                if (scale < 0)
+                    scale = 0;
+                if (scale > 1)
+                    scale = 1;
+                var pos = minSize + Math.round(scale * (len - thumbLen)) - 1;
+                return {
+                    "pos": pos, "thumbLen": thumbLen
+                };
+            };
+            Scrollbar.prototype.refresh = function () {
+                var pos = this.valueToPos(this.value());
+                var vertical = (this.direction() === "vertical");
+                if (vertical) {
+                    this._btnThumb.style.height = (pos.thumbLen > 0 ? pos.thumbLen : 0) + "px";
+                    this._btnThumb.style.top = pos.pos + "px";
+                    this._btnThumb.style.left = "";
+                    this._btnThumb.style.width = "";
+                }
+                else {
+                    this._btnThumb.style.width = (pos.thumbLen > 0 ? pos.thumbLen : 0) + "px";
+                    this._btnThumb.style.left = pos.pos + "px";
+                    this._btnThumb.style.top = "";
+                    this._btnThumb.style.height = "";
+                }
+            };
+            Scrollbar.CLASS = "tui-scrollbar";
+            return Scrollbar;
+        })(ctrl.Control);
+        ctrl.Scrollbar = Scrollbar;
+        /**
+         * Construct a scrollbar.
+         * @param el {HTMLElement or element id or construct info}
+         */
+        function scrollbar(param) {
+            return tui.ctrl.control(param, Scrollbar);
+        }
+        ctrl.scrollbar = scrollbar;
+        tui.ctrl.registerInitCallback(Scrollbar.CLASS, scrollbar);
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.control.ts" />
 /// <reference path="tui.time.ts" />
+/// <reference path="tui.ctrl.input.ts" />
 var tui;
 (function (tui) {
     var ctrl;
@@ -4652,270 +5292,561 @@ var tui;
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
 /// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.time.ts" />
 var tui;
 (function (tui) {
     var ctrl;
     (function (ctrl) {
-        var _currentPopup = null;
-        function closeAllPopup() {
-            var pop = _currentPopup;
-            while (pop) {
-                if (pop.parent())
-                    pop = pop.parent();
-                else {
-                    pop.close();
-                    pop = _currentPopup;
-                }
-            }
+        function formatNumber(v, maxValue) {
+            if (v < 0)
+                v = 0;
+            if (v > maxValue)
+                v = maxValue;
+            if (v < 10)
+                return "0" + v;
+            else
+                return v + "";
         }
-        var Popup = (function (_super) {
-            __extends(Popup, _super);
-            function Popup() {
-                _super.call(this, "div", Popup.CLASS, null);
-                this._position = null;
-                this._bindElem = null;
-                this._body = document.body || document.getElementsByTagName("BODY")[0];
-                this._parent = null;
-                this._parentPopup = null;
-                this._childPopup = null;
-                this._checkInterval = null;
-                this._showing = false;
-                this._owner = null;
-            }
-            Popup.prototype.getParentPopup = function (elem) {
-                var pop = _currentPopup;
-                while (pop) {
-                    if (pop.isPosterity(elem))
-                        return pop;
-                    else
-                        pop = pop.parent();
+        var PrimitiveCalendar = (function (_super) {
+            __extends(PrimitiveCalendar, _super);
+            function PrimitiveCalendar(el) {
+                var _this = this;
+                _super.call(this, "div", PrimitiveCalendar.CLASS, el);
+                this._time = tui.today();
+                var self = this;
+                this.attr("tabIndex", "0");
+                this.selectable(false);
+                this[0].innerHTML = "";
+                this._tb = this[0].appendChild(document.createElement("table"));
+                this._tb.cellPadding = "0";
+                this._tb.cellSpacing = "0";
+                this._tb.border = "0";
+                var yearLine = this._tb.insertRow(-1);
+                yearLine.className = "tui-year-bar";
+                this._prevYear = yearLine.insertCell(-1);
+                this._prevYear.className = "tui-prev-year-btn";
+                this._yearCell = yearLine.insertCell(-1);
+                this._yearCell.colSpan = 2;
+                this._nextYear = yearLine.insertCell(-1);
+                this._nextYear.className = "tui-next-year-btn";
+                var month = 1;
+                for (var i = 0; i < 3; i++) {
+                    var line = this._tb.insertRow(-1);
+                    for (var j = 0; j < 4; j++) {
+                        var cell = line.insertCell(-1);
+                        cell.className = "tui-month";
+                        cell["month"] = month;
+                        this.setText(i + 1, j, tui.str(PrimitiveCalendar._month[month - 1]));
+                        month++;
+                    }
                 }
-                return pop;
+                $(this[0]).on("mousedown", function (e) {
+                    if (tui.ffVer > 0)
+                        _this.focus();
+                    if (e.target.nodeName.toLowerCase() !== "td")
+                        return;
+                    var cell = e.target;
+                    if ($(cell).hasClass("tui-prev-year-btn")) {
+                        _this.prevYear();
+                    }
+                    else if ($(cell).hasClass("tui-next-year-btn")) {
+                        _this.nextYear();
+                    }
+                    else if (typeof cell["month"] === "number") {
+                        var m = cell["month"];
+                        var y = _this.year();
+                        var d = _this.day();
+                        var newDate = new Date(y, m - 1, 1);
+                        if (d > tui.totalDaysOfMonth(newDate))
+                            d = tui.totalDaysOfMonth(newDate);
+                        _this.onPicked(y, m, d);
+                    }
+                });
+                $(this[0]).on("click", function (e) {
+                    if (e.target.nodeName.toLowerCase() !== "td")
+                        return;
+                    var cell = e.target;
+                    if (typeof cell["month"] === "number")
+                        self.fire("picked", { "ctrl": _this[0], "event": e, "time": _this.time() });
+                });
+                $(this[0]).on("dblclick", function (e) {
+                    if (e.target.nodeName.toLowerCase() !== "td")
+                        return;
+                    var cell = e.target;
+                    if (typeof cell["month"] === "number")
+                        self.fire("dblpicked", { "ctrl": _this[0], "event": e, "time": _this.time() });
+                });
+                $(this[0]).on("keydown", function (e) {
+                    var k = e.keyCode;
+                    if ([13, 33, 34, 37, 38, 39, 40].indexOf(k) >= 0) {
+                        if (k === 37) {
+                            var tm = tui.dateAdd(_this._time, -1, "M");
+                            self.time(tm);
+                        }
+                        else if (k === 38) {
+                            var tm = tui.dateAdd(_this._time, -4, "M");
+                            self.time(tm);
+                        }
+                        else if (k === 39) {
+                            var tm = tui.dateAdd(_this._time, 1, "M");
+                            self.time(tm);
+                        }
+                        else if (k === 40) {
+                            var tm = tui.dateAdd(_this._time, 4, "M");
+                            self.time(tm);
+                        }
+                        else if (k === 33) {
+                            _this.prevYear();
+                        }
+                        else if (k === 34) {
+                            _this.nextYear();
+                        }
+                        self.fire("picked", { "ctrl": _this[0], "event": e, "time": _this.time() });
+                        return e.preventDefault();
+                    }
+                });
+                // Set initial value
+                var val = this.attr("data-value");
+                if (val === null)
+                    this.update();
+                else {
+                    var dateVal = tui.parseDate(val);
+                    if (dateVal == null)
+                        this.update();
+                    else
+                        this.time(dateVal);
+                }
+            }
+            PrimitiveCalendar.prototype.setText = function (line, column, content) {
+                var cell = (this._tb.rows[line].cells[column]);
+                if (tui.ieVer > 0 && tui.ieVer < 9) {
+                    cell.innerText = content;
+                }
+                else
+                    cell.innerHTML = content;
             };
-            Popup.prototype.isShowing = function () {
-                return this._showing;
-            };
-            Popup.prototype.owner = function (elem) {
-                if (elem) {
-                    this._owner = elem;
+            PrimitiveCalendar.prototype.year = function (val) {
+                if (typeof val === "number") {
+                    if (this._time.getFullYear() !== val) {
+                        this._time.setFullYear(val);
+                        this.update();
+                        this.fire("change", { "ctrl": this[0], "time": this.time() });
+                    }
                     return this;
                 }
                 else
-                    return this._owner;
+                    return this._time.getFullYear();
             };
-            Popup.prototype.show = function (content, param, bindType) {
+            PrimitiveCalendar.prototype.day = function (val) {
+                if (typeof val === "number") {
+                    if (this._time.getDate() !== val) {
+                        this._time.setDate(val);
+                        this.update();
+                        this.fire("change", { "ctrl": this[0], "time": this.time() });
+                    }
+                    return this;
+                }
+                else
+                    return this._time.getDate();
+            };
+            PrimitiveCalendar.prototype.month = function (val) {
+                if (typeof val === "number") {
+                    if (this._time.getMonth() !== val - 1) {
+                        this._time.setMonth(val - 1);
+                        this.update();
+                        this.fire("change", { "ctrl": this[0], "time": this.time() });
+                    }
+                    return this;
+                }
+                else
+                    return this._time.getMonth() + 1;
+            };
+            PrimitiveCalendar.prototype.time = function (t) {
+                if (t instanceof Date && t) {
+                    var changed = false;
+                    if (Math.floor(this._time.getTime() / 1000) !== Math.floor(t.getTime() / 1000))
+                        changed = true;
+                    this._time = t;
+                    this.update();
+                    changed && this.fire("change", { "ctrl": this[0], "time": this.time() });
+                    return this;
+                }
+                else {
+                    return new Date(this._time.getFullYear(), this._time.getMonth(), this._time.getDate());
+                }
+            };
+            PrimitiveCalendar.prototype.value = function (t) {
+                if (t === null) {
+                    this.time(tui.today());
+                    return this;
+                }
+                return this.time(t);
+            };
+            PrimitiveCalendar.prototype.prevYear = function () {
+                var y = this.year(), m = this.month(), d = this.day();
+                y--;
+                var newDate = new Date(y, m - 1, 1);
+                if (d > tui.totalDaysOfMonth(newDate))
+                    d = tui.totalDaysOfMonth(newDate);
+                this.onPicked(y, m, d);
+            };
+            PrimitiveCalendar.prototype.nextYear = function () {
+                var y = this.year(), m = this.month(), d = this.day();
+                y++;
+                var newDate = new Date(y, m - 1, 1);
+                if (d > tui.totalDaysOfMonth(newDate))
+                    d = tui.totalDaysOfMonth(newDate);
+                this.onPicked(y, m, d);
+            };
+            PrimitiveCalendar.prototype.onPicked = function (y, m, d) {
+                var newDate = new Date(y, m - 1, d);
+                this.time(newDate);
+            };
+            PrimitiveCalendar.prototype.firstDay = function (date) {
+                var y = date.getFullYear();
+                var m = date.getMonth();
+                return new Date(y, m, 1);
+            };
+            PrimitiveCalendar.prototype.update = function () {
+                var today = tui.today();
+                this._yearCell.innerHTML = this.year() + '';
+                var month = 1;
+                for (var i = 0; i < 3; i++) {
+                    for (var j = 0; j < 4; j++) {
+                        var cell = this._tb.rows[i + 1].cells[j];
+                        cell.className = "tui-month";
+                        if (month === this.month())
+                            $(cell).addClass("tui-actived");
+                        if (this.year() === today.getFullYear() && month === (today.getMonth() + 1)) {
+                            $(cell).addClass("tui-today");
+                        }
+                        month++;
+                    }
+                }
+            };
+            PrimitiveCalendar.prototype.refresh = function () {
+                this.update();
+            };
+            PrimitiveCalendar.CLASS = "tui-month-calendar";
+            PrimitiveCalendar._month = tui.months;
+            return PrimitiveCalendar;
+        })(ctrl.Control);
+        ctrl.PrimitiveCalendar = PrimitiveCalendar;
+        /**
+         * Construct a calendar.
+         * @param el {HTMLElement or element id or construct info}
+         */
+        function primitiveCalendar(param) {
+            return tui.ctrl.control(param, PrimitiveCalendar);
+        }
+        ctrl.primitiveCalendar = primitiveCalendar;
+        tui.ctrl.registerInitCallback(PrimitiveCalendar.CLASS, primitiveCalendar);
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.input.ts" /> 
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl) {
+        var TextArea = (function (_super) {
+            __extends(TextArea, _super);
+            function TextArea(el) {
                 var _this = this;
-                if (this._showing)
-                    return;
-                this._showing = true;
-                if (typeof param === "string")
-                    param = document.getElementById(param);
-                var elem = null;
-                if (param && param.nodeName && typeof bindType === "string") {
-                    elem = this.elem("div", Popup.CLASS);
-                    this._bindElem = param;
-                    this._bindType = bindType;
+                _super.call(this, "div", TextArea.CLASS, el);
+                this._invalid = false;
+                this._message = "";
+                var self = this;
+                this._label = document.createElement("label");
+                this._notify = document.createElement("div");
+                this[0].innerHTML = "";
+                this[0].appendChild(this._label);
+                this[0].appendChild(this._notify);
+                this.createTextbox();
+                $(this._label).on("mousedown", function () {
+                    if (!_this.disabled())
+                        setTimeout(function () { _this._textbox.focus(); }, 0);
+                });
+                this.value(this.value());
+                //this.refresh();
+            }
+            TextArea.prototype.createTextbox = function () {
+                var _this = this;
+                var self = this;
+                if (this._textbox) {
+                    this[0].removeChild(this._textbox);
                 }
-                else if (param && typeof param.x === "number" && typeof param.y === "number") {
-                    elem = this.elem("div", Popup.CLASS);
-                    this._position = param;
-                    this._bindType = "LT";
-                }
-                else if (typeof param === tui.undef) {
-                    elem = this.elem("div", Popup.CLASS);
-                    this._position = { x: 0, y: 0 };
-                    this._bindType = "LT";
-                }
-                if (elem) {
-                    if (this._bindElem) {
-                        this._parentPopup = this.getParentPopup(this._bindElem);
-                        if (this._parentPopup) {
-                            this._parentPopup.closeChild();
-                            this._parentPopup.child(this);
-                            this.parent(this._parentPopup);
-                            this._parent = this._parentPopup[0];
+                this._textbox = document.createElement("textarea");
+                // Should put textbox before notify
+                this[0].insertBefore(this._textbox, this._notify);
+                // Bind events ...
+                $(this._textbox).on("focus", function () {
+                    $(_this[0]).addClass("tui-focus");
+                });
+                $(this._textbox).on("blur", function () {
+                    $(_this[0]).removeClass("tui-focus");
+                });
+                $(this._textbox).on("propertychange", function (e) {
+                    if (e.originalEvent.propertyName !== 'value')
+                        return;
+                    setTimeout(function () {
+                        if (_this.text() !== _this._textbox.value) {
+                            _this.text(_this._textbox.value);
+                            self.fire("change", { "ctrl": _this[0], "event": e, "text": _this.text() });
+                            _this.refresh();
                         }
-                        else {
-                            closeAllPopup();
-                            this._parent = this._body;
+                    }, 0);
+                });
+                $(this._textbox).on("change", function (e) {
+                    if (_this.text() !== _this._textbox.value) {
+                        _this.text(_this._textbox.value);
+                        _this.fire("change", { "ctrl": _this[0], "event": e, "text": _this.text() });
+                        _this.refresh();
+                    }
+                });
+                $(this._textbox).on("input", function (e) {
+                    setTimeout(function () {
+                        if (_this.text() !== _this._textbox.value) {
+                            _this.text(_this._textbox.value);
+                            self.fire("change", { "ctrl": self[0], "event": e, "text": self.text() });
+                            _this.refresh();
                         }
+                    }, 0);
+                });
+                var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel";
+                $(this._textbox).on(mousewheelevt, function (ev) {
+                    ev.stopPropagation();
+                });
+                $(this[0]).on("keydown keypress", function (e) {
+                    if (_this.readonly() && e.keyCode == tui.KEY_BACK) {
+                        e.preventDefault();
+                    }
+                });
+            };
+            TextArea.prototype.validator = function (val) {
+                if (typeof val === "object" && val) {
+                    this.attr("data-validator", JSON.stringify(val));
+                    this._invalid = false;
+                    this.refresh();
+                    return this;
+                }
+                else if (val === null) {
+                    this.removeAttr("data-validator");
+                    this._invalid = false;
+                    this.refresh();
+                    return this;
+                }
+                else {
+                    val = this.attr("data-validator");
+                    if (val === null) {
+                        return null;
                     }
                     else {
-                        closeAllPopup();
-                        this._parent = this._body;
+                        try {
+                            val = eval("(" + val + ")");
+                            if (typeof val !== "object")
+                                return null;
+                            else
+                                return val;
+                        }
+                        catch (err) {
+                            return null;
+                        }
                     }
-                    _currentPopup = this;
-                    elem.setAttribute("tabIndex", "-1");
-                    this._parent.appendChild(elem);
-                    if (this.owner())
-                        this.owner().focus();
-                    else
-                        elem.focus();
-                    if (typeof content === "string") {
-                        elem.innerHTML = content;
-                    }
-                    else if (content && content.nodeName) {
-                        elem.appendChild(content);
-                    }
-                    tui.ctrl.initCtrls(elem);
-                    this.refresh();
-                    if (this._bindElem) {
-                        var pos = tui.fixedPosition(this._bindElem);
-                        this._checkInterval = setInterval(function () {
-                            var currentPos = tui.fixedPosition(_this._bindElem);
-                            if (currentPos.x !== pos.x || currentPos.y !== pos.y) {
-                                _this.close();
+                }
+            };
+            TextArea.prototype.validate = function (txt) {
+                var finalText = typeof txt === "string" ? txt : this.text();
+                if (finalText === null)
+                    finalText = "";
+                this._invalid = false;
+                var validator = this.validator();
+                if (validator) {
+                    for (var k in validator) {
+                        if (k && validator.hasOwnProperty(k)) {
+                            if (k === "*password") {
+                                if (!/[a-z]/.test(finalText) ||
+                                    !/[A-Z]/.test(finalText) ||
+                                    !/[0-9]/.test(finalText) ||
+                                    !/[\~\`\!\@\#\$\%\^\&\*\(\)\_\-\+\=\\\]\[\{\}\:\;\"\'\/\?\,\.\<\>\|]/.test(finalText) ||
+                                    finalText.length < 6) {
+                                    this._invalid = true;
+                                }
                             }
-                        }, 100);
+                            else if (k.substr(0, 5) === "*max:") {
+                                var imax = parseFloat(k.substr(5));
+                                if (isNaN(imax))
+                                    throw new Error("Invalid validator: '*max:...' must follow a number");
+                                var ival = parseFloat(finalText);
+                                if (isNaN(ival) || ival > imax) {
+                                    this._invalid = true;
+                                }
+                            }
+                            else if (k.substr(0, 4) === "*min:") {
+                                var imin = parseFloat(k.substr(5));
+                                if (isNaN(imin))
+                                    throw new Error("Invalid validator: '*min:...' must follow a number");
+                                var ival = parseFloat(finalText);
+                                if (isNaN(ival) || ival < imin) {
+                                    this._invalid = true;
+                                }
+                            }
+                            else {
+                                var regexp;
+                                if (k.substr(0, 1) === "*") {
+                                    var v = ctrl.Input.VALIDATORS[k];
+                                    if (v)
+                                        regexp = new RegExp(v);
+                                    else
+                                        throw new Error("Invalid validator: " + k + " is not a valid validator");
+                                }
+                                else {
+                                    regexp = new RegExp(k);
+                                }
+                                this._invalid = !regexp.test(finalText);
+                            }
+                            if (this._invalid) {
+                                this._message = validator[k];
+                                break;
+                            }
+                        }
                     }
                 }
+                if (this._invalid && !this._message) {
+                    this._message = tui.str("Invalid input.");
+                }
+                this.refresh();
+                return !this._invalid;
             };
-            Popup.prototype.close = function () {
-                if (!this._showing)
-                    return;
-                this.closeChild();
-                if (this._checkInterval) {
-                    clearInterval(this._checkInterval);
-                    this._checkInterval = null;
+            TextArea.prototype.text = function (txt) {
+                if (typeof txt !== tui.undef) {
+                    this.attr("data-text", txt);
+                    this.attr("data-value", txt);
+                    this._invalid = false;
+                    this.refresh();
+                    return this;
                 }
-                try {
-                    this._parent.removeChild(this[0]);
-                }
-                catch (e) {
-                }
-                _currentPopup = this.parent();
-                this.parent(null);
-                if (_currentPopup)
-                    _currentPopup.child(null);
-                this.fire("close", {});
-                this._showing = false;
+                else
+                    return this.attr("data-text");
             };
-            Popup.prototype.closeChild = function () {
-                if (this._childPopup) {
-                    this._childPopup.close();
-                    this._childPopup = null;
+            TextArea.prototype.readonly = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-readonly", val);
+                    this.refresh();
+                    return this;
                 }
+                else
+                    return this.is("data-readonly");
             };
-            Popup.prototype.parent = function (pop) {
-                if (typeof pop !== tui.undef) {
-                    this._parentPopup = pop;
-                }
-                return this._parentPopup;
-            };
-            Popup.prototype.child = function (pop) {
-                if (typeof pop !== tui.undef) {
-                    this._childPopup = pop;
-                }
-                return this._childPopup;
-            };
-            Popup.prototype.refresh = function () {
-                if (!this[0])
-                    return;
-                var elem = this[0];
-                var cw = tui.windowSize().width;
-                var ch = tui.windowSize().height;
-                var sw = elem.offsetWidth;
-                var sh = elem.offsetHeight;
-                var box = { x: 0, y: 0, w: 0, h: 0 };
-                var pos = { x: 0, y: 0 };
-                if (this._position) {
-                    box = this._position;
-                    box.w = 0;
-                    box.h = 0;
-                }
-                else if (this._bindElem) {
-                    box = tui.fixedPosition(this._bindElem);
-                    box.w = this._bindElem.offsetWidth;
-                    box.h = this._bindElem.offsetHeight;
-                }
-                // lower case letter means 'next to', upper case letter means 'align to'
-                var compute = {
-                    "l": function () {
-                        pos.x = box.x - sw;
-                        if (pos.x < 2)
-                            pos.x = box.x + box.w;
-                    },
-                    "r": function () {
-                        pos.x = box.x + box.w;
-                        if (pos.x + sw > cw - 2)
-                            pos.x = box.x - sw;
-                    },
-                    "t": function () {
-                        pos.y = box.y - sh;
-                        if (pos.y < 2)
-                            pos.y = box.y + box.h;
-                    },
-                    "b": function () {
-                        pos.y = box.y + box.h;
-                        if (pos.y + sh > ch - 2)
-                            pos.y = box.y - sh;
-                    },
-                    "L": function () {
-                        pos.x = box.x;
-                        if (pos.x + sw > cw - 2)
-                            pos.x = box.x + box.w - sw;
-                    },
-                    "R": function () {
-                        pos.x = box.x + box.w - sw;
-                        if (pos.x < 2)
-                            pos.x = box.x;
-                    },
-                    "T": function () {
-                        pos.y = box.y;
-                        if (pos.y + sh > ch - 2)
-                            pos.y = box.y + box.h - sh;
-                    },
-                    "B": function () {
-                        pos.y = box.y + box.h - sh;
-                        if (pos.y < 2)
-                            pos.y = box.y;
+            TextArea.prototype.value = function (val) {
+                if (typeof val !== tui.undef) {
+                    if (val === null) {
+                        this.attr("data-text", "");
+                        this.attr("data-value", "");
                     }
-                };
-                compute[this._bindType.substring(0, 1)](); // parse x
-                compute[this._bindType.substring(1, 2)](); // parse y
-                if (pos.x > cw - 2)
-                    pos.x = cw - 2;
-                if (pos.x < 2)
-                    pos.x = 2;
-                if (pos.y > ch - 2)
-                    pos.y = ch - 2;
-                if (pos.y < 2)
-                    pos.y = 2;
-                elem.style.left = pos.x + "px";
-                elem.style.top = pos.y + "px";
+                    else {
+                        this.attr("data-text", val);
+                        this.attr("data-value", val);
+                    }
+                    this._invalid = false;
+                    this.refresh();
+                    return this;
+                }
+                else {
+                    val = this.attr("data-value");
+                    return val;
+                }
             };
-            Popup.CLASS = "tui-popup";
-            return Popup;
+            TextArea.prototype.autoResize = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-auto-resize", val);
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-auto-resize");
+            };
+            TextArea.prototype.placeholder = function (txt) {
+                if (typeof txt === "string") {
+                    this.attr("data-placeholder", txt);
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.attr("data-placeholder");
+            };
+            TextArea.prototype.refresh = function () {
+                var placeholder = this.placeholder();
+                if (placeholder === null)
+                    placeholder = "";
+                var text = this.text();
+                if (text === null)
+                    text = "";
+                var withBtn = false;
+                if (this._textbox.value !== text)
+                    this._textbox.value = text;
+                if (this.readonly())
+                    this._textbox.readOnly = true;
+                else
+                    this._textbox.readOnly = false;
+                this._textbox.style.display = "";
+                this._label.style.display = "none";
+                this._textbox.style.width = "";
+                this._textbox.style.width = ($(this[0]).innerWidth() - ($(this._textbox).outerWidth() - $(this._textbox).width())) + "px";
+                //this._textbox.scrollHeight
+                this._textbox.style.height = "";
+                var maxHeight = parseInt($(this[0]).css("max-height"), 10);
+                if (this._textbox.scrollHeight < maxHeight || isNaN(maxHeight)) {
+                    this._textbox.style.overflow = "hidden";
+                    $(this[0]).css("height", this._textbox.scrollHeight + "px");
+                }
+                else {
+                    this._textbox.style.overflow = "auto";
+                    $(this[0]).css("height", maxHeight + "px");
+                }
+                this._textbox.style.height = ($(this[0]).innerHeight() - ($(this._textbox).outerHeight() - $(this._textbox).height())) + "px";
+                //this._textbox.style.lineHeight = this._textbox.style.height;
+                this._label.style.width = this._textbox.style.width;
+                if (placeholder && !text) {
+                    this._label.innerHTML = placeholder;
+                    this._label.style.display = "";
+                    $(this._label).addClass("tui-placeholder");
+                    this._label.style.lineHeight = $(this._label).height() + "px";
+                }
+                else {
+                    $(this._label).removeClass("tui-placeholder");
+                }
+                if (this._invalid) {
+                    $(this._notify).attr("data-tooltip", this._message);
+                    $(this._notify).css({
+                        "display": "",
+                        "right": "0px"
+                    });
+                    $(this._notify).css({
+                        "line-height": this._notify.offsetHeight + "px"
+                    });
+                }
+                else {
+                    $(this._notify).css("display", "none");
+                }
+            };
+            TextArea.CLASS = "tui-textarea";
+            return TextArea;
         })(ctrl.Control);
-        ctrl.Popup = Popup;
-        function checkPopup(e) {
-            setTimeout(function () {
-                var obj = document.activeElement;
-                while (_currentPopup) {
-                    if (_currentPopup.isPosterity(obj) || _currentPopup.owner() === obj)
-                        return;
-                    else
-                        _currentPopup.close();
-                }
-            }, 30);
-        }
-        ctrl.checkPopup = checkPopup;
-        $(document).on("focus mousedown keydown", checkPopup);
-        tui.on("#tui.check.popup", checkPopup);
-        $(window).scroll(function () {
-            closeAllPopup();
-        });
+        ctrl.TextArea = TextArea;
         /**
          * Construct a button.
          * @param el {HTMLElement or element id or construct info}
          */
-        function popup() {
-            return new Popup();
+        function textarea(param) {
+            return tui.ctrl.control(param, TextArea);
         }
-        ctrl.popup = popup;
+        ctrl.textarea = textarea;
+        tui.ctrl.registerInitCallback(TextArea.CLASS, textarea);
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
 /// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.ctrl.button.ts" />
+/// <reference path="tui.ctrl.textarea.ts" />
 var tui;
 (function (tui) {
     var ctrl;
@@ -5032,9 +5963,7 @@ var tui;
                 this._titleDiv = document.createElement("div");
                 this._titleDiv.className = "tui-dlg-title-bar";
                 this._titleDiv.setAttribute("unselectable", "on");
-                this._titleDiv.onselectstart = function () {
-                    return false;
-                };
+                this._titleDiv.onselectstart = function () { return false; };
                 this[0].appendChild(this._titleDiv);
                 this._closeIcon = document.createElement("span");
                 this._closeIcon.className = "tui-dlg-close";
@@ -5124,7 +6053,8 @@ var tui;
                 this[0].focus();
                 this.fire("open");
                 this._sizeTimer = setInterval(function () {
-                    if (self._contentDiv.scrollHeight !== self._originScrollHeight || self._contentDiv.scrollWidth !== self._originScrollWidth) {
+                    if (self._contentDiv.scrollHeight !== self._originScrollHeight ||
+                        self._contentDiv.scrollWidth !== self._originScrollWidth) {
                         self.refresh();
                         self._originScrollHeight = self._contentDiv.scrollHeight;
                         self._originScrollWidth = self._contentDiv.scrollWidth;
@@ -5323,68 +6253,77 @@ var tui;
             }
         });
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
+    function makeWarp(className, message) {
+        var wrap = document.createElement("div");
+        wrap.className = className;
+        if (typeof message === null || message === undefined)
+            message = "";
+        else
+            message += "";
+        var testSpan = document.createElement("span");
+        testSpan.style.position = "absolute";
+        testSpan.style.visibility = "hidden";
+        testSpan.style.display = "inline-block";
+        testSpan.style.whiteSpace = "nowrap";
+        testSpan.innerHTML = message;
+        document.body.appendChild(testSpan);
+        var realWidth = testSpan.offsetWidth;
+        tui.removeNode(testSpan);
+        if (realWidth < 400)
+            wrap.innerHTML = message;
+        else {
+            var span = document.createElement("span");
+            span.className = "tui-textarea tui-inline";
+            var textarea = new tui.ctrl.TextArea(span);
+            textarea.addClass("tui-dlg-long-msg");
+            textarea.text(message);
+            textarea.readonly(true);
+            $(wrap).addClass("tui-dlg-long-warp");
+            wrap.appendChild(textarea[0]);
+        }
+        return wrap;
+    }
     function msgbox(message, title) {
         var dlg = tui.ctrl.dialog();
-        var wrap = document.createElement("div");
-        wrap.className = "tui-dlg-msg";
-        wrap.innerHTML = message;
-        dlg.showElement(wrap, title);
+        dlg.showElement(makeWarp("tui-dlg-msg", message), title);
         return dlg;
     }
     tui.msgbox = msgbox;
     function infobox(message, title) {
         var dlg = tui.ctrl.dialog();
-        var wrap = document.createElement("div");
-        wrap.className = "tui-dlg-warp tui-dlg-info";
-        wrap.innerHTML = message;
-        dlg.showElement(wrap, title);
+        dlg.showElement(makeWarp("tui-dlg-warp tui-dlg-info", message), title);
         return dlg;
     }
     tui.infobox = infobox;
     function okbox(message, title) {
         var dlg = tui.ctrl.dialog();
-        var wrap = document.createElement("div");
-        wrap.className = "tui-dlg-warp tui-dlg-ok";
-        wrap.innerHTML = message;
-        dlg.showElement(wrap, title);
+        dlg.showElement(makeWarp("tui-dlg-warp tui-dlg-ok", message), title);
         return dlg;
     }
     tui.okbox = okbox;
     function errbox(message, title) {
         var dlg = tui.ctrl.dialog();
-        var wrap = document.createElement("div");
-        wrap.className = "tui-dlg-warp tui-dlg-err";
-        wrap.innerHTML = message;
-        dlg.showElement(wrap, title);
+        dlg.showElement(makeWarp("tui-dlg-warp tui-dlg-err", message), title);
         return dlg;
     }
     tui.errbox = errbox;
     function warnbox(message, title) {
         var dlg = tui.ctrl.dialog();
-        var wrap = document.createElement("div");
-        wrap.className = "tui-dlg-warp tui-dlg-warn";
-        wrap.innerHTML = message;
-        dlg.showElement(wrap, title);
+        dlg.showElement(makeWarp("tui-dlg-warp tui-dlg-warn", message), title);
         return dlg;
     }
     tui.warnbox = warnbox;
     function askbox(message, title, callback) {
         var dlg = tui.ctrl.dialog();
-        var wrap = document.createElement("div");
-        wrap.className = "tui-dlg-warp tui-dlg-ask";
-        wrap.innerHTML = message;
         var result = false;
-        dlg.showElement(wrap, title, [
+        dlg.showElement(makeWarp("tui-dlg-warp tui-dlg-ask", message), title, [
             {
-                name: tui.str("Ok"),
-                func: function () {
+                name: tui.str("Ok"), func: function () {
                     result = true;
                     dlg.close();
                 }
-            },
-            {
-                name: tui.str("Cancel"),
-                func: function () {
+            }, {
+                name: tui.str("Cancel"), func: function () {
                     dlg.close();
                 }
             }
@@ -5404,12 +6343,11 @@ var tui;
         wrap.innerHTML = message;
         if (typeof cancelProc === "function")
             dlg.showElement(wrap, null, [{
-                name: tui.str("Cancel"),
-                func: function () {
-                    dlg.close();
-                    cancelProc();
-                }
-            }]);
+                    name: tui.str("Cancel"), func: function () {
+                        dlg.close();
+                        cancelProc();
+                    }
+                }]);
         else {
             dlg.showElement(wrap, null, []);
         }
@@ -5417,6 +6355,55 @@ var tui;
         return dlg;
     }
     tui.waitbox = waitbox;
+    function progressbox(message, cancelProc) {
+        if (cancelProc === void 0) { cancelProc = null; }
+        var dlg = tui.ctrl.dialog();
+        var outbox = document.createElement("div");
+        var wrap = document.createElement("div");
+        wrap.className = "tui-progress-title";
+        wrap.innerHTML = message;
+        outbox.appendChild(wrap);
+        outbox.className = "tui-progress-wrap";
+        var progressbar = document.createElement("div");
+        progressbar.className = "tui-progress-bar";
+        var progress = document.createElement("span");
+        progress.className = "tui-progress";
+        progressbar.appendChild(progress);
+        var block = document.createElement("span");
+        block.className = "tui-progress-block";
+        progress.appendChild(block);
+        var text = document.createElement("span");
+        text.className = "tui-progress-text";
+        text.innerHTML = "0%";
+        progressbar.appendChild(text);
+        outbox.appendChild(progressbar);
+        if (typeof cancelProc === "function")
+            dlg.showElement(outbox, null, [{
+                    name: tui.str("Cancel"), func: function () {
+                        dlg.close();
+                        cancelProc();
+                    }
+                }]);
+        else {
+            dlg.showElement(outbox, null, []);
+        }
+        dlg.useesc(false);
+        dlg["text"] = function (value) {
+            wrap.innerHTML = value;
+        };
+        dlg["progress"] = function (value) {
+            if (typeof value !== "number" || isNaN(value))
+                return;
+            if (value < 0)
+                value = 0;
+            if (value > 100)
+                value = 100;
+            block.style.width = Math.floor(300 * (value / 100)) + "px";
+            text.innerHTML = value + "%";
+        };
+        return dlg;
+    }
+    tui.progressbox = progressbox;
     function loadHTML(url, elem, completeCallback, async, method, data) {
         if (async === void 0) { async = true; }
         tui.loadURL(url, function (status, jqXHR) {
@@ -5438,2852 +6425,14 @@ var tui;
     }
     tui.loadHTML = loadHTML;
 })(tui || (tui = {}));
-/// <reference path="tui.ctrl.control.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (ctrl) {
-        var Scrollbar = (function (_super) {
-            __extends(Scrollbar, _super);
-            function Scrollbar(el) {
-                var _this = this;
-                _super.call(this, "span", Scrollbar.CLASS, el);
-                this._btnThumb = null;
-                this._btnHead = null;
-                this._btnFoot = null;
-                var self = this;
-                this.attr("unselectable", "on");
-                this[0].innerHTML = "";
-                this._btnHead = document.createElement("span");
-                this._btnHead.className = "tui-scroll-head";
-                this[0].appendChild(this._btnHead);
-                this._btnThumb = document.createElement("span");
-                this._btnThumb.className = "tui-scroll-thumb";
-                $(this._btnThumb).attr("unselectable", "on");
-                this[0].appendChild(this._btnThumb);
-                this._btnFoot = document.createElement("span");
-                this._btnFoot.className = "tui-scroll-foot";
-                this[0].appendChild(this._btnFoot);
-                var scrollTimer = null;
-                var scrollInterval = null;
-                var moveParam = null;
-                function stopMove() {
-                    if (scrollTimer) {
-                        clearTimeout(scrollTimer);
-                        scrollTimer = null;
-                    }
-                    if (scrollInterval) {
-                        clearInterval(scrollInterval);
-                        scrollInterval = null;
-                    }
-                }
-                function moveThumb() {
-                    var val = self.value();
-                    var total = self.total();
-                    var achieve = false;
-                    moveParam.pos = Math.round(moveParam.pos);
-                    moveParam.step = Math.round(moveParam.step);
-                    if (val === moveParam.pos)
-                        return;
-                    if (!moveParam.isIncrease) {
-                        val -= moveParam.step;
-                        if (val - (moveParam.isPage ? moveParam.step / 2 : 0) <= moveParam.pos || val <= 0) {
-                            achieve = true;
-                            if (val < 0)
-                                val = 0;
-                            stopMove();
-                        }
-                        self.value(val);
-                    }
-                    else {
-                        val += moveParam.step;
-                        if (val + (moveParam.isPage ? moveParam.step / 2 : 0) >= moveParam.pos || val >= total) {
-                            achieve = true;
-                            if (val > total)
-                                val = total;
-                            stopMove();
-                        }
-                        self.value(val);
-                    }
-                    self.fire("scroll", { value: self.value(), type: "mousedown" });
-                    return achieve;
-                }
-                function releaseButton(e) {
-                    stopMove();
-                    $(self._btnHead).removeClass("tui-actived");
-                    $(self._btnFoot).removeClass("tui-actived");
-                    $(tui.unmask()).off("mouseup", releaseButton);
-                    $(document).off("mouseup", releaseButton);
-                }
-                ;
-                $(this[0]).mousedown(function (e) {
-                    tui.fire("#tui.check.popup");
-                    // Should check which target object was triggered.
-                    if (!tui.isLButton(e)) {
-                        return;
-                    }
-                    var obj = e.target;
-                    if (obj !== self[0]) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        return;
-                    }
-                    if (_this.total() <= 0)
-                        return;
-                    var dir = self.direction();
-                    var pos, thumbLen;
-                    if (dir === "vertical") {
-                        pos = (typeof e.offsetY === "number" ? e.offsetY : e["originalEvent"].layerY);
-                        thumbLen = _this._btnThumb.offsetHeight;
-                    }
-                    else {
-                        pos = (typeof e.offsetX === "number" ? e.offsetX : e["originalEvent"].layerX);
-                        thumbLen = _this._btnThumb.offsetWidth;
-                    }
-                    var v = _this.posToValue(pos - thumbLen / 2);
-                    moveParam = { pos: v, step: self.page(), isIncrease: v > self.value(), isPage: true };
-                    if (!moveThumb()) {
-                        scrollTimer = setTimeout(function () {
-                            scrollTimer = null;
-                            scrollInterval = setInterval(moveThumb, 20);
-                        }, 300);
-                        $(tui.mask()).on("mouseup", releaseButton);
-                        $(document).on("mouseup", releaseButton);
-                    }
-                    e.stopPropagation();
-                    e.preventDefault();
-                    return false;
-                });
-                $(this._btnHead).mousedown(function (e) {
-                    if (!tui.isLButton(e))
-                        return;
-                    if (self.total() <= 0)
-                        return;
-                    $(self._btnHead).addClass("tui-actived");
-                    moveParam = { pos: 0, step: self.step(), isIncrease: false, isPage: false };
-                    if (!moveThumb()) {
-                        scrollTimer = setTimeout(function () {
-                            scrollTimer = null;
-                            scrollInterval = setInterval(moveThumb, 20);
-                        }, 300);
-                        $(tui.mask()).on("mouseup", releaseButton);
-                        $(document).on("mouseup", releaseButton);
-                    }
-                });
-                $(this._btnFoot).mousedown(function (e) {
-                    if (!tui.isLButton(e))
-                        return;
-                    if (self.total() <= 0)
-                        return;
-                    $(self._btnFoot).addClass("tui-actived");
-                    moveParam = { pos: self.total(), step: self.step(), isIncrease: true, isPage: false };
-                    if (!moveThumb()) {
-                        scrollTimer = setTimeout(function () {
-                            scrollTimer = null;
-                            scrollInterval = setInterval(moveThumb, 20);
-                        }, 300);
-                        $(tui.mask()).on("mouseup", releaseButton);
-                        $(document).on("mouseup", releaseButton);
-                    }
-                });
-                var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel";
-                $(this[0]).on(mousewheelevt, function (e) {
-                    var ev = e.originalEvent;
-                    var delta = ev.detail ? ev.detail * (-120) : ev.wheelDelta;
-                    //delta returns +120 when wheel is scrolled up, -120 when scrolled down
-                    var scrollSize = (Math.round(self.page() / 2) > self.step() ? Math.round(self.page() / 2) : self.step());
-                    var oldValue = self.value();
-                    if (delta <= -120) {
-                        self.value(self.value() + scrollSize);
-                    }
-                    else {
-                        self.value(self.value() - scrollSize);
-                    }
-                    if (oldValue !== self.value())
-                        self.fire("scroll", { value: self.value(), type: "mousewheel" });
-                    e.stopPropagation();
-                    e.preventDefault();
-                });
-                var beginX = 0, beginY = 0, beginLeft = 0, beginTop = 0;
-                function dragThumb(e) {
-                    var diff = 0;
-                    var oldValue = self.value();
-                    var pos;
-                    if (self.direction() === "vertical") {
-                        diff = e.clientY - beginY;
-                        pos = beginTop + diff;
-                    }
-                    else {
-                        diff = e.clientX - beginX;
-                        pos = beginLeft + diff;
-                    }
-                    self.value(self.posToValue(pos));
-                    if (oldValue !== self.value()) {
-                        self.fire("scroll", { value: self.value(), type: "drag" });
-                    }
-                }
-                function dragEnd(e) {
-                    $(tui.unmask()).off("mousemove", dragThumb);
-                    $(document).off("mouseup", dragEnd);
-                    $(self._btnThumb).removeClass("tui-actived");
-                    self.fire("dragend", { value: self.value() });
-                }
-                $(this._btnThumb).mousedown(function (e) {
-                    if (!tui.isLButton(e))
-                        return;
-                    beginX = e.clientX;
-                    beginY = e.clientY;
-                    beginLeft = self._btnThumb.offsetLeft;
-                    beginTop = self._btnThumb.offsetTop;
-                    $(self._btnThumb).addClass("tui-actived");
-                    $(tui.mask()).on("mousemove", dragThumb);
-                    $(document).on("mouseup", dragEnd);
-                    self.fire("dragbegin", { value: self.value() });
-                });
-                this.refresh();
-            }
-            Scrollbar.prototype.total = function (val) {
-                if (typeof val === "number") {
-                    if (val < 0)
-                        val = 0;
-                    val = Math.round(val);
-                    this.attr("data-total", val);
-                    if (this.value() > val)
-                        this.value(val);
-                    else
-                        this.refresh();
-                    return this;
-                }
-                else {
-                    var val = parseInt(this.attr("data-total"), 10);
-                    if (val === null || isNaN(val))
-                        return 0;
-                    else
-                        return val;
-                }
-            };
-            Scrollbar.prototype.value = function (val) {
-                if (typeof val === "number") {
-                    val = Math.round(val);
-                    if (val < 0)
-                        val = 0;
-                    if (val > this.total())
-                        val = this.total();
-                    this.attr("data-value", val);
-                    this.refresh();
-                    return this;
-                }
-                else {
-                    var val = parseInt(this.attr("data-value"), 10);
-                    if (val === null || isNaN(val))
-                        return 0;
-                    else
-                        return val;
-                }
-            };
-            Scrollbar.prototype.step = function (val) {
-                if (typeof val === "number") {
-                    val = Math.round(val);
-                    if (val < 1)
-                        val = 1;
-                    if (val > this.total())
-                        val = this.total();
-                    this.attr("data-step", val);
-                    if (val > this.page())
-                        this.page(val);
-                    else
-                        this.refresh();
-                    return this;
-                }
-                else {
-                    var val = parseInt(this.attr("data-step"), 10);
-                    if (val === null || isNaN(val))
-                        return this.total() > 0 ? 1 : 0;
-                    else
-                        return val;
-                }
-            };
-            Scrollbar.prototype.page = function (val) {
-                if (typeof val === "number") {
-                    val = Math.round(val);
-                    if (val < 1)
-                        val = 1;
-                    if (val > this.total())
-                        val = this.total();
-                    this.attr("data-page", val);
-                    if (val < this.step())
-                        this.step(val);
-                    else
-                        this.refresh();
-                    return this;
-                }
-                else {
-                    var val = parseInt(this.attr("data-page"), 10);
-                    if (val === null || isNaN(val))
-                        return this.total() > 0 ? 1 : 0;
-                    else
-                        return val;
-                }
-            };
-            Scrollbar.prototype.direction = function (val) {
-                if (typeof val === "string") {
-                    if (["horizontal", "vertical"].indexOf(val) >= 0) {
-                        this.attr("data-direction", val);
-                        this.refresh();
-                    }
-                    return this;
-                }
-                else {
-                    var dir = this.attr("data-direction");
-                    if (dir === null)
-                        return "vertical";
-                    else
-                        return dir;
-                }
-            };
-            Scrollbar.prototype.logicLenToRealLen = function (logicLen) {
-                var len = 0;
-                var total = this.total();
-                if (total <= 0)
-                    return 0;
-                if (this.direction() === "vertical") {
-                    len = this[0].clientHeight - this._btnHead.offsetHeight - this._btnFoot.offsetHeight - this._btnThumb.offsetHeight;
-                }
-                else {
-                    len = this[0].clientWidth - this._btnHead.offsetWidth - this._btnFoot.offsetWidth - this._btnThumb.offsetWidth;
-                }
-                return logicLen / total * len;
-            };
-            Scrollbar.prototype.posToValue = function (pos) {
-                var total = this.total();
-                if (total <= 0) {
-                    return 0;
-                }
-                var len = 0;
-                var val = 0;
-                if (this.direction() === "vertical") {
-                    len = this[0].clientHeight - this._btnHead.offsetHeight - this._btnFoot.offsetHeight - this._btnThumb.offsetHeight;
-                    val = (pos - this._btnHead.offsetHeight) / len * total;
-                }
-                else {
-                    len = this[0].clientWidth - this._btnHead.offsetWidth - this._btnFoot.offsetWidth - this._btnThumb.offsetWidth;
-                    val = (pos - this._btnHead.offsetWidth) / len * total;
-                }
-                val = Math.round(val);
-                return val;
-            };
-            Scrollbar.prototype.valueToPos = function (value) {
-                var total = this.total();
-                var step = this.step();
-                var page = this.page();
-                var vertical = (this.direction() === "vertical");
-                var minSize = (vertical ? this._btnHead.offsetHeight : this._btnHead.offsetWidth);
-                if (total <= 0) {
-                    return { pos: 0, thumbLen: 0 };
-                }
-                var len = (vertical ? this[0].clientHeight - this._btnHead.offsetHeight - this._btnFoot.offsetHeight : this[0].clientWidth - this._btnHead.offsetWidth - this._btnFoot.offsetWidth);
-                var thumbLen = Math.round(page / total * len);
-                if (thumbLen < minSize)
-                    thumbLen = minSize;
-                if (thumbLen > len - 10)
-                    thumbLen = len - 10;
-                var scale = (value / total);
-                if (scale < 0)
-                    scale = 0;
-                if (scale > 1)
-                    scale = 1;
-                var pos = minSize + Math.round(scale * (len - thumbLen)) - 1;
-                return {
-                    "pos": pos,
-                    "thumbLen": thumbLen
-                };
-            };
-            Scrollbar.prototype.refresh = function () {
-                var pos = this.valueToPos(this.value());
-                var vertical = (this.direction() === "vertical");
-                if (vertical) {
-                    this._btnThumb.style.height = (pos.thumbLen > 0 ? pos.thumbLen : 0) + "px";
-                    this._btnThumb.style.top = pos.pos + "px";
-                    this._btnThumb.style.left = "";
-                    this._btnThumb.style.width = "";
-                }
-                else {
-                    this._btnThumb.style.width = (pos.thumbLen > 0 ? pos.thumbLen : 0) + "px";
-                    this._btnThumb.style.left = pos.pos + "px";
-                    this._btnThumb.style.top = "";
-                    this._btnThumb.style.height = "";
-                }
-            };
-            Scrollbar.CLASS = "tui-scrollbar";
-            return Scrollbar;
-        })(ctrl.Control);
-        ctrl.Scrollbar = Scrollbar;
-        /**
-         * Construct a scrollbar.
-         * @param el {HTMLElement or element id or construct info}
-         */
-        function scrollbar(param) {
-            return tui.ctrl.control(param, Scrollbar);
-        }
-        ctrl.scrollbar = scrollbar;
-        tui.ctrl.registerInitCallback(Scrollbar.CLASS, scrollbar);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
-/// <reference path="tui.ctrl.control.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (ctrl) {
-        var Table = (function (_super) {
-            __extends(Table, _super);
-            function Table(el) {
-                _super.call(this, "table", ctrl.Grid.CLASS, el);
-                this._splitters = [];
-                this._columns = [];
-                this._data = null;
-                var self = this;
-                this.addClass(Table.CLASS);
-                this._columns = [];
-                var noHead = this.noHead();
-                var headLine = this.headLine();
-                var headKeys = [];
-                if (headLine) {
-                    for (var i = 0; i < headLine.cells.length; i++) {
-                        var cell = headLine.cells[i];
-                        var colKey = $(cell).attr("data-key");
-                        if (!noHead) {
-                            var col = {
-                                name: cell.innerHTML,
-                                key: colKey ? colKey : i
-                            };
-                            headKeys.push(colKey ? colKey : i);
-                            this._columns.push(col);
-                        }
-                        else {
-                            headKeys.push(i);
-                            this._columns.push({ name: "", key: i });
-                        }
-                    }
-                }
-                else {
-                    if (!this.hasAttr("data-columns")) {
-                        this._columns = [];
-                    }
-                }
-                var data = {
-                    head: headKeys,
-                    data: []
-                };
-                for (var i = noHead ? 0 : 1; i < this[0].rows.length; i++) {
-                    var row = this[0].rows[i];
-                    var rowData = [];
-                    for (var j = 0; j < this._columns.length; j++) {
-                        rowData.push(row.cells[j].innerHTML);
-                    }
-                    data.data.push(rowData);
-                }
-                this.data(data);
-            }
-            Table.prototype.headLine = function () {
-                var tb = this[0];
-                if (!tb)
-                    return null;
-                return tb.rows[0];
-            };
-            Table.prototype.createSplitters = function () {
-                var self = this;
-                this._splitters.length = 0;
-                var tb = this[0];
-                if (!tb)
-                    return;
-                var headLine = this.headLine();
-                if (!headLine)
-                    return;
-                if (this.noHead())
-                    return;
-                for (var i = 0; i < this._splitters.length; i++) {
-                    tui.removeNode(this._splitters[i]);
-                }
-                if (this.resizable()) {
-                    for (var i = 0; i < headLine.cells.length; i++) {
-                        var cell = headLine.cells[i];
-                        var splitter = document.createElement("span");
-                        splitter["colIndex"] = i;
-                        splitter.className = "tui-table-splitter";
-                        if (typeof this._columns[i].width !== "number")
-                            this._columns[i].width = $(cell).width();
-                        $(splitter).attr("unselectable", "on");
-                        headLine.cells[i].appendChild(splitter);
-                        this._splitters.push(splitter);
-                        $(splitter).mousedown(function (e) {
-                            var target = e.target;
-                            var l = target.offsetLeft;
-                            var srcX = e.clientX;
-                            target.style.height = self[0].clientHeight + "px";
-                            target.style.bottom = "";
-                            $(target).addClass("tui-splitter-move");
-                            var mask = tui.mask();
-                            mask.style.cursor = "col-resize";
-                            function onDragEnd(e) {
-                                $(document).off("mousemove", onDrag);
-                                $(document).off("mouseup", onDragEnd);
-                                $(target).removeClass("tui-splitter-move");
-                                tui.unmask();
-                                var colIndex = target["colIndex"];
-                                var tmpWidth = self._columns[colIndex].width + e.clientX - srcX;
-                                if (tmpWidth < 0)
-                                    tmpWidth = 0;
-                                self._columns[colIndex].width = tmpWidth;
-                                self._columns[colIndex].important = true;
-                                self.refresh();
-                                self.fire("resizecolumn", colIndex);
-                            }
-                            function onDrag(e) {
-                                target.style.left = l + e.clientX - srcX + "px";
-                            }
-                            $(document).mousemove(onDrag);
-                            $(document).mouseup(onDragEnd);
-                        });
-                    }
-                }
-            };
-            Table.prototype.noHead = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-no-head", val);
-                    this.data(this.data());
-                    return this;
-                }
-                else
-                    return this.is("data-no-head");
-            };
-            Table.prototype.columns = function (val) {
-                if (val) {
-                    this._columns = val;
-                    this.data(this.data());
-                    return this;
-                }
-                else {
-                    if (!this._columns) {
-                        var valstr = this.attr("data-columns");
-                        this._columns = eval("(" + valstr + ")");
-                    }
-                    return this._columns;
-                }
-            };
-            Table.prototype.value = function (data) {
-                if (data === null) {
-                    return this.data([]);
-                }
-                else if (data) {
-                    return this.data(data);
-                }
-                else {
-                    var result = [];
-                    var dt = this.data();
-                    for (var i = 0; i < dt.length(); i++) {
-                        result.push(dt.at(i));
-                    }
-                    return result;
-                }
-            };
-            Table.prototype.data = function (data) {
-                if (data) {
-                    var self = this;
-                    if (data instanceof Array || data.data && data.data instanceof Array) {
-                        data = new tui.ArrayProvider(data);
-                    }
-                    if (typeof data.length !== "function" || typeof data.sort !== "function" || typeof data.at !== "function" || typeof data.columnKeyMap !== "function") {
-                        throw new Error("TUI Table: need a data provider.");
-                    }
-                    var tb = this[0];
-                    while (tb.rows.length > 0) {
-                        tb.deleteRow(0);
-                    }
-                    if (!this.noHead()) {
-                        var row = tb.insertRow(-1);
-                        for (var j = 0; j < this._columns.length; j++) {
-                            var cell = row.insertCell(-1);
-                            cell.className = "tui-table-head";
-                            if (["center", "left", "right"].indexOf(this._columns[j].headAlign) >= 0)
-                                cell.style.textAlign = this._columns[j].headAlign;
-                            var contentDiv = cell.appendChild(document.createElement("div"));
-                            contentDiv.innerHTML = this._columns[j].name;
-                        }
-                    }
-                    for (var i = 0; i < data.length(); i++) {
-                        var rowData = data.at(i);
-                        var row = tb.insertRow(-1);
-                        for (var j = 0; j < this._columns.length; j++) {
-                            var cell = row.insertCell(-1);
-                            if (["center", "left", "right"].indexOf(this._columns[j].align) >= 0)
-                                cell.style.textAlign = this._columns[j].align;
-                            var contentDiv = cell.appendChild(document.createElement("div"));
-                            var key;
-                            if (this._columns[j].key) {
-                                key = this._columns[j].key;
-                            }
-                            else {
-                                key = j;
-                            }
-                            contentDiv.innerHTML = rowData[key];
-                        }
-                    }
-                    this.createSplitters();
-                    this.refresh();
-                    return this;
-                }
-                else {
-                    return this._data;
-                }
-            };
-            Table.prototype.resizable = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-resizable", val);
-                    this.createSplitters();
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-resizable");
-            };
-            Table.prototype.refresh = function () {
-                if (!this.resizable())
-                    return;
-                var tb = this[0];
-                if (!tb)
-                    return;
-                var headLine = tb.rows[0];
-                if (!headLine)
-                    return;
-                var cellPadding = headLine.cells.length > 0 ? $(headLine.cells[0]).outerWidth() - $(headLine.cells[0]).width() : 0;
-                var defaultWidth = Math.floor(tb.offsetWidth / (headLine.cells.length > 0 ? headLine.cells.length : 1) - cellPadding);
-                var totalWidth = 0;
-                var computeWidth = tb.offsetWidth - cellPadding * (headLine.cells.length > 0 ? headLine.cells.length : 1);
-                for (var i = 0; i < this._columns.length; i++) {
-                    if (typeof this._columns[i].width !== "number") {
-                        this._columns[i].width = defaultWidth;
-                        totalWidth += defaultWidth;
-                    }
-                    else if (!this._columns[i].important) {
-                        totalWidth += this._columns[i].width;
-                    }
-                    else {
-                        if (this._columns[i].width > computeWidth)
-                            this._columns[i].width = computeWidth;
-                        if (this._columns[i].width < 1)
-                            this._columns[i].width = 1;
-                        computeWidth -= this._columns[i].width;
-                    }
-                }
-                for (var i = 0; i < this._columns.length; i++) {
-                    if (!this._columns[i].important) {
-                        if (totalWidth === 0)
-                            this._columns[i].width = 0;
-                        else
-                            this._columns[i].width = Math.floor(this._columns[i].width / totalWidth * computeWidth);
-                        if (this._columns[i].width < 1)
-                            this._columns[i].width = 1;
-                    }
-                    else {
-                        this._columns[i].important = false;
-                    }
-                    if (tb.rows.length > 0) {
-                        var row = tb.rows[0];
-                        $(row.cells[i]).css("width", this._columns[i].width + "px");
-                    }
-                }
-                var headLine = this.headLine();
-                for (var i = 0; i < this._splitters.length; i++) {
-                    var splitter = this._splitters[i];
-                    var cell = headLine.cells[i];
-                    splitter.style.left = cell.offsetLeft + cell.offsetWidth - Math.round(splitter.offsetWidth / 2) + "px";
-                    splitter.style.height = headLine.offsetHeight + "px";
-                }
-            };
-            Table.CLASS = "tui-table";
-            return Table;
-        })(ctrl.Control);
-        ctrl.Table = Table;
-        /**
-         * Construct a table control.
-         * @param el {HTMLElement or element id or construct info}
-         */
-        function table(param) {
-            return tui.ctrl.control(param, Table);
-        }
-        ctrl.table = table;
-        tui.ctrl.registerInitCallback(Table.CLASS, table);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
-/// <reference path="tui.ctrl.control.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (ctrl) {
-        var Grid = (function (_super) {
-            __extends(Grid, _super);
-            function Grid(el) {
-                _super.call(this, "div", Grid.CLASS, el);
-                this._tableId = tui.uuid();
-                this._gridStyle = null;
-                // Grid data related
-                this._columns = null;
-                this._emptyColumns = [];
-                this._data = null;
-                this._emptyData = new tui.ArrayProvider([]);
-                this._splitters = [];
-                // Scrolling related
-                this._scrollTop = 0;
-                this._scrollLeft = 0;
-                this._bufferedLines = [];
-                this._bufferedBegin = 0;
-                this._bufferedEnd = 0; // _bufferedEnd = _bufferedBegin + buffered count
-                this._dispLines = 0; // How many lines can be displayed in grid viewable area
-                // Drawing related flags
-                this._selectrows = [];
-                this._activerow = null;
-                //private _columnKeyMap: {} = null;
-                this._noRefresh = false;
-                this._initialized = false;
-                //private _initInterval = null;
-                // Following variables are very useful when grid switch to edit mode 
-                // because grid cell need spend more time to draw.
-                this._drawingTimer = null;
-                this._delayDrawing = true;
-                var self = this;
-                this.attr("tabIndex", "0");
-                this[0].innerHTML = "";
-                if (document.createStyleSheet) {
-                    this._gridStyle = document.createStyleSheet();
-                }
-                else {
-                    this._gridStyle = document.createElement("style");
-                    document.head.appendChild(this._gridStyle);
-                }
-                this._headline = document.createElement("div");
-                this._headline.className = "tui-grid-head";
-                this[0].appendChild(this._headline);
-                this._hscroll = tui.ctrl.scrollbar();
-                this._hscroll.direction("horizontal");
-                this[0].appendChild(this._hscroll[0]);
-                this._vscroll = tui.ctrl.scrollbar();
-                this._vscroll.direction("vertical");
-                this[0].appendChild(this._vscroll[0]);
-                this._space = document.createElement("span");
-                this._space.className = "tui-scroll-space";
-                this[0].appendChild(this._space);
-                var scrollTimeDelay = (tui.ieVer > 8 ? 100 : 50);
-                this._vscroll.on("scroll", function (data) {
-                    if (!self._delayDrawing) {
-                        self._scrollTop = data["value"];
-                        self.drawLines();
-                    }
-                    else {
-                        var diff = Math.abs(data["value"] - self._scrollTop);
-                        self._scrollTop = data["value"];
-                        if (diff < 3 * self._lineHeight && self._drawingTimer === null) {
-                            self.drawLines();
-                        }
-                        else {
-                            self.drawLines(true);
-                            clearTimeout(self._drawingTimer);
-                            self._drawingTimer = setTimeout(function () {
-                                self.clearBufferLines();
-                                self.drawLines();
-                                self._drawingTimer = null;
-                            }, scrollTimeDelay);
-                        }
-                    }
-                });
-                this._hscroll.on("scroll", function (data) {
-                    self._scrollLeft = data["value"];
-                    self.drawLines();
-                });
-                var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel";
-                $(this[0]).on(mousewheelevt, function (ev) {
-                    var e = ev.originalEvent;
-                    var delta = e.detail ? e.detail * (-120) : e.wheelDelta;
-                    var step = Math.round(self._vscroll.page() / 2);
-                    //delta returns +120 when wheel is scrolled up, -120 when scrolled down
-                    var scrollSize = step > self._vscroll.step() ? step : self._vscroll.step();
-                    if (delta <= -120) {
-                        if (self._vscroll.value() < self._vscroll.total()) {
-                            self._vscroll.value(self._vscroll.value() + scrollSize);
-                            self._scrollTop = self._vscroll.value();
-                            self.drawLines();
-                            ev.stopPropagation();
-                            ev.preventDefault();
-                        }
-                        else if (self.consumeMouseWheelEvent()) {
-                            ev.stopPropagation();
-                            ev.preventDefault();
-                        }
-                    }
-                    else {
-                        if (self._vscroll.value() > 0) {
-                            self._vscroll.value(self._vscroll.value() - scrollSize);
-                            self._scrollTop = self._vscroll.value();
-                            self.drawLines();
-                            ev.stopPropagation();
-                            ev.preventDefault();
-                        }
-                        else if (self.consumeMouseWheelEvent()) {
-                            ev.stopPropagation();
-                            ev.preventDefault();
-                        }
-                    }
-                });
-                $(this[0]).mousedown(function (e) {
-                    tui.focusWithoutScroll(self[0]);
-                    e.preventDefault();
-                });
-                $(this[0]).keyup(function (e) {
-                    self.fire("keyup", { event: e });
-                });
-                $(this[0]).on("contextmenu", function (e) {
-                    return self.fire("contextmenu", { event: e });
-                });
-                $(this[0]).keydown(function (e) {
-                    if (self.fire("keydown", { event: e }) === false)
-                        return;
-                    var data = self.myData();
-                    var k = e.keyCode;
-                    // 37:left 38:up 39:right 40:down
-                    if ([33, 34, 37, 38, 39, 40].indexOf(k) >= 0) {
-                        if (k === 37) {
-                            !self._hscroll.hidden() && self._hscroll.value(self._hscroll.value() - self._hscroll.step());
-                            self._scrollLeft = self._hscroll.value();
-                            self.drawLines();
-                        }
-                        else if (k === 38) {
-                            if (!self.rowselectable() || data.length() <= 0) {
-                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() - self._vscroll.step());
-                                self._scrollTop = self._vscroll.value();
-                                self.drawLines();
-                            }
-                            else {
-                                if (self._activerow === null) {
-                                    self.activerow(0);
-                                    self.scrollTo(self._activerow);
-                                }
-                                else {
-                                    if (self._activerow > 0)
-                                        self.activerow(self._activerow - 1);
-                                    self.scrollTo(self._activerow);
-                                }
-                            }
-                        }
-                        else if (k === 39) {
-                            !self._hscroll.hidden() && self._hscroll.value(self._hscroll.value() + self._hscroll.step());
-                            self._scrollLeft = self._hscroll.value();
-                            self.drawLines();
-                        }
-                        else if (k === 40) {
-                            if (!self.rowselectable() || data.length() <= 0) {
-                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() + self._vscroll.step());
-                                self._scrollTop = self._vscroll.value();
-                                self.drawLines();
-                            }
-                            else {
-                                if (self._activerow === null) {
-                                    self.activerow(0);
-                                    self.scrollTo(self._activerow);
-                                }
-                                else {
-                                    if (self._activerow < data.length() - 1)
-                                        self.activerow(self._activerow + 1);
-                                    self.scrollTo(self._activerow);
-                                }
-                            }
-                        }
-                        else if (k === 33) {
-                            if (!self.rowselectable() || data.length() <= 0) {
-                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() - self._vscroll.page());
-                                self._scrollTop = self._vscroll.value();
-                                self.drawLines();
-                            }
-                            else {
-                                if (self._activerow === null) {
-                                    self.activerow(0);
-                                    self.scrollTo(self._activerow);
-                                }
-                                else {
-                                    if (self._activerow > 0)
-                                        self.activerow(self._activerow - self._dispLines);
-                                    self.scrollTo(self._activerow);
-                                }
-                            }
-                        }
-                        else if (k === 34) {
-                            if (!self.rowselectable() || data.length() <= 0) {
-                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() + self._vscroll.page());
-                                self._scrollTop = self._vscroll.value();
-                                self.drawLines();
-                            }
-                            else {
-                                if (self._activerow === null) {
-                                    self.activerow(self._dispLines);
-                                    self.scrollTo(self._activerow);
-                                }
-                                else {
-                                    if (self._activerow < data.length() - 1)
-                                        self.activerow(self._activerow + self._dispLines);
-                                    self.scrollTo(self._activerow);
-                                }
-                            }
-                        }
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (tui.ieVer > 0)
-                            self[0].setActive();
-                    }
-                    else if (k === tui.KEY_TAB) {
-                        if ((e.target || e.srcElement) === self[0]) {
-                            var rowIndex;
-                            if (self.rowselectable()) {
-                                rowIndex = self.activerow();
-                            }
-                            else {
-                                rowIndex = self._bufferedBegin;
-                            }
-                            if (self.editRow(rowIndex))
-                                e.preventDefault();
-                        }
-                    }
-                });
-                if (this.hasAttr("data-delay-drawing"))
-                    this._delayDrawing = this.is("data-delay-drawing");
-                var predefined = this.attr("data-data");
-                if (predefined)
-                    predefined = eval("(" + predefined + ")");
-                if (predefined)
-                    this.data(predefined);
-                else
-                    this.refresh();
-                //if (!this._initialized) {
-                //	this._initInterval = setInterval(() => {
-                //		self.refresh();
-                //		if (self._initialized) {
-                //			clearInterval(self._initInterval);
-                //			self._initInterval = null;
-                //		}
-                //	}, 100);
-                //}
-            }
-            //release() {
-            //	if (this._initInterval)
-            //		clearInterval(this._initInterval);
-            //}
-            // Make sure not access null object
-            Grid.prototype.myData = function () {
-                return this._data || this._emptyData;
-            };
-            Grid.prototype.myColumns = function () {
-                return this.columns() || this._emptyColumns;
-            };
-            Grid.prototype.headHeight = function () {
-                if (!this.noHead())
-                    return this._headHeight;
-                else
-                    return 0;
-            };
-            Grid.colSize = function (size, def) {
-                if (typeof size === "number" && !isNaN(size)) {
-                    if (size < 0)
-                        return 0;
-                    else
-                        return Math.round(size);
-                }
-                else
-                    return def;
-            };
-            Grid.prototype.computeVScroll = function (mark) {
-                var hScrollbarHeight = this._hscroll.hidden() ? 0 : this._hscroll[0].offsetHeight;
-                var contentHeight = this._contentHeight;
-                var innerHeight = this._boxHeight - hScrollbarHeight;
-                var totalHeight = contentHeight + this.headHeight();
-                this._dispLines = Math.ceil((innerHeight - this.headHeight()) / this._lineHeight);
-                var vHidden = this._vscroll.hidden();
-                if (totalHeight > innerHeight) {
-                    this._vscroll.hidden(false);
-                    this._vscroll[0].style.bottom = hScrollbarHeight + "px";
-                    this._vscroll.total(totalHeight - innerHeight).value(this._scrollTop).step(this._lineHeight).page(innerHeight / totalHeight * (totalHeight - innerHeight));
-                }
-                else {
-                    this._vscroll.hidden(true);
-                    this._vscroll.total(0);
-                }
-                this._scrollTop = this._vscroll.value();
-                if (vHidden !== this._vscroll.hidden()) {
-                    this.computeHScroll(mark);
-                    this.computeColumns();
-                }
-            };
-            Grid.prototype.computeHScroll = function (mark) {
-                mark.isHScrollComputed = true;
-                var columns = this.myColumns();
-                var vScrollbarWidth = this._vscroll.hidden() ? 0 : this._vscroll[0].offsetWidth;
-                var innerWidth = this._boxWidth - vScrollbarWidth;
-                var hHidden = this._hscroll.hidden();
-                if (this.hasHScroll()) {
-                    this._contentWidth = 0;
-                    var cols = (columns.length < 1 ? 1 : columns.length);
-                    var defaultWidth = Math.floor((innerWidth - this._borderWidth * cols) / cols);
-                    if (defaultWidth < 100)
-                        defaultWidth = 100;
-                    for (var i = 0; i < columns.length; i++) {
-                        this._contentWidth += Grid.colSize(columns[i].width, defaultWidth) + this._borderWidth;
-                    }
-                    if (this._contentWidth > innerWidth) {
-                        this._hscroll.hidden(false);
-                        this._hscroll[0].style.right = vScrollbarWidth + "px";
-                        this._hscroll.total(this._contentWidth - innerWidth).value(this._scrollLeft).step(10).page(innerWidth / this._contentWidth * (this._contentWidth - innerWidth));
-                    }
-                    else {
-                        this._hscroll.hidden(true);
-                        this._hscroll.total(0);
-                    }
-                }
-                else {
-                    this._contentWidth = innerWidth;
-                    this._hscroll.hidden(true);
-                    this._hscroll.total(0);
-                }
-                this._scrollLeft = this._hscroll.value();
-                if (hHidden !== this._hscroll.hidden())
-                    this.computeVScroll(mark);
-            };
-            Grid.prototype.computeScroll = function () {
-                this._boxWidth = this[0].clientWidth;
-                this._boxHeight = this[0].clientHeight;
-                var cell = document.createElement("span");
-                cell.className = "tui-grid-cell";
-                var line = document.createElement("span");
-                line.className = "tui-grid-line";
-                line.appendChild(cell);
-                cell.innerHTML = "a";
-                this[0].appendChild(line);
-                this._lineHeight = $(line).outerHeight(); //line.offsetHeight;
-                this._borderWidth = $(cell).outerWidth() - $(cell).width();
-                cell.className = "tui-grid-head-cell";
-                line.className = "tui-grid-head";
-                this._headHeight = line.offsetHeight;
-                this[0].removeChild(line);
-                this._contentHeight = this._lineHeight * this.myData().length();
-                var mark = { isHScrollComputed: false };
-                this._hscroll.hidden(true);
-                this._vscroll.hidden(true);
-                this.computeVScroll(mark);
-                if (!mark.isHScrollComputed) {
-                    this.computeHScroll(mark);
-                    this.computeColumns();
-                }
-                if (!this._hscroll.hidden() && !this._vscroll.hidden()) {
-                    this._space.style.display = "";
-                }
-                else
-                    this._space.style.display = "none";
-            };
-            // Do not need call this function standalone, 
-            // it's always to be called by computeScroll function
-            Grid.prototype.computeColumns = function () {
-                var columns = this.myColumns();
-                var vScrollbarWidth = this._vscroll.hidden() ? 0 : this._vscroll[0].offsetWidth;
-                var innerWidth = this._boxWidth - vScrollbarWidth;
-                var cols = (columns.length < 1 ? 1 : columns.length);
-                var defaultWidth = Math.floor((innerWidth - this._borderWidth * cols) / cols);
-                if (this.hasHScroll()) {
-                    if (defaultWidth < 100)
-                        defaultWidth = 100;
-                    for (var i = 0; i < columns.length; i++) {
-                        delete columns[i]["_important"];
-                        columns[i].width = Grid.colSize(columns[i].width, defaultWidth);
-                    }
-                }
-                else {
-                    var totalNoBorderWidth = this._contentWidth - this._borderWidth * cols;
-                    totalNoBorderWidth += (vScrollbarWidth === 0 ? 1 : 0);
-                    var totalNoFixedWidth = totalNoBorderWidth;
-                    var totalNeedComputed = 0;
-                    var totalNeedComputedCount = 0;
-                    var totalImportantWidth = 0;
-                    var important = [];
-                    for (var i = 0; i < columns.length; i++) {
-                        if (columns[i]["fixed"]) {
-                            if (typeof columns[i].width !== "number" || isNaN(columns[i].width))
-                                columns[i].width = defaultWidth;
-                            totalNoFixedWidth -= columns[i].width;
-                        }
-                    }
-                    if (totalNoFixedWidth < 0)
-                        totalNoFixedWidth = 0;
-                    var totalNoImportantWidth = totalNoFixedWidth;
-                    for (var i = 0; i < columns.length; i++) {
-                        if (typeof columns[i].width !== "number" || isNaN(columns[i].width))
-                            columns[i].width = defaultWidth;
-                        else if (columns[i].width < 0)
-                            columns[i].width = 0;
-                        if (columns[i]["fixed"]) {
-                        }
-                        else if (columns[i]["_important"]) {
-                            important.push(i);
-                            delete columns[i]["_important"];
-                            columns[i].width = Math.round(columns[i].width);
-                            if (columns[i].width > totalNoFixedWidth) {
-                                columns[i].width = totalNoFixedWidth;
-                            }
-                            totalImportantWidth += columns[i].width;
-                            totalNoImportantWidth -= columns[i].width;
-                        }
-                        else {
-                            totalNeedComputed += Math.round(columns[i].width);
-                            totalNeedComputedCount++;
-                        }
-                    }
-                    if (totalNeedComputedCount > 0 && totalNeedComputed === 0) {
-                        for (var i = 0; i < columns.length; i++) {
-                            if (important.indexOf(i) < 0 && !columns[i]["fixed"]) {
-                                columns[i].width = Math.floor(totalNoImportantWidth / totalNeedComputedCount);
-                            }
-                        }
-                    }
-                    else {
-                        for (var i = 0; i < columns.length; i++) {
-                            if (important.indexOf(i) < 0 && !columns[i]["fixed"]) {
-                                if (totalNeedComputed === 0)
-                                    columns[i].width = 0; // To avoid divide by zero
-                                else
-                                    columns[i].width = Math.floor(Math.round(columns[i].width) / totalNeedComputed * totalNoImportantWidth);
-                            }
-                        }
-                    }
-                    var total = 0;
-                    for (var i = 0; i < columns.length; i++) {
-                        total += columns[i].width;
-                    }
-                    if (total < totalNoBorderWidth && columns.length > 0) {
-                        for (var i = 0; i < columns.length; i++) {
-                            if (!columns[i].fixed) {
-                                columns[i].width += totalNoBorderWidth - total;
-                                break;
-                            }
-                        }
-                    }
-                }
-                var cssText = "";
-                for (var i = 0; i < columns.length; i++) {
-                    var wd = columns[i].width;
-                    cssText += (".tui-grid-" + this._tableId + "-" + i + "{width:" + wd + "px}");
-                }
-                if (document.createStyleSheet)
-                    this._gridStyle.cssText = cssText;
-                else
-                    this._gridStyle.innerHTML = cssText;
-            };
-            Grid.prototype.bindSplitter = function (cell, col, colIndex) {
-                var self = this;
-                var splitter = document.createElement("span");
-                splitter.className = "tui-grid-splitter";
-                splitter.setAttribute("unselectable", "on");
-                $(splitter).mousedown(function (e) {
-                    var l = splitter.offsetLeft;
-                    var srcX = e.clientX;
-                    splitter.style.height = self[0].clientHeight + "px";
-                    splitter.style.bottom = "";
-                    $(splitter).addClass("tui-splitter-move");
-                    var mask = tui.mask();
-                    mask.style.cursor = "col-resize";
-                    function onDragEnd(e) {
-                        $(document).off("mousemove", onDrag);
-                        $(document).off("mouseup", onDragEnd);
-                        tui.unmask();
-                        splitter.style.bottom = "0";
-                        splitter.style.height = "";
-                        $(splitter).removeClass("tui-splitter-move");
-                        col.width = col.width + e.clientX - srcX;
-                        col["_important"] = true;
-                        var currentTime = tui.today().getTime();
-                        if (col["_lastClickTime"]) {
-                            if (currentTime - col["_lastClickTime"] < 500) {
-                                self.autofitColumn(colIndex, false, true);
-                                self.fire("resizecolumn", { col: colIndex });
-                                return;
-                            }
-                        }
-                        col["_lastClickTime"] = currentTime;
-                        self.refresh();
-                        self.fire("resizecolumn", { col: colIndex });
-                    }
-                    function onDrag(e) {
-                        splitter.style.left = l + e.clientX - srcX + "px";
-                    }
-                    $(document).on("mousemove", onDrag);
-                    $(document).on("mouseup", onDragEnd);
-                });
-                this._splitters.push(splitter);
-                return splitter;
-            };
-            Grid.prototype.bindSort = function (cell, col, colIndex) {
-                var self = this;
-                if (col.sort) {
-                    $(cell).addClass("tui-grid-sortable");
-                    $(cell).mousedown(function (event) {
-                        if (!tui.isLButton(event))
-                            return;
-                        if (self._sortColumn !== colIndex)
-                            self.sort(colIndex);
-                        else if (!self._sortDesc)
-                            self.sort(colIndex, true);
-                        else
-                            self.sort(null);
-                    });
-                }
-                if (self._sortColumn === colIndex) {
-                    if (self._sortDesc)
-                        $(cell).addClass("tui-grid-cell-sort-desc");
-                    else
-                        $(cell).addClass("tui-grid-cell-sort-asc");
-                }
-            };
-            Grid.prototype.moveSplitter = function () {
-                for (var i = 0; i < this._splitters.length; i++) {
-                    var splitter = this._splitters[i];
-                    var cell = this._headline.childNodes[i]; //*2];
-                    splitter.style.left = cell.offsetLeft + cell.offsetWidth - Math.round(splitter.offsetWidth / 2) + "px";
-                }
-            };
-            Grid.prototype.drawCell = function (cell, contentSpan, col, colKey, value, row, rowIndex, colIndex) {
-                if (rowIndex >= 0) {
-                    if (["center", "left", "right"].indexOf(col.align) >= 0)
-                        cell.style.textAlign = col.align;
-                }
-                else {
-                    if (["center", "left", "right"].indexOf(col.headAlign) >= 0)
-                        cell.style.textAlign = col.headAlign;
-                }
-                if (value === null || typeof value === tui.undef) {
-                    contentSpan.innerHTML = "";
-                }
-                else if (typeof value === "object" && value.nodeName) {
-                    contentSpan.innerHTML = "";
-                    contentSpan.appendChild(value);
-                }
-                else {
-                    contentSpan.innerHTML = value;
-                }
-                if (typeof col.format === "function") {
-                    col.format.call(this, {
-                        cell: cell,
-                        value: value,
-                        row: row,
-                        col: col,
-                        colKey: colKey,
-                        rowIndex: rowIndex,
-                        colIndex: colIndex,
-                        isRowActived: rowIndex === this._activerow,
-                        grid: this
-                    });
-                }
-                if (this._sortColumn === colIndex)
-                    $(cell).addClass("tui-grid-sort-cell");
-                else
-                    $(cell).removeClass("tui-grid-sort-cell");
-            };
-            Grid.prototype.drawHead = function () {
-                if (this.noHead()) {
-                    $(this._headline).addClass("tui-hidden");
-                    return;
-                }
-                $(this._headline).removeClass("tui-hidden");
-                var columns = this.myColumns();
-                this._headline.innerHTML = "";
-                this._splitters.length = 0;
-                for (var i = 0; i < columns.length; i++) {
-                    var col = columns[i];
-                    var key = null;
-                    if (typeof col.key !== tui.undef && col.key !== null) {
-                        key = this.myData().mapKey(col.key);
-                        if (typeof key === tui.undef)
-                            key = col.key;
-                    }
-                    var cell = document.createElement("span");
-                    cell.setAttribute("unselectable", "on");
-                    cell.className = "tui-grid-head-cell tui-grid-" + this._tableId + "-" + i;
-                    this._headline.appendChild(cell);
-                    var contentSpan = document.createElement("span");
-                    contentSpan.className = "tui-grid-cell-content";
-                    cell.appendChild(contentSpan);
-                    this.drawCell(cell, contentSpan, col, key, col.name, null, -1, i);
-                    this.bindSort(cell, col, i);
-                    if (this.resizable()) {
-                        var splitter = this.bindSplitter(cell, col, i);
-                        if (typeof columns[i].fixed === "boolean" && columns[i].fixed)
-                            $(splitter).addClass("tui-hidden");
-                    }
-                }
-                for (var i = 0; i < this._splitters.length; i++) {
-                    var splitter = this._splitters[i];
-                    this._headline.appendChild(splitter);
-                }
-                this.moveSplitter();
-            };
-            Grid.prototype.isRowSelected = function (rowIndex) {
-                return this._selectrows.indexOf(rowIndex) >= 0;
-            };
-            Grid.prototype.drawLine = function (line, index, empty) {
-                var columns = this.myColumns();
-                if (line.childNodes.length !== columns.length) {
-                    line.innerHTML = "";
-                    var rowSel = this.rowselectable();
-                    for (var i = 0; i < columns.length; i++) {
-                        var cell = document.createElement("span");
-                        if (rowSel)
-                            cell.setAttribute("unselectable", "on");
-                        cell.className = "tui-grid-cell tui-grid-" + this._tableId + "-" + i;
-                        line.appendChild(cell);
-                    }
-                }
-                if (empty) {
-                    return;
-                }
-                var self = this;
-                var data = this.myData();
-                var rowData = data.at(index);
-                for (var i = 0; i < line.childNodes.length; i++) {
-                    var cell = line.childNodes[i];
-                    cell.innerHTML = "";
-                    var contentSpan = document.createElement("span");
-                    contentSpan.className = "tui-grid-cell-content";
-                    cell.appendChild(contentSpan);
-                    var col = columns[i];
-                    var key = null;
-                    if (typeof col.key !== tui.undef)
-                        key = data.mapKey(col.key);
-                    var value = (key !== null && rowData ? rowData[key] : "");
-                    this.drawCell(cell, contentSpan, col, key, value, rowData, index, i);
-                }
-                var jqLine = $(line);
-                jqLine.on("contextmenu", function (e) {
-                    return self.fire("rowcontextmenu", { "event": e, "index": index, "row": line });
-                });
-                var dragIndex = null;
-                var mouseDownPt = null;
-                jqLine.mousedown(function (e) {
-                    if (self.rowselectable()) {
-                        self.activerow(index);
-                        self.scrollTo(index);
-                    }
-                    if (self.fire("rowmousedown", { "event": e, "index": index, "row": line }) === false)
-                        return;
-                    if (self.rowdraggable() && tui.isLButton(e)) {
-                        mouseDownPt = { x: e.clientX, y: e.clientY };
-                        dragIndex = null;
-                        function testdrag(e) {
-                            if (mouseDownPt === null || dragIndex !== null) {
-                                return;
-                            }
-                            if (Math.abs(e.clientX - mouseDownPt.x) < 5 && Math.abs(e.clientY - mouseDownPt.y) < 5) {
-                                return;
-                            }
-                            if (self.fire("rowdragstart", { "event": e, "index": index, "row": line }) === false)
-                                return;
-                            jqLine.addClass("tui-grid-line-drag");
-                            dragIndex = index;
-                            var m = tui.mask();
-                            m.setAttribute("data-cursor-tooltip", "true");
-                            self.focus();
-                            // DRAG A LINE
-                            var upTimer = null;
-                            var downTimer = null;
-                            var firstScroll = true;
-                            var lineHeight = self.lineHeight();
-                            var headHeight = self.headHeight();
-                            var targetBox = document.createElement("div");
-                            var targetIndex = null;
-                            var position = null;
-                            targetBox.className = "tui-grid-line-drop";
-                            function fireBefore(targetLine) {
-                                if (self.fire("rowdragover", { "event": e, "index": dragIndex, "targetIndex": targetIndex, position: "before" }) !== false) {
-                                    targetBox.style.top = targetLine.offsetTop - 2 + "px";
-                                    targetBox.style.height = "3px";
-                                    targetBox.className = "tui-grid-line-drop-before";
-                                    m.setAttribute("data-tooltip", "<i class='fa fa-level-up'></i> Move before ...");
-                                    position = "before";
-                                    return true;
-                                }
-                                else
-                                    return false;
-                            }
-                            function fireAfter(targetLine) {
-                                if (self.fire("rowdragover", { "event": e, "index": dragIndex, "targetIndex": targetIndex, position: "after" }) !== false) {
-                                    targetBox.style.top = targetLine.offsetTop + targetLine.offsetHeight - 2 + "px";
-                                    targetBox.style.height = "3px";
-                                    targetBox.className = "tui-grid-line-drop-after";
-                                    m.setAttribute("data-tooltip", "<i class='fa fa-level-down'></i> Move after ...");
-                                    position = "after";
-                                    return true;
-                                }
-                                else
-                                    return false;
-                            }
-                            function fireInside(targetLine) {
-                                if (self.fire("rowdragover", { "event": e, "index": dragIndex, "targetIndex": targetIndex, position: "inside" }) !== false) {
-                                    targetBox.style.top = targetLine.offsetTop - 2 + "px";
-                                    targetBox.style.height = targetLine.clientHeight + "px";
-                                    targetBox.className = "tui-grid-line-drop";
-                                    m.setAttribute("data-tooltip", "<i class='fa fa-arrow-right'></i> Move into ...");
-                                    position = "inside";
-                                    return true;
-                                }
-                                else
-                                    return false;
-                            }
-                            function move(e) {
-                                if (!tui.isLButton(e)) {
-                                    targetIndex = null;
-                                    position = null;
-                                    release(e, true);
-                                    return;
-                                }
-                                var x = e.clientX;
-                                var y = e.clientY;
-                                var pos = tui.fixedPosition(self[0]);
-                                if (x < pos.x || x > pos.x + self[0].offsetWidth || y < pos.y || y > pos.y + self[0].offsetHeight) {
-                                    m.style.cursor = "not-allowed";
-                                }
-                                else
-                                    m.style.cursor = "move";
-                                if (y < pos.y + headHeight) {
-                                    clearInterval(downTimer);
-                                    downTimer = null;
-                                    upTimer === null && (upTimer = setInterval(function () {
-                                        if (firstScroll)
-                                            self.scrollTo(self._bufferedBegin);
-                                        else if (self._bufferedBegin > 0) {
-                                            self.scrollTo(self._bufferedBegin - 1);
-                                        }
-                                        firstScroll = false;
-                                    }, 80)) && (firstScroll = true);
-                                    tui.removeNode(targetBox);
-                                    targetIndex = null;
-                                    position = null;
-                                    m.removeAttribute("data-tooltip");
-                                }
-                                else if (y > pos.y + self[0].offsetHeight) {
-                                    clearInterval(upTimer);
-                                    upTimer = null;
-                                    downTimer === null && (downTimer = setInterval(function () {
-                                        if (firstScroll)
-                                            self.scrollTo(self._bufferedEnd - 1);
-                                        else if (self._bufferedEnd <= self._data.length()) {
-                                            self.scrollTo(self._bufferedEnd - 1);
-                                        }
-                                        firstScroll = false;
-                                    }, 80)) && (firstScroll = true);
-                                    tui.removeNode(targetBox);
-                                    targetIndex = null;
-                                    position = null;
-                                    m.removeAttribute("data-tooltip");
-                                }
-                                else {
-                                    clearInterval(downTimer);
-                                    clearInterval(upTimer);
-                                    downTimer = null;
-                                    upTimer = null;
-                                    // Use mouse position to detect which row is currently moved to.
-                                    var base = headHeight - self._scrollTop % lineHeight;
-                                    targetIndex = Math.floor((y - (pos.y + base)) / lineHeight);
-                                    var targetLine = self._bufferedLines[targetIndex];
-                                    if (!targetLine) {
-                                        targetIndex = self._bufferedEnd - 1;
-                                        return;
-                                    }
-                                    else
-                                        targetIndex += self._bufferedBegin;
-                                    if (targetIndex === dragIndex) {
-                                        tui.removeNode(targetBox);
-                                        targetIndex = null;
-                                        return;
-                                    }
-                                    pos = tui.fixedPosition(targetLine);
-                                    targetBox.style.left = targetLine.offsetLeft - 2 + "px";
-                                    targetBox.style.width = targetLine.offsetWidth + "px";
-                                    if (y - pos.y <= 12) {
-                                        if (!fireBefore(targetLine))
-                                            fireInside(targetLine);
-                                    }
-                                    else if (pos.y + targetLine.offsetHeight - y <= 12) {
-                                        if (!fireAfter(targetLine))
-                                            fireInside(targetLine);
-                                    }
-                                    else {
-                                        if (!fireInside(targetLine)) {
-                                            if (y - pos.y <= lineHeight / 2)
-                                                fireBefore(targetLine);
-                                            else
-                                                fireAfter(targetLine);
-                                        }
-                                    }
-                                    self[0].appendChild(targetBox);
-                                }
-                            }
-                            function release(env, canceled) {
-                                jqLine.removeClass("tui-grid-line-drag");
-                                console.debug("mouse release");
-                                mouseDownPt = null;
-                                clearInterval(downTimer);
-                                clearInterval(upTimer);
-                                downTimer = null;
-                                upTimer = null;
-                                tui.removeNode(targetBox);
-                                $(m).off("mousemove", move);
-                                $(m).off("mouseup", release);
-                                $(document).off("mouseup", release);
-                                $(self[0]).off("keydown", keydown);
-                                tui.unmask();
-                                tui.closeTooltip();
-                                self.fire("rowdragend", { "event": env, "index": dragIndex, "targetIndex": targetIndex, position: position, canceled: !!canceled });
-                                dragIndex = null;
-                            }
-                            function keydown(e) {
-                                if (e.keyCode === tui.KEY_ESC) {
-                                    targetIndex = null;
-                                    position = null;
-                                    release(e, true);
-                                    e.stopPropagation();
-                                }
-                            }
-                            $(m).on("mousemove", move);
-                            $(m).on("mouseup", release);
-                            $(document).on("mouseup", release);
-                            $(self[0]).on("keydown", keydown);
-                        }
-                        function release() {
-                            mouseDownPt = null;
-                            $(document).off("mouseup", release);
-                            $(document).off("mousemove", testdrag);
-                        }
-                        $(document).on("mouseup", release);
-                        $(document).on("mousemove", testdrag);
-                    }
-                    //	e.stopPropagation();
-                });
-                jqLine.mouseenter(function (e) {
-                    self.fire("rowmouseenter", { "event": e, "index": index, "row": line });
-                });
-                jqLine.mouseleave(function (e) {
-                    self.fire("rowmouseleave", { "event": e, "index": index, "row": line });
-                });
-                jqLine.mouseup(function (e) {
-                    self.fire("rowmouseup", { "event": e, "index": index, "row": line });
-                });
-                jqLine.on("click", function (e) {
-                    self.fire("rowclick", { "event": e, "index": index, "row": line });
-                });
-                jqLine.on("dblclick", function (e) {
-                    self.fire("rowdblclick", { "event": e, "index": index, "row": line });
-                });
-            };
-            Grid.prototype.moveLine = function (line, index, base) {
-                line.style.top = (base + index * this._lineHeight) + "px";
-                line.style.left = -this._scrollLeft + "px";
-            };
-            Grid.prototype.drawLines = function (empty) {
-                if (empty === void 0) { empty = false; }
-                this._headline.style.left = -this._scrollLeft + "px";
-                var base = this.headHeight() - this._scrollTop % this._lineHeight;
-                var begin = Math.floor(this._scrollTop / this._lineHeight);
-                var newBuffer = [];
-                var data = this.myData();
-                for (var i = begin; i < begin + this._dispLines + 1 && i < data.length(); i++) {
-                    if (i >= this._bufferedBegin && i < this._bufferedEnd) {
-                        // Is buffered.
-                        var line = this._bufferedLines[i - this._bufferedBegin];
-                        this.moveLine(line, i - begin, base);
-                        newBuffer.push(line);
-                    }
-                    else {
-                        var line = document.createElement("div");
-                        line.className = "tui-grid-line";
-                        this[0].appendChild(line);
-                        newBuffer.push(line);
-                        line["_rowIndex"] = i;
-                        this.drawLine(line, i, empty);
-                        this.moveLine(line, i - begin, base);
-                    }
-                    if (this.isRowSelected(i)) {
-                        $(line).addClass("tui-grid-line-selected");
-                    }
-                    else
-                        $(line).removeClass("tui-grid-line-selected");
-                }
-                var end = i;
-                for (var i = this._bufferedBegin; i < this._bufferedEnd; i++) {
-                    if (i < begin || i >= end)
-                        this[0].removeChild(this._bufferedLines[i - this._bufferedBegin]);
-                }
-                this._bufferedLines = newBuffer;
-                this._bufferedBegin = begin;
-                this._bufferedEnd = end;
-            };
-            Grid.prototype.clearBufferLines = function () {
-                if (!this[0])
-                    return;
-                for (var i = 0; i < this._bufferedLines.length; i++) {
-                    var l = this._bufferedLines[i];
-                    this[0].removeChild(l);
-                }
-                this._bufferedLines = [];
-                this._bufferedEnd = this._bufferedBegin = 0;
-            };
-            Grid.prototype.lineHeight = function () {
-                if (typeof this._lineHeight !== tui.undef)
-                    return this._lineHeight;
-                else {
-                    var grid = document.createElement("div");
-                    grid.className = this[0].className;
-                    var line = document.createElement("div");
-                    line.className = "tui-grid-line";
-                    grid.appendChild(line);
-                    document.body.appendChild(grid);
-                    var lineHeight = line.offsetHeight;
-                    document.body.removeChild(grid);
-                    return lineHeight;
-                }
-            };
-            Grid.prototype.select = function (rows) {
-                if (rows && typeof rows.length === "number" && rows.length >= 0) {
-                    this._selectrows.length = 0;
-                    for (var i = 0; i < rows.length; i++) {
-                        this._selectrows.push(rows[i]);
-                    }
-                    // Clear buffer cause row click event cannot be raised, 
-                    // so never do this when we only want to change row selection status.
-                    this.drawLines();
-                }
-                return this._selectrows;
-            };
-            Grid.prototype.activerow = function (rowIndex) {
-                if (typeof rowIndex === "number" || rowIndex === null) {
-                    if (rowIndex < 0)
-                        rowIndex = 0;
-                    if (rowIndex >= this.myData().length())
-                        rowIndex = this.myData().length() - 1;
-                    this._activerow = rowIndex;
-                    if (rowIndex === null)
-                        this.select([]);
-                    else
-                        this.select([rowIndex]);
-                }
-                return this._activerow;
-            };
-            Grid.prototype.activeItem = function (rowItem) {
-                var data = this.myData();
-                if (typeof rowItem !== tui.undef) {
-                    if (rowItem === null) {
-                        this.activerow(null);
-                    }
-                    else {
-                        for (var i = 0; i < data.length(); i++) {
-                            if (data.at(i) === rowItem) {
-                                this.activerow(i);
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (this._activerow !== null) {
-                    return data.at(this._activerow);
-                }
-                else
-                    return null;
-            };
-            /**
-             * Sort by specifed column
-             * @param {Number} colIndex
-             * @param {Boolean} desc
-             */
-            Grid.prototype.sort = function (colIndex, desc) {
-                if (desc === void 0) { desc = false; }
-                var columns = this.myColumns();
-                if (colIndex === null) {
-                    this._sortColumn = null;
-                    this.myData().sort(null, desc);
-                    this._sortDesc = false;
-                }
-                else if (typeof colIndex === "number" && !isNaN(colIndex) && colIndex >= 0 && colIndex < columns.length && columns[colIndex].sort) {
-                    this._sortColumn = colIndex;
-                    this._sortDesc = desc;
-                    if (typeof columns[colIndex].sort === "function")
-                        this.myData().sort(columns[colIndex].key, this._sortDesc, columns[colIndex].sort);
-                    else
-                        this.myData().sort(columns[colIndex].key, this._sortDesc);
-                }
-                this._sortDesc = !!desc;
-                this._scrollTop = 0;
-                this.activerow(null);
-                this._initialized = false;
-                this.refresh();
-                return { colIndex: this._sortColumn, desc: this._sortDesc };
-            };
-            /**
-             * Adjust column width to adapt column content
-             * @param {Number} columnIndex
-             * @param {Boolean} expandOnly Only expand column width
-             * @param {Boolean} displayedOnly Only compute displayed lines,
-             *		if this parameter is false then grid will compute all lines
-             *		regardless of whether it is visible
-             */
-            Grid.prototype.autofitColumn = function (columnIndex, expandOnly, displayedOnly) {
-                if (expandOnly === void 0) { expandOnly = false; }
-                if (displayedOnly === void 0) { displayedOnly = true; }
-                if (typeof (columnIndex) !== "number")
-                    return;
-                var columns = this.myColumns();
-                if (columnIndex < 0 && columnIndex >= columns.length)
-                    return;
-                var col = columns[columnIndex];
-                var maxWidth = 0;
-                if (expandOnly)
-                    maxWidth = col.width || 0;
-                var cell = document.createElement("span");
-                cell.className = "tui-grid-cell";
-                cell.style.position = "absolute";
-                cell.style.visibility = "hidden";
-                cell.style.width = "auto";
-                document.body.appendChild(cell);
-                var data = this.myData();
-                var key = null;
-                if (typeof col.key !== tui.undef && col.key !== null) {
-                    key = data.mapKey(col.key);
-                    if (typeof key === tui.undef)
-                        key = col.key;
-                }
-                var begin = displayedOnly ? this._bufferedBegin : 0;
-                var end = displayedOnly ? this._bufferedEnd : data.length();
-                for (var i = begin; i < end; i++) {
-                    var rowData = data.at(i);
-                    var v = rowData[key];
-                    if (typeof v === "object" && v.nodeName) {
-                        cell.innerHTML = "";
-                        cell.appendChild(v);
-                    }
-                    else {
-                        cell.innerHTML = v;
-                    }
-                    if (typeof col.format === "function")
-                        col.format({
-                            cell: cell,
-                            value: v,
-                            row: rowData,
-                            col: col,
-                            colKey: key,
-                            rowIndex: i,
-                            colIndex: columnIndex,
-                            isRowActived: i === this._activerow,
-                            grid: this
-                        });
-                    if (maxWidth < cell.offsetWidth - this._borderWidth)
-                        maxWidth = cell.offsetWidth - this._borderWidth;
-                }
-                document.body.removeChild(cell);
-                col.width = maxWidth;
-                col["_important"] = true;
-                this._initialized = false;
-                this.refresh();
-            };
-            Grid.prototype.delayDrawing = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-delay-drawing", val);
-                    this._delayDrawing = val;
-                    return this;
-                }
-                else
-                    return this._delayDrawing;
-            };
-            Grid.prototype.hasHScroll = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-has-hscroll", val);
-                    this._initialized = false;
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-has-hscroll");
-            };
-            Grid.prototype.noHead = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-no-head", val);
-                    this._initialized = false;
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-no-head");
-            };
-            Grid.prototype.columns = function (val) {
-                if (val) {
-                    this._columns = val;
-                    this._initialized = false;
-                    this.refresh();
-                    return this;
-                }
-                else {
-                    if (!this._columns) {
-                        var valstr = this.attr("data-columns");
-                        this._columns = eval("(" + valstr + ")");
-                    }
-                    return this._columns;
-                }
-            };
-            Grid.prototype.rowselectable = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-rowselectable", val);
-                    this._initialized = false;
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-rowselectable");
-            };
-            Grid.prototype.rowdraggable = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-rowdraggable", val);
-                    return this;
-                }
-                else
-                    return this.is("data-rowdraggable");
-            };
-            Grid.prototype.scrollTo = function (rowIndex) {
-                if (typeof rowIndex !== "number" || isNaN(rowIndex) || rowIndex < 0 || rowIndex >= this.myData().length())
-                    return;
-                var v = this._vscroll.value();
-                if (v > rowIndex * this._lineHeight) {
-                    this._vscroll.value(rowIndex * this._lineHeight);
-                    this._scrollTop = this._vscroll.value();
-                    this.drawLines();
-                }
-                else {
-                    var h = (rowIndex - this._dispLines + 1) * this._lineHeight;
-                    var diff = (this._boxHeight - this.headHeight() - this._hscroll[0].offsetHeight - this._dispLines * this._lineHeight);
-                    if (v < h - diff) {
-                        this._vscroll.value(h - diff);
-                        this._scrollTop = this._vscroll.value();
-                        this.drawLines();
-                    }
-                }
-            };
-            Grid.prototype.editCell = function (rowIndex, colIndex) {
-                if (typeof rowIndex !== "number" || rowIndex < 0 || rowIndex >= this.myData().length())
-                    return false;
-                if (typeof colIndex !== "number" || colIndex < 0 || colIndex >= this.columns().length)
-                    return false;
-                if (this.rowselectable()) {
-                    this.activerow(rowIndex);
-                }
-                this.scrollTo(rowIndex);
-                var line = this._bufferedLines[rowIndex - this._bufferedBegin];
-                var cell = line.childNodes[colIndex];
-                if (cell.childNodes[1] && cell.childNodes[1]["_ctrl"]) {
-                    cell.childNodes[1]["_ctrl"].focus();
-                    return true;
-                }
-                else if (cell.childNodes[0] && cell.childNodes[0].childNodes[0] && cell.childNodes[0].childNodes[0]["_ctrl"]) {
-                    cell.childNodes[0].childNodes[0]["_ctrl"].focus();
-                    return true;
-                }
-                else
-                    return false;
-            };
-            Grid.prototype.editRow = function (rowIndex) {
-                if (typeof rowIndex !== "number" || rowIndex < 0 || rowIndex >= this.myData().length())
-                    return false;
-                for (var i = 0; i < this._columns.length; i++) {
-                    if (this.editCell(rowIndex, i))
-                        return true;
-                }
-                return false;
-            };
-            Grid.prototype.resizable = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-resizable", val);
-                    this._initialized = false;
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-resizable");
-            };
-            Grid.prototype.value = function (data) {
-                if (data === null) {
-                    return this.data([]);
-                }
-                else if (data) {
-                    return this.data(data);
-                }
-                else {
-                    var result = [];
-                    var dt = this.data();
-                    for (var i = 0; i < dt.length(); i++) {
-                        result.push(dt.at(i));
-                    }
-                    return result;
-                }
-            };
-            Grid.prototype.data = function (data) {
-                var _this = this;
-                if (data) {
-                    var self = this;
-                    if (data instanceof Array || data.data && data.data instanceof Array) {
-                        data = new tui.ArrayProvider(data);
-                    }
-                    if (typeof data.length !== "function" || typeof data.sort !== "function" || typeof data.at !== "function" || typeof data.columnKeyMap !== "function") {
-                        this._initialized = false;
-                        this.refresh();
-                        throw new Error("TUI Grid: need a data provider.");
-                    }
-                    this._data && this._data.onupdate && this._data.onupdate(null);
-                    this._data = data;
-                    typeof this._data.onupdate === "function" && this._data.onupdate(function (updateInfo) {
-                        var b = updateInfo.begin;
-                        var e = b + updateInfo.data.length;
-                        _this._initialized = false;
-                        self.refresh();
-                    });
-                    this._initialized = false;
-                    this.refresh();
-                    return this;
-                }
-                else {
-                    return this.myData();
-                }
-            };
-            Grid.prototype.consumeMouseWheelEvent = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-consume-mwe", val);
-                    return this;
-                }
-                else
-                    return this.is("data-consume-mwe");
-            };
-            Grid.prototype.noRefresh = function (val) {
-                if (typeof val === "boolean") {
-                    this._noRefresh = val;
-                    return this;
-                }
-                else
-                    return this._noRefresh;
-            };
-            Grid.prototype.refreshHead = function () {
-                this.drawHead();
-            };
-            Grid.prototype.refresh = function () {
-                if (this._noRefresh)
-                    return;
-                if (!this[0] || this[0].parentElement === null)
-                    return;
-                if (this[0].offsetWidth === 0 || this[0].offsetHeight === 0)
-                    return;
-                this._initialized = true;
-                this.computeScroll();
-                this.clearBufferLines();
-                //			this._columnKeyMap = this.myData().columnKeyMap();
-                this.drawHead();
-                this.drawLines();
-            };
-            Grid.prototype.autoRefresh = function () {
-                return !this._initialized;
-            };
-            /// Following static methods are used for cell formatting.
-            Grid.menu = function (itemMenu, func, menuPos) {
-                if (menuPos === void 0) { menuPos = "Rb"; }
-                return function (data) {
-                    if (data.rowIndex < 0)
-                        return;
-                    var tb = data.grid;
-                    var array = data.grid.data().src();
-                    data.cell.firstChild.innerHTML = "";
-                    var btnMenu = tui.ctrl.button();
-                    btnMenu.addClass("tui-grid-menu-button");
-                    btnMenu.text("<i class='fa fa-bars'></i>");
-                    if (typeof itemMenu === "function")
-                        btnMenu.menu(itemMenu(data));
-                    else
-                        btnMenu.menu(itemMenu);
-                    btnMenu.menuPos(menuPos);
-                    data.cell.firstChild.appendChild(btnMenu[0]);
-                    btnMenu.on("select", function (d) {
-                        func && func(d.item, data);
-                    });
-                    $(btnMenu[0]).mousedown(function (e) {
-                        data.grid.editCell(data.rowIndex, data.colIndex);
-                        e.stopPropagation();
-                        tui.fire("#tui.check.popup");
-                    });
-                    $(btnMenu[0]).keydown(function (e) {
-                        handleKeyDownEvent(e, data, "button");
-                    });
-                };
-            };
-            Grid.button = function (text, func) {
-                return function (data) {
-                    if (data.rowIndex < 0)
-                        return;
-                    var tb = data.grid;
-                    var array = data.grid.data().src();
-                    data.cell.firstChild.innerHTML = "";
-                    var btnMenu = tui.ctrl.button();
-                    btnMenu.text(text);
-                    data.cell.firstChild.appendChild(btnMenu[0]);
-                    btnMenu.on("click", function () {
-                        func && func(data);
-                    });
-                    $(btnMenu[0]).mousedown(function (e) {
-                        data.grid.editCell(data.rowIndex, data.colIndex);
-                        e.stopPropagation();
-                        tui.fire("#tui.check.popup");
-                    });
-                    $(btnMenu[0]).keydown(function (e) {
-                        handleKeyDownEvent(e, data, "button");
-                    });
-                };
-            };
-            Grid.checkbox = function (withHeader) {
-                if (withHeader === void 0) { withHeader = true; }
-                return function (data) {
-                    if (data.rowIndex < 0) {
-                        if (withHeader) {
-                            var headCheck = tui.ctrl.checkbox();
-                            data.cell.firstChild.innerHTML = "";
-                            data.cell.firstChild.appendChild(headCheck[0]);
-                            data.cell.style.textAlign = "center";
-                            var dataSet = data.grid.data();
-                            var totalLen = dataSet.length();
-                            var checkedCount = 0;
-                            var uncheckCount = 0;
-                            for (var i = 0; i < totalLen; i++) {
-                                if (dataSet.at(i)[data.colKey])
-                                    checkedCount++;
-                                else
-                                    uncheckCount++;
-                            }
-                            if (totalLen === uncheckCount) {
-                                headCheck.checked(false);
-                                headCheck.triState(false);
-                            }
-                            else if (totalLen === checkedCount) {
-                                headCheck.checked(true);
-                                headCheck.triState(false);
-                            }
-                            else
-                                headCheck.triState(true);
-                            headCheck.on("click", function () {
-                                if (typeof data.colKey !== tui.undef) {
-                                    for (var i = 0; i < totalLen; i++) {
-                                        dataSet.at(i)[data.colKey] = headCheck.checked();
-                                    }
-                                }
-                                data.value = headCheck.checked();
-                                data.grid.refresh();
-                            });
-                        }
-                        return;
-                    }
-                    else {
-                        data.cell.firstChild.innerHTML = "";
-                        var chk = tui.ctrl.checkbox();
-                        data.cell.firstChild.appendChild(chk[0]);
-                        data.cell.style.textAlign = "center";
-                        chk.checked(data.value);
-                        chk.on("click", function () {
-                            if (typeof data.colKey !== tui.undef)
-                                data.row[data.colKey] = chk.checked();
-                            data.value = chk.checked();
-                            data.grid.refreshHead();
-                        });
-                        $(chk[0]).keydown(function (e) {
-                            handleKeyDownEvent(e, data, "checkbox");
-                        });
-                    }
-                };
-            }; // end of chechBox
-            Grid.textEditor = function (listData) {
-                return createInputFormatter("text", listData);
-            };
-            Grid.selector = function (listData) {
-                return createInputFormatter("select", listData);
-            }; // end of selector
-            Grid.fileSelector = function (address, accept) {
-                return createInputFormatter("file", address, accept);
-            }; // end of fileSelector
-            Grid.calendarSelector = function () {
-                return createInputFormatter("calendar");
-            }; // end of calendarSelector
-            Grid.customSelector = function (func, icon) {
-                if (icon === void 0) { icon = "fa-ellipsis-h"; }
-                return createInputFormatter("custom-select", func, icon);
-            }; // end of calendarSelector
-            Grid.CLASS = "tui-grid";
-            return Grid;
-        })(ctrl.Control);
-        ctrl.Grid = Grid;
-        function handleKeyDownEvent(e, data, type) {
-            var k = e.keyCode;
-            var col, row;
-            if (k === tui.KEY_DOWN) {
-                if (data.rowIndex < data.grid.data().length() - 1)
-                    data.grid.editCell(data.rowIndex + 1, data.colIndex);
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            else if (k === tui.KEY_UP) {
-                if (data.rowIndex > 0)
-                    data.grid.editCell(data.rowIndex - 1, data.colIndex);
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            else if (k === tui.KEY_LEFT) {
-                if (type !== "text" || e.ctrlKey) {
-                    col = data.colIndex - 1;
-                    while (col >= 0) {
-                        if (data.grid.editCell(data.rowIndex, col--))
-                            break;
-                    }
-                }
-                e.stopPropagation();
-            }
-            else if (k === tui.KEY_RIGHT) {
-                if (type !== "text" || e.ctrlKey) {
-                    col = data.colIndex + 1;
-                    while (col < data.grid.columns().length) {
-                        if (data.grid.editCell(data.rowIndex, col++))
-                            break;
-                    }
-                }
-                e.stopPropagation();
-            }
-            else if (k === tui.KEY_TAB && e.shiftKey) {
-                col = data.colIndex;
-                row = data.rowIndex;
-                while (row >= 0 && col >= 0) {
-                    col--;
-                    if (col < 0) {
-                        col = data.grid.columns().length - 1;
-                        row--;
-                    }
-                    if (data.grid.editCell(row, col))
-                        break;
-                }
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            else if (k === tui.KEY_TAB) {
-                col = data.colIndex;
-                row = data.rowIndex;
-                while (row < data.grid.data().length() && col < data.grid.columns().length) {
-                    col++;
-                    if (col >= data.grid.columns().length) {
-                        col = 0;
-                        row++;
-                    }
-                    if (data.grid.editCell(row, col))
-                        break;
-                }
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            else {
-                if (type === "text") {
-                    data.grid.editCell(data.rowIndex, data.colIndex);
-                }
-            }
-        }
-        function createInputFormatter(type, param1, param2) {
-            return function (data) {
-                if (data.rowIndex < 0) {
-                    return;
-                }
-                var editor = tui.ctrl.input(null, type);
-                editor.useLabelClick(false);
-                editor.addClass("tui-grid-editor");
-                editor.on("select change", function () {
-                    if (typeof data.colKey !== tui.undef)
-                        data.row[data.colKey] = editor.value();
-                    data.value = editor.value();
-                });
-                if (type === "text") {
-                    if (param1)
-                        editor.data(param1);
-                }
-                else if (type === "select") {
-                    editor.data(param1);
-                }
-                else if (type === "custom-select") {
-                    editor.on("btnclick", param1);
-                    editor.icon(param2);
-                }
-                else if (type === "calendar") {
-                }
-                else if (type === "file") {
-                    editor.uploadUrl(param1);
-                    editor.accept(param2);
-                }
-                $(editor[0]).mousedown(function (e) {
-                    data.grid.editCell(data.rowIndex, data.colIndex);
-                    e.stopPropagation();
-                    tui.fire("#tui.check.popup");
-                });
-                $(editor[0]).keydown(function (e) {
-                    handleKeyDownEvent(e, data, type);
-                });
-                editor[0].style.width = $(data.cell).innerWidth() - 1 + "px";
-                editor[0].style.height = $(data.cell).innerHeight() - 1 + "px";
-                data.cell.appendChild(editor[0]);
-                editor.value(data.value);
-            };
-        }
-        /**
-         * Construct a grid.
-         * @param el {HTMLElement or element id or construct info}
-         */
-        function grid(param) {
-            return tui.ctrl.control(param, Grid);
-        }
-        ctrl.grid = grid;
-        tui.ctrl.registerInitCallback(Grid.CLASS, grid);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
-/// <reference path="tui.ctrl.control.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (ctrl) {
-        var TriState;
-        (function (TriState) {
-            TriState[TriState["Unchecked"] = 0] = "Unchecked";
-            TriState[TriState["Checked"] = 1] = "Checked";
-            TriState[TriState["HalfChecked"] = 2] = "HalfChecked";
-        })(TriState || (TriState = {}));
-        var List = (function (_super) {
-            __extends(List, _super);
-            //private _columnKeyMap: {} = null;
-            function List(el) {
-                var _this = this;
-                _super.call(this, "div", List.CLASS, null);
-                var self = this;
-                this._grid = ctrl.grid(el);
-                this._grid.noRefresh(true);
-                this[0] = this._grid[0];
-                this[0]._ctrl = this;
-                this.addClass(List.CLASS);
-                var columns = this._grid.columns();
-                if (columns === null) {
-                    this._grid.columns([{
-                        key: "value",
-                        format: function (info) {
-                            if (info.rowIndex < 0)
-                                return;
-                            var rowcheckable = _this.rowcheckable();
-                            var cell = info.cell.firstChild;
-                            var itemIcon = info.row[_this._iconColumnKey];
-                            var isExpanded = !!info.row[_this._expandColumnKey];
-                            var hasCheckbox = (typeof info.row[_this._checkedColumnKey] !== tui.undef);
-                            var isChecked = !!info.row[_this._checkedColumnKey];
-                            var hasChild = !!info.row[_this._childrenColumKey] && info.row[_this._childrenColumKey].length > 0;
-                            var isHalfChecked = (_this.triState() && info.row[_this._checkedColumnKey] === 2 /* HalfChecked */);
-                            var spaceSpan = document.createElement("span");
-                            spaceSpan.className = "tui-list-space";
-                            var foldIcon = document.createElement("span");
-                            foldIcon.className = "tui-list-fold";
-                            if (hasChild) {
-                                if (isExpanded) {
-                                    $(foldIcon).addClass("tui-list-fold-expand");
-                                    $(foldIcon).mousedown(function (e) {
-                                        _this.onFoldRow(info.row, info.rowIndex, e);
-                                    });
-                                }
-                                else {
-                                    $(foldIcon).addClass("tui-list-fold-unexpand");
-                                    $(foldIcon).mousedown(function (e) {
-                                        _this.onExpandRow(info.row, info.rowIndex, e);
-                                    });
-                                }
-                            }
-                            if (typeof itemIcon === "string") {
-                                var icon = document.createElement("i");
-                                icon.className = "fa " + itemIcon;
-                                icon.style.marginRight = "4px";
-                                cell.insertBefore(icon, cell.firstChild);
-                            }
-                            if (hasCheckbox && rowcheckable) {
-                                var checkIcon = document.createElement("span");
-                                checkIcon.className = "tui-list-checkbox";
-                                if (isChecked) {
-                                    if (isHalfChecked)
-                                        $(checkIcon).addClass("tui-half-checked");
-                                    else
-                                        $(checkIcon).addClass("tui-checked");
-                                }
-                                cell.insertBefore(checkIcon, cell.firstChild);
-                                $(checkIcon).mouseup(function (e) {
-                                    _this.onCheckRow(info.row, info.rowIndex, e);
-                                });
-                            }
-                            cell.insertBefore(foldIcon, cell.firstChild);
-                            cell.insertBefore(spaceSpan, cell.firstChild);
-                            var singleWidth = spaceSpan.offsetWidth;
-                            var level = info.row[_this._levelColumnKey];
-                            spaceSpan.style.width = singleWidth * (typeof level === "number" ? level : 0) + "px";
-                        }
-                    }]);
-                }
-                this._grid.on("rowclick", function (data) {
-                    return _this.fire("rowclick", data);
-                });
-                this._grid.on("rowdblclick", function (data) {
-                    return _this.fire("rowdblclick", data);
-                });
-                this._grid.on("rowmousedown", function (data) {
-                    return _this.fire("rowmousedown", data);
-                });
-                this._grid.on("rowdragstart", function (data) {
-                    return _this.fire("rowdragstart", data);
-                });
-                this._grid.on("rowdragover", function (data) {
-                    return _this.fire("rowdragover", data);
-                });
-                this._grid.on("rowdragend", function (data) {
-                    return _this.fire("rowdragend", data);
-                });
-                this._grid.on("rowmouseup", function (data) {
-                    return _this.fire("rowmouseup", data);
-                });
-                this._grid.on("rowmouseenter", function (data) {
-                    return _this.fire("rowmouseenter", data);
-                });
-                this._grid.on("rowmouseleave", function (data) {
-                    return _this.fire("rowmouseleave", data);
-                });
-                this._grid.on("rowcontextmenu", function (data) {
-                    return _this.fire("rowcontextmenu", data);
-                });
-                this._grid.on("resizecolumn", function (data) {
-                    return _this.fire("resizecolumn", data);
-                });
-                this._grid.on("contextmenu", function (data) {
-                    return _this.fire("contextmenu", data);
-                });
-                this._grid.on("keydown", function (data) {
-                    if (_this.fire("keydown", data) === false)
-                        return false;
-                    var keyCode = data["event"].keyCode;
-                    if (keyCode === 32) {
-                        var activeRowIndex = self._grid.activerow();
-                        if (activeRowIndex >= 0) {
-                            data["event"].preventDefault();
-                            data["event"].stopPropagation();
-                        }
-                    }
-                    else if (keyCode === 37) {
-                        var activeRowIndex = self._grid.activerow();
-                        var item = self._grid.activeItem();
-                        if (item) {
-                            var children = item[self._childrenColumKey];
-                            if (children && children.length > 0 && item[self._expandColumnKey]) {
-                                _this.onFoldRow(item, activeRowIndex, data["event"]);
-                            }
-                            else {
-                                if (item["__parent"]) {
-                                    self.activeItem(item["__parent"]);
-                                    self.scrollTo(self.activerow());
-                                    self.refresh();
-                                }
-                            }
-                            data["event"].preventDefault();
-                            data["event"].stopPropagation();
-                        }
-                    }
-                    else if (keyCode === 39) {
-                        var item = self._grid.activeItem();
-                        if (item) {
-                            var children = item[self._childrenColumKey];
-                            if (children && children.length > 0 && !item[self._expandColumnKey]) {
-                                _this.onExpandRow(item, activeRowIndex, data["event"]);
-                            }
-                            data["event"].preventDefault();
-                            data["event"].stopPropagation();
-                        }
-                    }
-                });
-                this._grid.on("keyup", function (data) {
-                    if (data["event"].keyCode === 32) {
-                        var activeRowIndex = self._grid.activerow();
-                        if (activeRowIndex >= 0) {
-                            var row = self._grid.data().at(activeRowIndex);
-                            _this.onCheckRow(row, activeRowIndex, data["event"]);
-                        }
-                    }
-                    return _this.fire("keyup", data);
-                });
-                if (!this.hasAttr("data-no-head"))
-                    this.noHead(true);
-                if (!this.hasAttr("data-delay-drawing"))
-                    this.delayDrawing(false);
-                if (!this.hasAttr("data-rowselectable"))
-                    this.rowselectable(true);
-                if (!this.hasAttr("data-rowcheckable"))
-                    this.rowcheckable(true);
-                if (this._grid.data()) {
-                    this._grid.noRefresh(false);
-                    this.data(this._grid.data());
-                }
-                else {
-                    this._grid.noRefresh(false);
-                    this.refresh();
-                }
-            }
-            List.prototype.checkChildren = function (children, checkState) {
-                for (var i = 0; i < children.length; i++) {
-                    if (!children[i])
-                        continue;
-                    if (typeof children[i][this._checkedColumnKey] !== tui.undef)
-                        children[i][this._checkedColumnKey] = checkState;
-                    var myChildren = children[i][this._childrenColumKey];
-                    myChildren && myChildren.length > 0 && this.checkChildren(myChildren, checkState);
-                }
-            };
-            List.prototype.checkParent = function (parent) {
-                var children = parent[this._childrenColumKey];
-                var checkedCount = 0, uncheckedCount = 0;
-                for (var i = 0; i < children.length; i++) {
-                    var row = children[i];
-                    if (!row)
-                        continue;
-                    if (typeof row[this._checkedColumnKey] === tui.undef)
-                        continue;
-                    else if (row[this._checkedColumnKey] === 2 /* HalfChecked */) {
-                        uncheckedCount++;
-                        checkedCount++;
-                        break;
-                    }
-                    else if (!!row[this._checkedColumnKey])
-                        checkedCount++;
-                    else
-                        uncheckedCount++;
-                }
-                if (typeof parent[this._checkedColumnKey] !== tui.undef) {
-                    if (checkedCount === 0)
-                        parent[this._checkedColumnKey] = 0 /* Unchecked */;
-                    else if (uncheckedCount === 0)
-                        parent[this._checkedColumnKey] = 1 /* Checked */;
-                    else
-                        parent[this._checkedColumnKey] = 2 /* HalfChecked */;
-                }
-                parent["__parent"] && this.checkParent(parent["__parent"]);
-            };
-            List.prototype.checkRow = function (row, checkState) {
-                if (typeof row[this._checkedColumnKey] !== tui.undef)
-                    row[this._checkedColumnKey] = checkState;
-                if (this.triState()) {
-                    var children = row[this._childrenColumKey];
-                    children && children.length > 0 && this.checkChildren(children, checkState);
-                    var parent = row["__parent"];
-                    parent && this.checkParent(parent);
-                }
-            };
-            List.prototype.onCheckRow = function (row, rowIndex, event) {
-                var checkState;
-                if (this.triState()) {
-                    checkState = row[this._checkedColumnKey];
-                    if (checkState === 2 /* HalfChecked */ || !checkState)
-                        checkState = 1 /* Checked */;
-                    else
-                        checkState = 0 /* Unchecked */;
-                }
-                else
-                    checkState = !row[this._checkedColumnKey];
-                this.checkRow(row, checkState);
-                this.fire("rowcheck", { event: event, checked: row[this._checkedColumnKey], row: row, index: rowIndex });
-                this.refresh();
-            };
-            List.prototype.expandRow = function (rowIndex) {
-                var row = this.data().at(rowIndex);
-                row[this._expandColumnKey] = true;
-                this.formatData();
-                this.fire("rowexpand", { row: row, index: rowIndex });
-            };
-            List.prototype.onExpandRow = function (row, rowIndex, event) {
-                row[this._expandColumnKey] = true;
-                this.formatData();
-                this.fire("rowexpand", { event: event, row: row, index: rowIndex });
-            };
-            List.prototype.foldRow = function (rowIndex) {
-                var row = this.data().at(rowIndex);
-                row[this._expandColumnKey] = false;
-                this.formatData();
-                this.fire("rowfold", { row: row, index: rowIndex });
-            };
-            List.prototype.onFoldRow = function (row, rowIndex, event) {
-                row[this._expandColumnKey] = false;
-                this.formatData();
-                this.fire("rowfold", { event: event, row: row, index: rowIndex });
-            };
-            List.prototype.initData = function (useTriState) {
-                if (useTriState === void 0) { useTriState = false; }
-                var self = this;
-                var data = this._grid.data();
-                if (data && typeof data.process === "function") {
-                    function checkChildren(input, parentRow) {
-                        var checkedCount = 0, uncheckedCount = 0;
-                        for (var i = 0; i < input.length; i++) {
-                            var row = input[i];
-                            if (!row)
-                                continue;
-                            if (useTriState) {
-                                if (row[self._childrenColumKey] && row[self._childrenColumKey].length > 0) {
-                                    var state = checkChildren(row[self._childrenColumKey], row);
-                                    row[self._checkedColumnKey] = state;
-                                }
-                                if (row[self._checkedColumnKey] === 2 /* HalfChecked */) {
-                                    uncheckedCount++;
-                                    checkedCount++;
-                                }
-                                else if (!!row[self._checkedColumnKey])
-                                    checkedCount++;
-                                else
-                                    uncheckedCount++;
-                            }
-                            else {
-                                if (row[self._childrenColumKey] && row[self._childrenColumKey].length > 0) {
-                                    checkChildren(row[self._childrenColumKey], row);
-                                }
-                            }
-                            row["__parent"] = parentRow;
-                        }
-                        if (useTriState) {
-                            if (checkedCount === 0)
-                                return 0 /* Unchecked */;
-                            else if (uncheckedCount === 0)
-                                return 1 /* Checked */;
-                            else
-                                return 2 /* HalfChecked */;
-                        }
-                    }
-                    function processTree(input) {
-                        checkChildren(input, null);
-                        return input;
-                    }
-                    data.process(processTree);
-                }
-            };
-            List.prototype.initTriState = function () {
-                this.initData(true);
-            };
-            List.prototype.formatData = function () {
-                var self = this;
-                var data = this._grid.data();
-                if (data && typeof data.process === "function") {
-                    function addChildren(input, output, level) {
-                        for (var i = 0; i < input.length; i++) {
-                            var row = input[i];
-                            if (!row)
-                                continue;
-                            output.push(row);
-                            row[self._levelColumnKey] = level;
-                            if (!!row[self._expandColumnKey] && row[self._childrenColumKey] && row[self._childrenColumKey].length > 0) {
-                                addChildren(row[self._childrenColumKey], output, level + 1);
-                            }
-                        }
-                    }
-                    function processTree(input) {
-                        var output = [];
-                        addChildren(input, output, 0);
-                        return output;
-                    }
-                    data.process(processTree);
-                }
-                this.refresh();
-            };
-            List.prototype.select = function (rows) {
-                return this._grid.select(rows);
-            };
-            List.prototype.activerow = function (rowIndex) {
-                return this._grid.activerow(rowIndex);
-            };
-            List.prototype.activeItem = function (rowItem) {
-                if (typeof rowItem !== tui.undef) {
-                    if (rowItem) {
-                        var parent = rowItem["__parent"];
-                        while (parent) {
-                            parent[this._expandColumnKey] = true;
-                            parent = parent["__parent"];
-                        }
-                        this.formatData();
-                    }
-                }
-                return this._grid.activeItem(rowItem);
-            };
-            List.prototype.activeRowByKey = function (key) {
-                var self = this;
-                var activeRow = null;
-                function checkChildren(children) {
-                    for (var i = 0; i < children.length; i++) {
-                        if (!children[i])
-                            continue;
-                        if (children[i][self._keyColumKey] === key) {
-                            activeRow = children[i];
-                            return true;
-                        }
-                        var myChilren = children[i][self._childrenColumKey];
-                        if (myChilren && myChilren.length > 0)
-                            if (checkChildren(myChilren))
-                                return true;
-                    }
-                }
-                var data = this._grid.data();
-                if (typeof data.src === "function") {
-                    if (checkChildren(data.src())) {
-                        return this.activeItem(activeRow);
-                    }
-                    else
-                        return this.activeItem(null);
-                }
-                else
-                    return null;
-            };
-            List.prototype.doCheck = function (keys, checkState) {
-                var self = this;
-                //var useTriState = this.triState();
-                var map = {};
-                if (keys) {
-                    for (var i = 0; i < keys.length; i++) {
-                        map[keys[i]] = true;
-                    }
-                }
-                function checkChildren(keys, children) {
-                    for (var i = 0; i < children.length; i++) {
-                        if (!children[i])
-                            continue;
-                        if (keys === null || map[children[i][self._keyColumKey]]) {
-                            //children[i][self._checkedColumnKey] = checkState;
-                            self.checkRow(children[i], checkState);
-                        }
-                        var myChilren = children[i][self._childrenColumKey];
-                        if (myChilren && myChilren.length > 0)
-                            checkChildren(keys, myChilren);
-                    }
-                }
-                var data = this._grid.data();
-                if (data && typeof data.src === "function") {
-                    checkChildren(keys, data.src());
-                    //if (useTriState) {
-                    //	this.initTriState();
-                    //}
-                    this.refresh();
-                }
-            };
-            List.prototype.checkItems = function (keys) {
-                this.doCheck(keys, 1 /* Checked */);
-                return this;
-            };
-            List.prototype.checkAllItems = function () {
-                this.doCheck(null, 1 /* Checked */);
-                return this;
-            };
-            List.prototype.uncheckItems = function (keys) {
-                this.doCheck(keys, 0 /* Unchecked */);
-                return this;
-            };
-            List.prototype.uncheckAllItems = function () {
-                this.doCheck(null, 0 /* Unchecked */);
-                return this;
-            };
-            List.prototype.checkedItems = function () {
-                var self = this;
-                var checkedItems = [];
-                function checkChildren(children) {
-                    for (var i = 0; i < children.length; i++) {
-                        if (!children[i])
-                            continue;
-                        if (!!children[i][self._checkedColumnKey])
-                            checkedItems.push(children[i]);
-                        var myChilren = children[i][self._childrenColumKey];
-                        if (myChilren && myChilren.length > 0)
-                            checkChildren(myChilren);
-                    }
-                }
-                var data = this._grid.data();
-                if (data && typeof data.src === "function") {
-                    checkChildren(data.src());
-                }
-                return checkedItems;
-            };
-            List.prototype.allKeys = function (onlyCheckable) {
-                var self = this;
-                var keys = [];
-                function checkChildren(children) {
-                    for (var i = 0; i < children.length; i++) {
-                        if (!children[i])
-                            continue;
-                        var k = children[i][self._keyColumKey];
-                        if ((onlyCheckable && typeof children[i][self._checkedColumnKey] !== tui.undef || !onlyCheckable) && typeof k !== tui.undef && k !== null)
-                            keys.push(k);
-                        var myChilren = children[i][self._childrenColumKey];
-                        if (myChilren && myChilren.length > 0)
-                            checkChildren(myChilren);
-                    }
-                }
-                var data = this._grid.data();
-                if (data && typeof data.src === "function") {
-                    checkChildren(data.src());
-                }
-                return keys;
-            };
-            List.prototype.enumerate = function (func) {
-                var self = this;
-                var checkedItems = [];
-                function enumChildren(children) {
-                    for (var i = 0; i < children.length; i++) {
-                        func(children[i]);
-                        if (!children[i])
-                            continue;
-                        var myChilren = children[i][self._childrenColumKey];
-                        if (myChilren && myChilren.length > 0)
-                            enumChildren(myChilren);
-                    }
-                }
-                var data = this._grid.data();
-                if (data && typeof data.src === "function") {
-                    enumChildren(data.src());
-                }
-            };
-            /**
-             * Adjust column width to adapt column content
-             * @param {Number} columnIndex
-             * @param {Boolean} expandOnly Only expand column width
-             * @param {Boolean} displayedOnly Only compute displayed lines,
-             *		if this parameter is false then grid will compute all lines
-             *		regardless of whether it is visible
-             */
-            List.prototype.autofitColumn = function (columnIndex, expandOnly, displayedOnly) {
-                if (expandOnly === void 0) { expandOnly = false; }
-                if (displayedOnly === void 0) { displayedOnly = true; }
-                this._grid.autofitColumn(columnIndex, expandOnly, displayedOnly);
-            };
-            List.prototype.delayDrawing = function (val) {
-                return this._grid.delayDrawing(val);
-            };
-            List.prototype.noHead = function (val) {
-                return this._grid.noHead(val);
-            };
-            List.prototype.hasHScroll = function (val) {
-                return this._grid.hasHScroll(val);
-            };
-            List.prototype.columns = function (val) {
-                return this._grid.columns(val);
-            };
-            List.prototype.rowdraggable = function (val) {
-                return this._grid.rowdraggable(val);
-            };
-            List.prototype.rowselectable = function (val) {
-                return this._grid.rowselectable(val);
-            };
-            List.prototype.rowcheckable = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-rowcheckable", val);
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-rowcheckable");
-            };
-            List.prototype.consumeMouseWheelEvent = function (val) {
-                return this._grid.consumeMouseWheelEvent(val);
-            };
-            List.prototype.triState = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-tri-state", val);
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-tri-state");
-            };
-            List.prototype.scrollTo = function (rowIndex) {
-                this._grid.scrollTo(rowIndex);
-            };
-            List.prototype.value = function (keys) {
-                if (typeof keys !== tui.undef) {
-                    this.uncheckAllItems();
-                    if (keys != null)
-                        this.checkItems(keys);
-                    return this;
-                }
-                else {
-                    var items = this.checkedItems();
-                    var result = [];
-                    for (var i = 0; i < items.length; i++) {
-                        if (typeof items[i][this._keyColumKey] !== tui.undef)
-                            result.push(items[i][this._keyColumKey]);
-                    }
-                    return result;
-                }
-            };
-            List.prototype.data = function (data) {
-                if (typeof data !== tui.undef) {
-                    var noRef = this._grid.noRefresh();
-                    this._grid.noRefresh(true);
-                    this._grid.data(data);
-                    var finalData = this._grid.data();
-                    this._keyColumKey = finalData.mapKey("key");
-                    this._childrenColumKey = finalData.mapKey("children");
-                    this._checkedColumnKey = finalData.mapKey("checked");
-                    this._levelColumnKey = finalData.mapKey("level");
-                    this._valueColumnKey = finalData.mapKey("value");
-                    this._expandColumnKey = finalData.mapKey("expand");
-                    this._iconColumnKey = finalData.mapKey("icon");
-                    if (this.triState())
-                        this.initTriState();
-                    else
-                        this.initData();
-                    this._grid.noRefresh(noRef);
-                    this.formatData();
-                    return this;
-                }
-                else
-                    return this._grid.data();
-            };
-            List.prototype.lineHeight = function () {
-                if (!this._grid)
-                    return 0;
-                return this._grid.lineHeight();
-            };
-            List.prototype.refresh = function () {
-                if (!this._grid)
-                    return;
-                this._grid.refresh();
-            };
-            List.CLASS = "tui-list";
-            return List;
-        })(ctrl.Control);
-        ctrl.List = List;
-        /**
-         * Construct a grid.
-         * @param el {HTMLElement or element id or construct info}
-         */
-        function list(param) {
-            return tui.ctrl.control(param, List);
-        }
-        ctrl.list = list;
-        tui.ctrl.registerInitCallback(List.CLASS, list);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
 /// <reference path="tui.core.ts" />
 /// <reference path="tui.upload.ts" />
 /// <reference path="tui.ctrl.popup.ts" />
 /// <reference path="tui.ctrl.calendar.ts" />
+/// <reference path="tui.ctrl.primitivecalendar.ts" />
 /// <reference path="tui.ctrl.list.ts" />
 /// <reference path="tui.ctrl.form.ts" />
+/// <reference path="tui.ctrl.dialog.ts" />
 var tui;
 (function (tui) {
     var ctrl;
@@ -8325,6 +6474,8 @@ var tui;
                 this.openPopup = (function () {
                     var self = _this;
                     return function (e) {
+                        if (self.readonly())
+                            return;
                         if (self.type() === "calendar") {
                             self.showCalendar();
                         }
@@ -8360,9 +6511,7 @@ var tui;
                     if (!_this.useLabelClick())
                         return;
                     if (!_this.disabled() && (_this.type() === "text" || _this.type() === "password" || _this.type() === "custom-text"))
-                        setTimeout(function () {
-                            _this._textbox.focus();
-                        }, 0);
+                        setTimeout(function () { _this._textbox.focus(); }, 0);
                     else if (_this.type() === "select" || _this.type() === "multi-select" || _this.type() === "calendar") {
                         _this.openPopup(e);
                     }
@@ -8386,17 +6535,31 @@ var tui;
                         e.stopPropagation();
                     }
                 });
-                if (this.type() === "text" || this.type() === "custom-text" || this.type() === "select" || this.type() === "multi-select") {
+                $(this[0]).on("keydown keypress", function (e) {
+                    if (e.keyCode === 8 && ((_this.type() !== "text" && _this.type() !== "custom-text" && _this.type() !== "password") || _this.readonly())) {
+                        e.preventDefault();
+                    }
+                });
+                if (this.type() === "text" || this.type() === "custom-text" ||
+                    this.type() === "select" || this.type() === "multi-select") {
                     var predefined = this.attr("data-data");
                     if (predefined)
                         predefined = eval("(" + predefined + ")");
                     if (predefined)
                         this.data(predefined);
                 }
+                if (this.type() === "custom-select") {
+                    if (!this.hasAttr("data-icon"))
+                        this.attr("data-icon", "fa-ellipsis-h");
+                }
                 if (!this.hasAttr("data-label-click"))
                     this.useLabelClick(true);
                 if (!this.hasAttr("data-empty-suggestion"))
                     this.emptySuggestion(true);
+                if (this.monthOnly()) {
+                    if (!this.hasAttr("data-text-format"))
+                        this.textFormat("yyyy-MM");
+                }
                 this.value(this.value());
             }
             Input.prototype.doSubmit = function () {
@@ -8514,9 +6677,18 @@ var tui;
             Input.prototype.showCalendar = function () {
                 var self = this;
                 var pop = tui.ctrl.popup();
-                var calendar = tui.ctrl.calendar();
-                calendar.timepart(this.timepart());
-                calendar.time(self.value());
+                var calendar;
+                if (this.monthOnly())
+                    calendar = tui.ctrl.primitiveCalendar();
+                else {
+                    calendar = tui.ctrl.calendar();
+                    calendar.timepart(this.timepart());
+                }
+                var dateVal = this.attr("data-value");
+                if (dateVal != null)
+                    calendar.time(tui.parseDate(this.attr("data-value")));
+                else
+                    calendar.time(new Date());
                 calendar.on("picked", function (e) {
                     if (self.readonly()) {
                         pop.close();
@@ -8674,7 +6846,7 @@ var tui;
                 bar.className = "tui-input-select-bar";
                 calbox.appendChild(bar);
                 var selAll = tui.ctrl.checkbox();
-                selAll.text("All");
+                selAll.text(tui.str("All"));
                 selAll.on("click", function () {
                     if (selAll.checked())
                         list.checkAllItems();
@@ -8682,7 +6854,7 @@ var tui;
                         list.uncheckAllItems();
                 });
                 var okLink = document.createElement("a");
-                okLink.innerHTML = "<i class='fa fa-check'></i> " + tui.str("Accept");
+                okLink.innerHTML = "<i class='fa fa-check'></i> " + tui.str("Ok");
                 okLink.href = "javascript:void(0)";
                 $(okLink).click(function (e) {
                     if (self.readonly()) {
@@ -9039,7 +7211,11 @@ var tui;
                     for (var k in validator) {
                         if (k && validator.hasOwnProperty(k)) {
                             if (k === "*password") {
-                                if (!/[a-z]/.test(finalText) || !/[A-Z]/.test(finalText) || !/[0-9]/.test(finalText) || !/[\~\`\!\@\#\$\%\^\&\*\(\)\_\-\+\=\\\]\[\{\}\:\;\"\'\/\?\,\.\<\>\|]/.test(finalText) || finalText.length < 6) {
+                                if (!/[a-z]/.test(finalText) ||
+                                    !/[A-Z]/.test(finalText) ||
+                                    !/[0-9]/.test(finalText) ||
+                                    !/[\~\`\!\@\#\$\%\^\&\*\(\)\_\-\+\=\\\]\[\{\}\:\;\"\'\/\?\,\.\<\>\|]/.test(finalText) ||
+                                    finalText.length < 6) {
                                     this._invalid = true;
                                 }
                             }
@@ -9182,7 +7358,10 @@ var tui;
                     if (data instanceof Array || data.data && data.data instanceof Array) {
                         data = new tui.ArrayProvider(data);
                     }
-                    if (typeof data.length !== "function" || typeof data.sort !== "function" || typeof data.at !== "function" || typeof data.columnKeyMap !== "function") {
+                    if (typeof data.length !== "function" ||
+                        typeof data.sort !== "function" ||
+                        typeof data.at !== "function" ||
+                        typeof data.columnKeyMap !== "function") {
                         throw new Error("TUI Input: need a data provider.");
                     }
                     this._data = data;
@@ -9286,6 +7465,17 @@ var tui;
                 else
                     return this.is("data-readonly");
             };
+            Input.prototype.monthOnly = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-month-only", val);
+                    this._initialized = false;
+                    this._invalid = false;
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-month-only");
+            };
             Input.prototype.dateFormat = function (format) {
                 if (typeof format === "string") {
                     this.attr("data-date-format", format);
@@ -9368,19 +7558,19 @@ var tui;
                     }
                     else if (type === "custom-select") {
                         if (val.key && val.value) {
-                            this.attr("data-value", val.key);
+                            this.attr("data-value", JSON.stringify(val.key));
                             this.attr("data-text", val.value);
                         }
                         else if (val.key) {
-                            this.attr("data-value", val.key);
+                            this.attr("data-value", JSON.stringify(val.key));
                             this.attr("data-text", val.key);
                         }
                         else if (val.value) {
-                            this.attr("data-value", val.value);
+                            this.attr("data-value", JSON.stringify(val.value));
                             this.attr("data-text", val.value);
                         }
                         else {
-                            this.attr("data-value", val);
+                            this.attr("data-value", JSON.stringify(val));
                             this.attr("data-text", val);
                         }
                         this._invalid = false;
@@ -9404,7 +7594,7 @@ var tui;
                         else
                             return dateVal;
                     }
-                    else if (type === "file") {
+                    else if (type === "file" || type === "custom-select") {
                         if (val === null)
                             return null;
                         return eval("(" + val + ")");
@@ -9499,15 +7689,13 @@ var tui;
             };
             Input.prototype.focus = function () {
                 var _this = this;
-                if (this.type() === "text" || this.type() === "password" || this.type() === "custom-text") {
-                    setTimeout(function () {
-                        _this._textbox.focus();
-                    }, 0);
+                if (this.type() === "text" ||
+                    this.type() === "password" ||
+                    this.type() === "custom-text") {
+                    setTimeout(function () { _this._textbox.focus(); }, 0);
                 }
                 else if (this[0]) {
-                    setTimeout(function () {
-                        _this[0].focus();
-                    }, 0);
+                    setTimeout(function () { _this[0].focus(); }, 0);
                 }
             };
             Input.prototype.refresh = function () {
@@ -9656,15 +7844,8 @@ var tui;
                 "*any": "\\S+"
             };
             Input._supportType = [
-                "text",
-                "password",
-                "select",
-                "multi-select",
-                "calendar",
-                "file",
-                "custom-select",
-                "custom-text"
-            ];
+                "text", "password", "select", "multi-select",
+                "calendar", "file", "custom-select", "custom-text"];
             return Input;
         })(ctrl.Control);
         ctrl.Input = Input;
@@ -9679,103 +7860,2575 @@ var tui;
         tui.ctrl.registerInitCallback(Input.CLASS, input);
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
-/// <reference path="tui.ctrl.input.ts" /> 
+/// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.time.ts" />
+/// <reference path="tui.ctrl.scrollbar.ts" />
+/// <reference path="tui.ctrl.input.ts" />
 var tui;
 (function (tui) {
     var ctrl;
     (function (ctrl) {
-        var TextArea = (function (_super) {
-            __extends(TextArea, _super);
-            function TextArea(el) {
-                var _this = this;
-                _super.call(this, "div", TextArea.CLASS, el);
-                this._invalid = false;
-                this._message = "";
+        var Grid = (function (_super) {
+            __extends(Grid, _super);
+            function Grid(el) {
+                _super.call(this, "div", Grid.CLASS, el);
+                this._tableId = tui.uuid();
+                this._gridStyle = null;
+                // Grid data related
+                this._columns = null;
+                this._emptyColumns = [];
+                this._data = null;
+                this._emptyData = new tui.ArrayProvider([]);
+                this._splitters = [];
+                this._colLines = [];
+                // Scrolling related
+                this._scrollTop = 0;
+                this._scrollLeft = 0;
+                this._bufferedLines = [];
+                this._bufferedBegin = 0;
+                this._bufferedEnd = 0; // _bufferedEnd = _bufferedBegin + buffered count
+                this._dispLines = 0; // How many lines can be displayed in grid viewable area
+                // Drawing related flags
+                this._selectrows = [];
+                this._activerow = null;
+                //private _columnKeyMap: {} = null;
+                this._noRefresh = false;
+                this._initialized = false;
+                //private _initInterval = null;
+                // Following variables are very useful when grid switch to edit mode 
+                // because grid cell need spend more time to draw.
+                this._drawingTimer = null;
+                this._delayDrawing = true;
+                this._cellPaddingWidth = null;
                 var self = this;
-                this._label = document.createElement("label");
-                this._notify = document.createElement("div");
+                this.attr("tabIndex", "0");
                 this[0].innerHTML = "";
-                this[0].appendChild(this._label);
-                this[0].appendChild(this._notify);
-                this.createTextbox();
-                $(this._label).on("mousedown", function () {
-                    if (!_this.disabled())
-                        setTimeout(function () {
-                            _this._textbox.focus();
-                        }, 0);
-                });
-                this.value(this.value());
-                //this.refresh();
-            }
-            TextArea.prototype.createTextbox = function () {
-                var _this = this;
-                var self = this;
-                if (this._textbox) {
-                    this[0].removeChild(this._textbox);
+                if (document.createStyleSheet) {
+                    this._gridStyle = document.createStyleSheet();
                 }
-                this._textbox = document.createElement("textarea");
-                // Should put textbox before notify
-                this[0].insertBefore(this._textbox, this._notify);
-                // Bind events ...
-                $(this._textbox).on("focus", function () {
-                    $(_this[0]).addClass("tui-focus");
-                });
-                $(this._textbox).on("blur", function () {
-                    $(_this[0]).removeClass("tui-focus");
-                });
-                $(this._textbox).on("propertychange", function (e) {
-                    if (e.originalEvent.propertyName !== 'value')
-                        return;
-                    setTimeout(function () {
-                        if (_this.text() !== _this._textbox.value) {
-                            _this.text(_this._textbox.value);
-                            self.fire("change", { "ctrl": _this[0], "event": e, "text": _this.text() });
-                            _this.refresh();
-                        }
-                    }, 0);
-                });
-                $(this._textbox).on("change", function (e) {
-                    if (_this.text() !== _this._textbox.value) {
-                        _this.text(_this._textbox.value);
-                        _this.fire("change", { "ctrl": _this[0], "event": e, "text": _this.text() });
-                        _this.refresh();
+                else {
+                    this._gridStyle = document.createElement("style");
+                    document.head.appendChild(this._gridStyle);
+                }
+                this._headline = document.createElement("div");
+                this._headline.className = "tui-grid-head";
+                this[0].appendChild(this._headline);
+                this._hscroll = tui.ctrl.scrollbar();
+                this._hscroll.direction("horizontal");
+                this[0].appendChild(this._hscroll[0]);
+                this._vscroll = tui.ctrl.scrollbar();
+                this._vscroll.direction("vertical");
+                this[0].appendChild(this._vscroll[0]);
+                this._space = document.createElement("span");
+                this._space.className = "tui-scroll-space";
+                this[0].appendChild(this._space);
+                var scrollTimeDelay = (tui.ieVer > 8 ? 100 : 50);
+                this._vscroll.on("scroll", function (data) {
+                    if (!self._delayDrawing) {
+                        self._scrollTop = data["value"];
+                        self.drawLines();
+                    }
+                    else {
+                        //var diff = Math.abs(data["value"] - self._scrollTop);
+                        self._scrollTop = data["value"];
+                        //if (diff < 3 * self._lineHeight && self._drawingTimer === null) {
+                        //	self.drawLines();
+                        //} else {
+                        self.drawLines(true);
+                        clearTimeout(self._drawingTimer);
+                        self._drawingTimer = setTimeout(function () {
+                            self.clearBufferLines();
+                            self.drawLines();
+                            self._drawingTimer = null;
+                        }, scrollTimeDelay);
                     }
                 });
-                $(this._textbox).on("input", function (e) {
-                    setTimeout(function () {
-                        if (_this.text() !== _this._textbox.value) {
-                            _this.text(_this._textbox.value);
-                            self.fire("change", { "ctrl": self[0], "event": e, "text": self.text() });
-                            _this.refresh();
+                this._hscroll.on("scroll", function (data) {
+                    self._scrollLeft = data["value"];
+                    self.drawLines();
+                    self.drawColumnLines();
+                });
+                var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? "DOMMouseScroll" : "mousewheel";
+                $(this[0]).on(mousewheelevt, function (ev) {
+                    var e = ev.originalEvent;
+                    var delta = e.detail ? e.detail * (-120) : e.wheelDelta;
+                    var step = Math.round(self._vscroll.page() / 2);
+                    //delta returns +120 when wheel is scrolled up, -120 when scrolled down
+                    var scrollSize = step > self._vscroll.step() ? step : self._vscroll.step();
+                    if (delta <= -120) {
+                        if (self._vscroll.value() < self._vscroll.total()) {
+                            self._vscroll.value(self._vscroll.value() + scrollSize);
+                            self._scrollTop = self._vscroll.value();
+                            self.drawLines();
+                            ev.stopPropagation();
+                            ev.preventDefault();
                         }
-                    }, 0);
+                        else if (self.consumeMouseWheelEvent()) {
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                        }
+                    }
+                    else {
+                        if (self._vscroll.value() > 0) {
+                            self._vscroll.value(self._vscroll.value() - scrollSize);
+                            self._scrollTop = self._vscroll.value();
+                            self.drawLines();
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                        }
+                        else if (self.consumeMouseWheelEvent()) {
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                        }
+                    }
+                });
+                function scrollX(distance) {
+                    var oldValue = self._scrollLeft;
+                    self._hscroll.value(self._hscroll.value() - distance);
+                    self._scrollLeft = self._hscroll.value();
+                    if (self._scrollLeft !== oldValue) {
+                        self.drawLines();
+                        self.drawColumnLines();
+                        return true;
+                    }
+                    else
+                        return false;
+                }
+                function scrollY(distance) {
+                    var oldValue = self._scrollTop;
+                    self._vscroll.value(self._vscroll.value() - distance);
+                    self._scrollTop = self._vscroll.value();
+                    if (self._scrollTop !== oldValue) {
+                        self.drawLines();
+                        return true;
+                    }
+                    else
+                        return false;
+                }
+                var inTouched = false;
+                var direction = null;
+                var lastPos = null;
+                var lastTime = null;
+                var lastSpeed = null;
+                $(this[0]).on("touchstart", function (ev) {
+                    if (inTouched)
+                        return;
+                    inTouched = true;
+                    lastSpeed = 0;
+                    var e = ev.originalEvent;
+                    if (e.targetTouches.length != 1)
+                        return;
+                    var touch = e.targetTouches[0];
+                    lastPos = { x: touch.pageX, y: touch.pageY };
+                    lastTime = new Date().getMilliseconds();
+                });
+                $(this[0]).on("touchmove", function (ev) {
+                    if (!inTouched)
+                        return;
+                    var e = ev.originalEvent;
+                    var touch = e.targetTouches[0];
+                    var movePos = { x: touch.pageX, y: touch.pageY };
+                    var moveX = movePos.x - lastPos.x;
+                    var moveY = movePos.y - lastPos.y;
+                    var currentTime = new Date().getMilliseconds();
+                    var spanTime = currentTime - lastTime;
+                    lastPos = movePos;
+                    lastTime = currentTime;
+                    if (direction == null) {
+                        direction = Math.abs(moveX) > Math.abs(moveY) ? 0 : 1;
+                    }
+                    lastSpeed = (direction == 0 ? moveX / spanTime : moveY / spanTime);
+                    if (direction == 0 ? scrollX(moveX) : scrollY(moveY)) {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                    }
+                });
+                $(this[0]).on("touchend", function (ev) {
+                    var animation = null;
+                    if (Math.abs(lastSpeed) > 0.05) {
+                        var dir = direction;
+                        animation = setInterval(function () {
+                            if (dir == 0)
+                                scrollX(lastSpeed * 10);
+                            else
+                                scrollY(lastSpeed * 10);
+                            lastSpeed *= 0.9;
+                            if (Math.abs(lastSpeed) < 0.01) {
+                                clearInterval(animation);
+                            }
+                        }, 10);
+                    }
+                    inTouched = false;
+                    direction = null;
+                    lastTime = null;
+                });
+                $(this[0]).mousedown(function (e) {
+                    tui.focusWithoutScroll(self[0]);
+                    e.preventDefault();
+                });
+                $(this[0]).keyup(function (e) {
+                    self.fire("keyup", { event: e });
+                });
+                $(this[0]).on("contextmenu", function (e) {
+                    return self.fire("contextmenu", { event: e });
+                });
+                $(this[0]).keydown(function (e) {
+                    if (self.fire("keydown", { event: e }) === false)
+                        return;
+                    var data = self.myData();
+                    var k = e.keyCode;
+                    // 37:left 38:up 39:right 40:down
+                    if ([33, 34, 37, 38, 39, 40].indexOf(k) >= 0) {
+                        if (k === 37) {
+                            !self._hscroll.hidden() && self._hscroll.value(self._hscroll.value() - self._hscroll.step());
+                            self._scrollLeft = self._hscroll.value();
+                            self.drawLines();
+                        }
+                        else if (k === 38) {
+                            if (!self.rowselectable() || data.length() <= 0) {
+                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() - self._vscroll.step());
+                                self._scrollTop = self._vscroll.value();
+                                self.drawLines();
+                            }
+                            else {
+                                if (self._activerow === null) {
+                                    self.activerow(0);
+                                    self.scrollTo(self._activerow);
+                                }
+                                else {
+                                    if (self._activerow > 0)
+                                        self.activerow(self._activerow - 1);
+                                    self.scrollTo(self._activerow);
+                                }
+                            }
+                        }
+                        else if (k === 39) {
+                            !self._hscroll.hidden() && self._hscroll.value(self._hscroll.value() + self._hscroll.step());
+                            self._scrollLeft = self._hscroll.value();
+                            self.drawLines();
+                        }
+                        else if (k === 40) {
+                            if (!self.rowselectable() || data.length() <= 0) {
+                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() + self._vscroll.step());
+                                self._scrollTop = self._vscroll.value();
+                                self.drawLines();
+                            }
+                            else {
+                                if (self._activerow === null) {
+                                    self.activerow(0);
+                                    self.scrollTo(self._activerow);
+                                }
+                                else {
+                                    if (self._activerow < data.length() - 1)
+                                        self.activerow(self._activerow + 1);
+                                    self.scrollTo(self._activerow);
+                                }
+                            }
+                        }
+                        else if (k === 33) {
+                            if (!self.rowselectable() || data.length() <= 0) {
+                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() - self._vscroll.page());
+                                self._scrollTop = self._vscroll.value();
+                                self.drawLines();
+                            }
+                            else {
+                                if (self._activerow === null) {
+                                    self.activerow(0);
+                                    self.scrollTo(self._activerow);
+                                }
+                                else {
+                                    if (self._activerow > 0)
+                                        self.activerow(self._activerow - self._dispLines);
+                                    self.scrollTo(self._activerow);
+                                }
+                            }
+                        }
+                        else if (k === 34) {
+                            if (!self.rowselectable() || data.length() <= 0) {
+                                !self._vscroll.hidden() && self._vscroll.value(self._vscroll.value() + self._vscroll.page());
+                                self._scrollTop = self._vscroll.value();
+                                self.drawLines();
+                            }
+                            else {
+                                if (self._activerow === null) {
+                                    self.activerow(self._dispLines);
+                                    self.scrollTo(self._activerow);
+                                }
+                                else {
+                                    if (self._activerow < data.length() - 1)
+                                        self.activerow(self._activerow + self._dispLines);
+                                    self.scrollTo(self._activerow);
+                                }
+                            }
+                        }
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (tui.ieVer > 0)
+                            self[0].setActive();
+                    }
+                    else if (k === tui.KEY_TAB) {
+                        if ((e.target || e.srcElement) === self[0]) {
+                            var rowIndex;
+                            if (self.rowselectable()) {
+                                rowIndex = self.activerow();
+                            }
+                            else {
+                                rowIndex = self._bufferedBegin;
+                            }
+                            if (self.editRow(rowIndex))
+                                e.preventDefault();
+                        }
+                    }
+                });
+                if (this.hasAttr("data-delay-drawing"))
+                    this._delayDrawing = this.is("data-delay-drawing");
+                var predefined = this.attr("data-data");
+                if (predefined)
+                    predefined = eval("(" + predefined + ")");
+                if (predefined)
+                    this.data(predefined);
+                else
+                    this.refresh();
+                //if (!this._initialized) {
+                //	this._initInterval = setInterval(() => {
+                //		self.refresh();
+                //		if (self._initialized) {
+                //			clearInterval(self._initInterval);
+                //			self._initInterval = null;
+                //		}
+                //	}, 100);
+                //}
+            }
+            //release() {
+            //	if (this._initInterval)
+            //		clearInterval(this._initInterval);
+            //}
+            // Make sure not access null object
+            Grid.prototype.myData = function () {
+                return this._data || this._emptyData;
+            };
+            Grid.prototype.myColumns = function () {
+                return this.columns() || this._emptyColumns;
+            };
+            Grid.prototype.headHeight = function () {
+                if (!this.noHead())
+                    return this._headHeight;
+                else
+                    return 0;
+            };
+            Grid.colSize = function (size, def) {
+                if (typeof size === "number" && !isNaN(size)) {
+                    if (size < 0)
+                        return 0;
+                    else
+                        return Math.round(size);
+                }
+                else
+                    return def;
+            };
+            Grid.prototype.computeVScroll = function (mark) {
+                var hScrollbarHeight = this._hscroll.hidden() ? 0 : this._hscroll[0].offsetHeight;
+                var contentHeight = this._contentHeight;
+                var innerHeight = this._boxHeight - hScrollbarHeight;
+                var totalHeight = contentHeight + this.headHeight();
+                this._dispLines = Math.ceil((innerHeight - this.headHeight()) / this._lineHeight);
+                var vHidden = this._vscroll.hidden();
+                if (totalHeight > innerHeight) {
+                    this._vscroll.hidden(false);
+                    this._vscroll[0].style.bottom = hScrollbarHeight + "px";
+                    this._vscroll.total(totalHeight - innerHeight)
+                        .value(this._scrollTop)
+                        .step(this._lineHeight)
+                        .page(innerHeight / totalHeight * (totalHeight - innerHeight));
+                }
+                else {
+                    this._vscroll.hidden(true);
+                    this._vscroll.total(0);
+                }
+                this._scrollTop = this._vscroll.value();
+                if (vHidden !== this._vscroll.hidden()) {
+                    this.computeHScroll(mark);
+                    this.computeColumns();
+                }
+            };
+            Grid.prototype.computeHScroll = function (mark) {
+                mark.isHScrollComputed = true;
+                var columns = this.myColumns();
+                var vScrollbarWidth = this._vscroll.hidden() ? 0 : this._vscroll[0].offsetWidth;
+                var innerWidth = this._boxWidth - vScrollbarWidth;
+                var hHidden = this._hscroll.hidden();
+                if (this.hasHScroll()) {
+                    this._contentWidth = 0;
+                    var cols = (columns.length < 1 ? 1 : columns.length);
+                    var defaultWidth = Math.floor((innerWidth - this._borderWidth * cols) / cols);
+                    if (defaultWidth < 100)
+                        defaultWidth = 100;
+                    for (var i = 0; i < columns.length; i++) {
+                        this._contentWidth += Grid.colSize(columns[i].width, defaultWidth) + this._borderWidth;
+                    }
+                    if (this._contentWidth > innerWidth) {
+                        this._hscroll.hidden(false);
+                        this._hscroll[0].style.right = vScrollbarWidth + "px";
+                        this._hscroll.total(this._contentWidth - innerWidth)
+                            .value(this._scrollLeft).step(10)
+                            .page(innerWidth / this._contentWidth * (this._contentWidth - innerWidth));
+                    }
+                    else {
+                        this._hscroll.hidden(true);
+                        this._hscroll.total(0);
+                    }
+                }
+                else {
+                    this._contentWidth = innerWidth;
+                    this._hscroll.hidden(true);
+                    this._hscroll.total(0);
+                }
+                this._scrollLeft = this._hscroll.value();
+                if (hHidden !== this._hscroll.hidden())
+                    this.computeVScroll(mark);
+            };
+            Grid.prototype.computeScroll = function () {
+                this._boxWidth = this[0].clientWidth;
+                this._boxHeight = this[0].clientHeight;
+                var cell = document.createElement("span");
+                cell.className = "tui-grid-cell";
+                var line = document.createElement("span");
+                line.className = "tui-grid-line";
+                line.appendChild(cell);
+                cell.innerHTML = "a";
+                this[0].appendChild(line);
+                this._lineHeight = $(line).outerHeight(); //line.offsetHeight;
+                this._borderWidth = $(cell).outerWidth() - $(cell).width();
+                cell.className = "tui-grid-head-cell";
+                line.className = "tui-grid-head";
+                this._headHeight = line.offsetHeight;
+                this[0].removeChild(line);
+                this._contentHeight = this._lineHeight * this.myData().length();
+                var mark = { isHScrollComputed: false };
+                this._hscroll.hidden(true);
+                this._vscroll.hidden(true);
+                this.computeVScroll(mark);
+                if (!mark.isHScrollComputed) {
+                    this.computeHScroll(mark);
+                    this.computeColumns();
+                }
+                if (!this._hscroll.hidden() && !this._vscroll.hidden()) {
+                    this._space.style.display = "";
+                }
+                else
+                    this._space.style.display = "none";
+            };
+            // Do not need call this function standalone, 
+            // it's always to be called by computeScroll function
+            Grid.prototype.computeColumns = function () {
+                var columns = this.myColumns();
+                var vScrollbarWidth = this._vscroll.hidden() ? 0 : this._vscroll[0].offsetWidth;
+                var innerWidth = this._boxWidth - vScrollbarWidth;
+                var cols = (columns.length < 1 ? 1 : columns.length);
+                var defaultWidth = Math.floor((innerWidth - this._borderWidth * cols) / cols);
+                if (this.hasHScroll()) {
+                    if (defaultWidth < 100)
+                        defaultWidth = 100;
+                    for (var i = 0; i < columns.length; i++) {
+                        delete columns[i]["_important"];
+                        columns[i].width = Grid.colSize(columns[i].width, defaultWidth);
+                    }
+                }
+                else {
+                    var totalNoBorderWidth = this._contentWidth - this._borderWidth * cols;
+                    totalNoBorderWidth += (vScrollbarWidth === 0 ? 1 : 0);
+                    var totalNoFixedWidth = totalNoBorderWidth;
+                    var totalNeedComputed = 0;
+                    var totalNeedComputedCount = 0;
+                    var totalImportantWidth = 0;
+                    var important = [];
+                    // Exclude all fixed columns
+                    for (var i = 0; i < columns.length; i++) {
+                        if (columns[i]["fixed"]) {
+                            if (typeof columns[i].width !== "number" || isNaN(columns[i].width))
+                                columns[i].width = defaultWidth;
+                            totalNoFixedWidth -= columns[i].width;
+                        }
+                    }
+                    if (totalNoFixedWidth < 0)
+                        totalNoFixedWidth = 0;
+                    var totalNoImportantWidth = totalNoFixedWidth;
+                    for (var i = 0; i < columns.length; i++) {
+                        if (typeof columns[i].width !== "number" || isNaN(columns[i].width))
+                            columns[i].width = defaultWidth;
+                        else if (columns[i].width < 0)
+                            columns[i].width = 0;
+                        if (columns[i]["fixed"]) {
+                        }
+                        else if (columns[i]["_important"]) {
+                            important.push(i);
+                            delete columns[i]["_important"];
+                            columns[i].width = Math.round(columns[i].width);
+                            if (columns[i].width > totalNoFixedWidth) {
+                                columns[i].width = totalNoFixedWidth;
+                            }
+                            totalImportantWidth += columns[i].width;
+                            totalNoImportantWidth -= columns[i].width;
+                        }
+                        else {
+                            totalNeedComputed += Math.round(columns[i].width);
+                            totalNeedComputedCount++;
+                        }
+                    }
+                    if (totalNeedComputedCount > 0 && totalNeedComputed === 0) {
+                        for (var i = 0; i < columns.length; i++) {
+                            if (important.indexOf(i) < 0 && !columns[i]["fixed"]) {
+                                columns[i].width = Math.floor(totalNoImportantWidth / totalNeedComputedCount);
+                            }
+                        }
+                    }
+                    else {
+                        for (var i = 0; i < columns.length; i++) {
+                            if (important.indexOf(i) < 0 && !columns[i]["fixed"]) {
+                                if (totalNeedComputed === 0)
+                                    columns[i].width = 0; // To avoid divide by zero
+                                else
+                                    columns[i].width = Math.floor(Math.round(columns[i].width) / totalNeedComputed * totalNoImportantWidth);
+                            }
+                        }
+                    }
+                    var total = 0;
+                    for (var i = 0; i < columns.length; i++) {
+                        total += columns[i].width;
+                    }
+                    if (total < totalNoBorderWidth && columns.length > 0) {
+                        for (var i = 0; i < columns.length; i++) {
+                            if (!columns[i].fixed) {
+                                columns[i].width += totalNoBorderWidth - total;
+                                break;
+                            }
+                        }
+                    }
+                }
+                var cssText = "";
+                for (var i = 0; i < columns.length; i++) {
+                    var wd = columns[i].width;
+                    cssText += (".tui-grid-" + this._tableId + "-" + i + "{width:" + wd + "px}");
+                }
+                if (document.createStyleSheet)
+                    this._gridStyle.cssText = cssText;
+                else
+                    this._gridStyle.innerHTML = cssText;
+            };
+            Grid.prototype.bindSplitter = function (cell, col, colIndex) {
+                var self = this;
+                var splitter = document.createElement("span");
+                splitter.className = "tui-grid-splitter";
+                splitter.setAttribute("unselectable", "on");
+                $(splitter).mousedown(function (e) {
+                    var l = splitter.offsetLeft;
+                    var srcX = e.clientX;
+                    splitter.style.height = self[0].clientHeight + "px";
+                    splitter.style.bottom = "";
+                    $(splitter).addClass("tui-splitter-move");
+                    var mask = tui.mask();
+                    mask.style.cursor = "col-resize";
+                    function onDragEnd(e) {
+                        $(document).off("mousemove", onDrag);
+                        $(document).off("mouseup", onDragEnd);
+                        tui.unmask();
+                        splitter.style.bottom = "0";
+                        splitter.style.height = "";
+                        $(splitter).removeClass("tui-splitter-move");
+                        col.width = col.width + e.clientX - srcX;
+                        col["_important"] = true;
+                        var currentTime = tui.today().getTime();
+                        if (col["_lastClickTime"]) {
+                            if (currentTime - col["_lastClickTime"] < 500) {
+                                self.autofitColumn(colIndex, false, true);
+                                self.fire("resizecolumn", { col: colIndex });
+                                return;
+                            }
+                        }
+                        col["_lastClickTime"] = currentTime;
+                        self.refresh();
+                        self.fire("resizecolumn", { col: colIndex });
+                    }
+                    function onDrag(e) {
+                        splitter.style.left = l + e.clientX - srcX + "px";
+                    }
+                    $(document).on("mousemove", onDrag);
+                    $(document).on("mouseup", onDragEnd);
+                });
+                this._splitters.push(splitter);
+                return splitter;
+            };
+            Grid.prototype.bindSort = function (cell, col, colIndex) {
+                var self = this;
+                if (col.sort) {
+                    $(cell).addClass("tui-grid-sortable");
+                    $(cell).mousedown(function (event) {
+                        if (!tui.isLButton(event))
+                            return;
+                        if (self._sortColumn !== colIndex)
+                            self.sort(colIndex);
+                        else if (!self._sortDesc)
+                            self.sort(colIndex, true);
+                        else
+                            self.sort(null);
+                    });
+                }
+                if (self._sortColumn === colIndex) {
+                    if (self._sortDesc)
+                        $(cell).addClass("tui-grid-cell-sort-desc");
+                    else
+                        $(cell).addClass("tui-grid-cell-sort-asc");
+                }
+            };
+            Grid.prototype.moveSplitter = function () {
+                for (var i = 0; i < this._splitters.length; i++) {
+                    var splitter = this._splitters[i];
+                    var cell = this._headline.childNodes[i]; //*2];
+                    splitter.style.left = cell.offsetLeft + cell.offsetWidth - Math.round(splitter.offsetWidth / 2) + "px";
+                }
+            };
+            Grid.prototype.drawCell = function (cell, contentSpan, col, colKey, value, row, rowIndex, colIndex) {
+                if (rowIndex >= 0) {
+                    if (["center", "left", "right"].indexOf(col.align) >= 0)
+                        cell.style.textAlign = col.align;
+                }
+                else {
+                    if (["center", "left", "right"].indexOf(col.headAlign) >= 0)
+                        cell.style.textAlign = col.headAlign;
+                }
+                if (value === null || typeof value === tui.undef) {
+                    contentSpan.innerHTML = "";
+                }
+                else if (typeof value === "object" && value.nodeName) {
+                    contentSpan.innerHTML = "";
+                    contentSpan.appendChild(value);
+                }
+                else {
+                    contentSpan.innerHTML = value;
+                }
+                if (typeof col.format === "function") {
+                    col.format.call(this, {
+                        cell: cell,
+                        value: value,
+                        row: row,
+                        col: col,
+                        colKey: colKey,
+                        rowIndex: rowIndex,
+                        colIndex: colIndex,
+                        isRowActived: rowIndex === this._activerow,
+                        grid: this
+                    });
+                }
+                if (this._sortColumn === colIndex)
+                    $(cell).addClass("tui-grid-sort-cell");
+                else
+                    $(cell).removeClass("tui-grid-sort-cell");
+            };
+            Grid.prototype.drawHead = function () {
+                if (this.noHead()) {
+                    $(this._headline).addClass("tui-hidden");
+                    return;
+                }
+                $(this._headline).removeClass("tui-hidden");
+                var columns = this.myColumns();
+                this._headline.innerHTML = "";
+                this._splitters.length = 0;
+                for (var i = 0; i < columns.length; i++) {
+                    var col = columns[i];
+                    var key = null;
+                    if (typeof col.key !== tui.undef && col.key !== null) {
+                        key = this.myData().mapKey(col.key);
+                        if (typeof key === tui.undef)
+                            key = col.key;
+                    }
+                    var cell = document.createElement("span");
+                    cell.setAttribute("unselectable", "on");
+                    cell.className = "tui-grid-head-cell tui-grid-" + this._tableId + "-" + i;
+                    this._headline.appendChild(cell);
+                    var contentSpan = document.createElement("span");
+                    contentSpan.className = "tui-grid-cell-content";
+                    cell.appendChild(contentSpan);
+                    this.drawCell(cell, contentSpan, col, key, col.name, null, -1, i);
+                    this.bindSort(cell, col, i);
+                    if (this.resizable()) {
+                        var splitter = this.bindSplitter(cell, col, i);
+                        if (typeof columns[i].fixed === "boolean" && columns[i].fixed)
+                            $(splitter).addClass("tui-hidden");
+                    }
+                }
+                for (var i = 0; i < this._splitters.length; i++) {
+                    var splitter = this._splitters[i];
+                    this._headline.appendChild(splitter);
+                }
+                this.moveSplitter();
+            };
+            Grid.prototype.isRowSelected = function (rowIndex) {
+                return this._selectrows.indexOf(rowIndex) >= 0;
+            };
+            Grid.prototype.drawLine = function (line, index, empty) {
+                var columns = this.myColumns();
+                if (line.childNodes.length !== columns.length) {
+                    line.innerHTML = "";
+                    var rowSel = this.rowselectable();
+                    for (var i = 0; i < columns.length; i++) {
+                        var cell = document.createElement("span");
+                        if (rowSel)
+                            cell.setAttribute("unselectable", "on");
+                        cell.className = "tui-grid-cell tui-grid-" + this._tableId + "-" + i;
+                        line.appendChild(cell);
+                    }
+                }
+                if (empty) {
+                    return;
+                }
+                var self = this;
+                var data = this.myData();
+                var rowData = data.at(index);
+                for (var i = 0; i < line.childNodes.length; i++) {
+                    var cell = line.childNodes[i];
+                    cell.innerHTML = "";
+                    var contentSpan = document.createElement("span");
+                    contentSpan.className = "tui-grid-cell-content";
+                    cell.appendChild(contentSpan);
+                    var col = columns[i];
+                    var key = null;
+                    if (typeof col.key !== tui.undef)
+                        key = data.mapKey(col.key);
+                    var value = (key !== null && rowData ? rowData[key] : "");
+                    this.drawCell(cell, contentSpan, col, key, value, rowData, index, i);
+                }
+                var jqLine = $(line);
+                jqLine.on("contextmenu", function (e) {
+                    return self.fire("rowcontextmenu", { "event": e, "index": index, "row": line });
+                });
+                var dragIndex = null;
+                var mouseDownPt = null;
+                jqLine.mousedown(function (e) {
+                    if (self.rowselectable()) {
+                        self.activerow(index);
+                        self.scrollTo(index);
+                    }
+                    if (self.fire("rowmousedown", { "event": e, "index": index, "row": line }) === false)
+                        return;
+                    if (self.rowdraggable() && tui.isLButton(e)) {
+                        mouseDownPt = { x: e.clientX, y: e.clientY };
+                        dragIndex = null;
+                        function testdrag(e) {
+                            if (mouseDownPt === null || dragIndex !== null) {
+                                return;
+                            }
+                            if (Math.abs(e.clientX - mouseDownPt.x) < 5 &&
+                                Math.abs(e.clientY - mouseDownPt.y) < 5) {
+                                return;
+                            }
+                            if (self.fire("rowdragstart", { "event": e, "index": index, "row": line }) === false)
+                                return;
+                            jqLine.addClass("tui-grid-line-drag");
+                            dragIndex = index;
+                            var m = tui.mask();
+                            m.setAttribute("data-cursor-tooltip", "true");
+                            self.focus();
+                            // DRAG A LINE
+                            var upTimer = null;
+                            var downTimer = null;
+                            var firstScroll = true;
+                            var lineHeight = self.lineHeight();
+                            var headHeight = self.headHeight();
+                            var targetBox = document.createElement("div");
+                            var targetIndex = null;
+                            var position = null;
+                            targetBox.className = "tui-grid-line-drop";
+                            function fireBefore(targetLine) {
+                                if (self.fire("rowdragover", { "event": e, "index": dragIndex, "targetIndex": targetIndex, position: "before" }) !== false) {
+                                    targetBox.style.top = targetLine.offsetTop - 2 + "px";
+                                    targetBox.style.height = "3px";
+                                    targetBox.className = "tui-grid-line-drop-before";
+                                    m.setAttribute("data-tooltip", "<i class='fa fa-level-up'></i> Move before ...");
+                                    position = "before";
+                                    return true;
+                                }
+                                else
+                                    return false;
+                            }
+                            function fireAfter(targetLine) {
+                                if (self.fire("rowdragover", { "event": e, "index": dragIndex, "targetIndex": targetIndex, position: "after" }) !== false) {
+                                    targetBox.style.top = targetLine.offsetTop + targetLine.offsetHeight - 2 + "px";
+                                    targetBox.style.height = "3px";
+                                    targetBox.className = "tui-grid-line-drop-after";
+                                    m.setAttribute("data-tooltip", "<i class='fa fa-level-down'></i> Move after ...");
+                                    position = "after";
+                                    return true;
+                                }
+                                else
+                                    return false;
+                            }
+                            function fireInside(targetLine) {
+                                if (self.fire("rowdragover", { "event": e, "index": dragIndex, "targetIndex": targetIndex, position: "inside" }) !== false) {
+                                    targetBox.style.top = targetLine.offsetTop - 2 + "px";
+                                    targetBox.style.height = targetLine.clientHeight + "px";
+                                    targetBox.className = "tui-grid-line-drop";
+                                    m.setAttribute("data-tooltip", "<i class='fa fa-arrow-right'></i> Move into ...");
+                                    position = "inside";
+                                    return true;
+                                }
+                                else
+                                    return false;
+                            }
+                            function move(e) {
+                                if (!tui.isLButton(e)) {
+                                    targetIndex = null;
+                                    position = null;
+                                    release(e, true);
+                                    return;
+                                }
+                                var x = e.clientX;
+                                var y = e.clientY;
+                                var pos = tui.fixedPosition(self[0]);
+                                if (x < pos.x || x > pos.x + self[0].offsetWidth ||
+                                    y < pos.y || y > pos.y + self[0].offsetHeight) {
+                                    m.style.cursor = "not-allowed";
+                                }
+                                else
+                                    m.style.cursor = "move";
+                                if (y < pos.y + headHeight) {
+                                    clearInterval(downTimer);
+                                    downTimer = null;
+                                    upTimer === null && (upTimer = setInterval(function () {
+                                        if (firstScroll)
+                                            self.scrollTo(self._bufferedBegin);
+                                        else if (self._bufferedBegin > 0) {
+                                            self.scrollTo(self._bufferedBegin - 1);
+                                        }
+                                        firstScroll = false;
+                                    }, 80)) && (firstScroll = true);
+                                    tui.removeNode(targetBox);
+                                    targetIndex = null;
+                                    position = null;
+                                    m.removeAttribute("data-tooltip");
+                                }
+                                else if (y > pos.y + self[0].offsetHeight) {
+                                    clearInterval(upTimer);
+                                    upTimer = null;
+                                    downTimer === null && (downTimer = setInterval(function () {
+                                        if (firstScroll)
+                                            self.scrollTo(self._bufferedEnd - 1);
+                                        else if (self._bufferedEnd <= self._data.length()) {
+                                            self.scrollTo(self._bufferedEnd - 1);
+                                        }
+                                        firstScroll = false;
+                                    }, 80)) && (firstScroll = true);
+                                    tui.removeNode(targetBox);
+                                    targetIndex = null;
+                                    position = null;
+                                    m.removeAttribute("data-tooltip");
+                                }
+                                else {
+                                    clearInterval(downTimer);
+                                    clearInterval(upTimer);
+                                    downTimer = null;
+                                    upTimer = null;
+                                    // Use mouse position to detect which row is currently moved to.
+                                    var base = headHeight - self._scrollTop % lineHeight;
+                                    targetIndex = Math.floor((y - (pos.y + base)) / lineHeight);
+                                    var targetLine = self._bufferedLines[targetIndex];
+                                    if (!targetLine) {
+                                        targetIndex = self._bufferedEnd - 1;
+                                        return;
+                                    }
+                                    else
+                                        targetIndex += self._bufferedBegin;
+                                    if (targetIndex === dragIndex) {
+                                        tui.removeNode(targetBox);
+                                        targetIndex = null;
+                                        return;
+                                    }
+                                    pos = tui.fixedPosition(targetLine);
+                                    targetBox.style.left = targetLine.offsetLeft - 2 + "px";
+                                    targetBox.style.width = targetLine.offsetWidth + "px";
+                                    if (y - pos.y <= 12) {
+                                        if (!fireBefore(targetLine))
+                                            fireInside(targetLine);
+                                    }
+                                    else if (pos.y + targetLine.offsetHeight - y <= 12) {
+                                        if (!fireAfter(targetLine))
+                                            fireInside(targetLine);
+                                    }
+                                    else {
+                                        if (!fireInside(targetLine)) {
+                                            if (y - pos.y <= lineHeight / 2)
+                                                fireBefore(targetLine);
+                                            else
+                                                fireAfter(targetLine);
+                                        }
+                                    }
+                                    self[0].appendChild(targetBox);
+                                }
+                            }
+                            function release(env, canceled) {
+                                jqLine.removeClass("tui-grid-line-drag");
+                                console.debug("mouse release");
+                                mouseDownPt = null;
+                                clearInterval(downTimer);
+                                clearInterval(upTimer);
+                                downTimer = null;
+                                upTimer = null;
+                                tui.removeNode(targetBox);
+                                $(m).off("mousemove", move);
+                                $(m).off("mouseup", release);
+                                $(document).off("mouseup", release);
+                                $(self[0]).off("keydown", keydown);
+                                tui.unmask();
+                                tui.closeTooltip();
+                                self.fire("rowdragend", { "event": env, "index": dragIndex, "targetIndex": targetIndex, position: position, canceled: !!canceled });
+                                dragIndex = null;
+                            }
+                            function keydown(e) {
+                                if (e.keyCode === tui.KEY_ESC) {
+                                    targetIndex = null;
+                                    position = null;
+                                    release(e, true);
+                                    e.stopPropagation();
+                                }
+                            }
+                            $(m).on("mousemove", move);
+                            $(m).on("mouseup", release);
+                            $(document).on("mouseup", release);
+                            $(self[0]).on("keydown", keydown);
+                        }
+                        function release() {
+                            mouseDownPt = null;
+                            $(document).off("mouseup", release);
+                            $(document).off("mousemove", testdrag);
+                        }
+                        $(document).on("mouseup", release);
+                        $(document).on("mousemove", testdrag);
+                    }
+                    //	e.stopPropagation();
+                });
+                jqLine.mouseenter(function (e) {
+                    self.fire("rowmouseenter", { "event": e, "index": index, "row": line });
+                });
+                jqLine.mouseleave(function (e) {
+                    self.fire("rowmouseleave", { "event": e, "index": index, "row": line });
+                });
+                jqLine.mouseup(function (e) {
+                    self.fire("rowmouseup", { "event": e, "index": index, "row": line });
+                });
+                jqLine.on("click", function (e) {
+                    self.fire("rowclick", { "event": e, "index": index, "row": line });
+                });
+                jqLine.on("dblclick", function (e) {
+                    self.fire("rowdblclick", { "event": e, "index": index, "row": line });
                 });
             };
-            TextArea.prototype.validator = function (val) {
-                if (typeof val === "object" && val) {
-                    this.attr("data-validator", JSON.stringify(val));
-                    this._invalid = false;
+            Grid.prototype.drawColumnLines = function () {
+                if (this._vscroll.hidden() && !this.hasVLine()) {
+                    for (var i = 0; i < this._colLines.length; i++) {
+                        var colLine = this._colLines[i];
+                        tui.removeNode(colLine);
+                    }
+                    this._colLines.length = 0;
+                    return;
+                }
+                var columns = this.myColumns();
+                if (columns.length != this._colLines.length) {
+                    for (var i = 0; i < this._colLines.length; i++) {
+                        var colLine = this._colLines[i];
+                        tui.removeNode(colLine);
+                    }
+                    this._colLines.length = 0;
+                    for (var i = 0; i < columns.length; i++) {
+                        var colLine = document.createElement("span");
+                        colLine.className = "tui-grid-column-line";
+                        this[0].appendChild(colLine);
+                        this._colLines.push(colLine);
+                    }
+                }
+                if (this._cellPaddingWidth === null) {
+                    var testLine = document.createElement("div");
+                    testLine.style.visibility = "hidden";
+                    testLine.className = "tui-grid-line";
+                    var testCell = document.createElement("span");
+                    testCell.className = "tui-grid-cell";
+                    testCell.style.width = "1px";
+                    testLine.appendChild(testCell);
+                    this[0].appendChild(testLine);
+                    this._cellPaddingWidth = testCell.offsetWidth - 1;
+                    tui.removeNode(testLine);
+                }
+                var offsetBegin = -this._scrollLeft;
+                for (var i = 0; i < this._colLines.length; i++) {
+                    var colLine = this._colLines[i];
+                    //var cell = <HTMLSpanElement>this._headline.childNodes[i];//*2];
+                    //colLine.style.left =-this._scrollLeft + cell.offsetLeft + cell.offsetWidth - Math.round(colLine.offsetWidth / 2) + "px";
+                    colLine.style.left = offsetBegin + this._cellPaddingWidth + columns[i].width - 1 + "px";
+                    offsetBegin += columns[i].width + this._cellPaddingWidth;
+                }
+            };
+            Grid.prototype.moveLine = function (line, index, base) {
+                line.style.top = (base + index * this._lineHeight) + "px";
+                line.style.left = -this._scrollLeft + "px";
+            };
+            Grid.prototype.drawLines = function (empty) {
+                if (empty === void 0) { empty = false; }
+                this._headline.style.left = -this._scrollLeft + "px";
+                var base = this.headHeight() - this._scrollTop % this._lineHeight;
+                var begin = Math.floor(this._scrollTop / this._lineHeight);
+                var newBuffer = [];
+                var data = this.myData();
+                for (var i = begin; i < begin + this._dispLines + 1 && i < data.length(); i++) {
+                    if (i >= this._bufferedBegin && i < this._bufferedEnd) {
+                        // Is buffered.
+                        var line = this._bufferedLines[i - this._bufferedBegin];
+                        this.moveLine(line, i - begin, base);
+                        newBuffer.push(line);
+                    }
+                    else {
+                        var line = document.createElement("div");
+                        line.className = "tui-grid-line";
+                        this[0].appendChild(line);
+                        newBuffer.push(line);
+                        line["_rowIndex"] = i;
+                        if (!empty) {
+                            this.drawLine(line, i, empty);
+                        }
+                        this.moveLine(line, i - begin, base);
+                    }
+                    var isSelected = this.isRowSelected(i);
+                    if (isSelected)
+                        $(line).addClass("tui-grid-line-selected");
+                    else
+                        $(line).removeClass("tui-grid-line-selected");
+                    if (isSelected || empty) {
+                        line.style.color = "";
+                        line.style.backgroundColor = "";
+                    }
+                    else {
+                        line.style.color = "";
+                        line.style.backgroundColor = "";
+                        var rowData = data.at(i);
+                        var textColorKey = data.mapKey("text-color");
+                        var textColor = (textColorKey !== null && rowData ? rowData[textColorKey] : null);
+                        if (typeof textColor === "string") {
+                            line.style.color = textColor;
+                        }
+                        var backColorKey = data.mapKey("back-color");
+                        var backColor = (backColorKey !== null && rowData ? rowData[backColorKey] : null);
+                        if (typeof backColor === "string") {
+                            line.style.backgroundColor = backColor;
+                        }
+                    }
+                }
+                var end = i;
+                for (var i = this._bufferedBegin; i < this._bufferedEnd; i++) {
+                    if (i < begin || i >= end)
+                        this[0].removeChild(this._bufferedLines[i - this._bufferedBegin]);
+                }
+                this._bufferedLines = newBuffer;
+                this._bufferedBegin = begin;
+                this._bufferedEnd = end;
+            };
+            Grid.prototype.clearBufferLines = function () {
+                if (!this[0])
+                    return;
+                for (var i = 0; i < this._bufferedLines.length; i++) {
+                    var l = this._bufferedLines[i];
+                    this[0].removeChild(l);
+                }
+                this._bufferedLines = [];
+                this._bufferedEnd = this._bufferedBegin = 0;
+            };
+            Grid.prototype.lineHeight = function () {
+                if (typeof this._lineHeight !== tui.undef)
+                    return this._lineHeight;
+                else {
+                    var grid = document.createElement("div");
+                    grid.className = this[0].className;
+                    var line = document.createElement("div");
+                    line.className = "tui-grid-line";
+                    grid.appendChild(line);
+                    document.body.appendChild(grid);
+                    var lineHeight = line.offsetHeight;
+                    document.body.removeChild(grid);
+                    return lineHeight;
+                }
+            };
+            Grid.prototype.select = function (rows) {
+                if (rows && typeof rows.length === "number" && rows.length >= 0) {
+                    this._selectrows.length = 0;
+                    for (var i = 0; i < rows.length; i++) {
+                        this._selectrows.push(rows[i]);
+                    }
+                    // Clear buffer cause row click event cannot be raised, 
+                    // so never do this when we only want to change row selection status.
+                    this.drawLines();
+                }
+                return this._selectrows;
+            };
+            Grid.prototype.activerow = function (rowIndex) {
+                if (typeof rowIndex === "number" || rowIndex === null) {
+                    if (rowIndex < 0)
+                        rowIndex = 0;
+                    if (rowIndex >= this.myData().length())
+                        rowIndex = this.myData().length() - 1;
+                    this._activerow = rowIndex;
+                    if (rowIndex === null)
+                        this.select([]);
+                    else
+                        this.select([rowIndex]);
+                }
+                return this._activerow;
+            };
+            Grid.prototype.activeItem = function (rowItem) {
+                var data = this.myData();
+                if (typeof rowItem !== tui.undef) {
+                    if (rowItem === null) {
+                        this.activerow(null);
+                    }
+                    else {
+                        for (var i = 0; i < data.length(); i++) {
+                            if (data.at(i) === rowItem) {
+                                this.activerow(i);
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (this._activerow !== null) {
+                    return data.at(this._activerow);
+                }
+                else
+                    return null;
+            };
+            /**
+             * Sort by specifed column
+             * @param {Number} colIndex
+             * @param {Boolean} desc
+             */
+            Grid.prototype.sort = function (colIndex, desc) {
+                if (desc === void 0) { desc = false; }
+                var columns = this.myColumns();
+                if (colIndex === null) {
+                    this._sortColumn = null;
+                    this.myData().sort(null, desc);
+                    this._sortDesc = false;
+                }
+                else if (typeof colIndex === "number" &&
+                    !isNaN(colIndex) &&
+                    colIndex >= 0 &&
+                    colIndex < columns.length &&
+                    columns[colIndex].sort) {
+                    this._sortColumn = colIndex;
+                    this._sortDesc = desc;
+                    if (typeof columns[colIndex].sort === "function")
+                        this.myData().sort(columns[colIndex].key, this._sortDesc, columns[colIndex].sort);
+                    else
+                        this.myData().sort(columns[colIndex].key, this._sortDesc);
+                }
+                this._sortDesc = !!desc;
+                this._scrollTop = 0;
+                this.activerow(null);
+                this._initialized = false;
+                this.refresh();
+                return { colIndex: this._sortColumn, desc: this._sortDesc };
+            };
+            /**
+             * Adjust column width to adapt column content
+             * @param {Number} columnIndex
+             * @param {Boolean} expandOnly Only expand column width
+             * @param {Boolean} displayedOnly Only compute displayed lines,
+             *		if this parameter is false then grid will compute all lines
+             *		regardless of whether it is visible
+             */
+            Grid.prototype.autofitColumn = function (columnIndex, expandOnly, displayedOnly) {
+                if (expandOnly === void 0) { expandOnly = false; }
+                if (displayedOnly === void 0) { displayedOnly = true; }
+                if (typeof (columnIndex) !== "number")
+                    return;
+                var columns = this.myColumns();
+                if (columnIndex < 0 && columnIndex >= columns.length)
+                    return;
+                var col = columns[columnIndex];
+                var maxWidth = 0;
+                if (expandOnly)
+                    maxWidth = col.width || 0;
+                var cell = document.createElement("span");
+                cell.className = "tui-grid-cell";
+                cell.style.position = "absolute";
+                cell.style.visibility = "hidden";
+                cell.style.width = "auto";
+                document.body.appendChild(cell);
+                var data = this.myData();
+                var key = null;
+                if (typeof col.key !== tui.undef && col.key !== null) {
+                    key = data.mapKey(col.key);
+                    if (typeof key === tui.undef)
+                        key = col.key;
+                }
+                var begin = displayedOnly ? this._bufferedBegin : 0;
+                var end = displayedOnly ? this._bufferedEnd : data.length();
+                for (var i = begin; i < end; i++) {
+                    var rowData = data.at(i);
+                    var v = rowData[key];
+                    if (typeof v === "object" && v.nodeName) {
+                        cell.innerHTML = "";
+                        cell.appendChild(v);
+                    }
+                    else {
+                        cell.innerHTML = v;
+                    }
+                    if (typeof col.format === "function")
+                        col.format({
+                            cell: cell,
+                            value: v,
+                            row: rowData,
+                            col: col,
+                            colKey: key,
+                            rowIndex: i,
+                            colIndex: columnIndex,
+                            isRowActived: i === this._activerow,
+                            grid: this
+                        });
+                    if (maxWidth < cell.offsetWidth - this._borderWidth)
+                        maxWidth = cell.offsetWidth - this._borderWidth;
+                }
+                document.body.removeChild(cell);
+                col.width = maxWidth;
+                col["_important"] = true;
+                this._initialized = false;
+                this.refresh();
+            };
+            Grid.prototype.delayDrawing = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-delay-drawing", val);
+                    this._delayDrawing = val;
+                    return this;
+                }
+                else
+                    return this._delayDrawing;
+            };
+            Grid.prototype.hasHScroll = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-has-hscroll", val);
+                    this._initialized = false;
                     this.refresh();
                     return this;
                 }
-                else if (val === null) {
-                    this.removeAttr("data-validator");
-                    this._invalid = false;
+                else
+                    return this.is("data-has-hscroll");
+            };
+            Grid.prototype.hasVLine = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-has-vline", val);
+                    this._initialized = false;
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-has-vline");
+            };
+            Grid.prototype.noHead = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-no-head", val);
+                    this._initialized = false;
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-no-head");
+            };
+            Grid.prototype.columns = function (val) {
+                if (val) {
+                    this._columns = val;
+                    this._initialized = false;
+                    this._sortColumn = null;
+                    this._sortDesc = false;
                     this.refresh();
                     return this;
                 }
                 else {
-                    val = this.attr("data-validator");
+                    if (!this._columns) {
+                        var valstr = this.attr("data-columns");
+                        this._columns = eval("(" + valstr + ")");
+                    }
+                    return this._columns;
+                }
+            };
+            Grid.prototype.rowselectable = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-rowselectable", val);
+                    this._initialized = false;
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-rowselectable");
+            };
+            Grid.prototype.rowdraggable = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-rowdraggable", val);
+                    return this;
+                }
+                else
+                    return this.is("data-rowdraggable");
+            };
+            Grid.prototype.scrollTo = function (rowIndex) {
+                if (typeof rowIndex !== "number" || isNaN(rowIndex) || rowIndex < 0 || rowIndex >= this.myData().length())
+                    return;
+                var v = this._vscroll.value();
+                if (v > rowIndex * this._lineHeight) {
+                    this._vscroll.value(rowIndex * this._lineHeight);
+                    this._scrollTop = this._vscroll.value();
+                    this.drawLines();
+                }
+                else {
+                    var h = (rowIndex - this._dispLines + 1) * this._lineHeight;
+                    var diff = (this._boxHeight - this.headHeight() - this._hscroll[0].offsetHeight - this._dispLines * this._lineHeight);
+                    if (v < h - diff) {
+                        this._vscroll.value(h - diff);
+                        this._scrollTop = this._vscroll.value();
+                        this.drawLines();
+                    }
+                }
+            };
+            Grid.prototype.editCell = function (rowIndex, colIndex) {
+                if (typeof rowIndex !== "number" ||
+                    rowIndex < 0 || rowIndex >= this.myData().length())
+                    return false;
+                if (typeof colIndex !== "number" ||
+                    colIndex < 0 || colIndex >= this.columns().length)
+                    return false;
+                if (this.rowselectable()) {
+                    this.activerow(rowIndex);
+                }
+                this.scrollTo(rowIndex);
+                var line = this._bufferedLines[rowIndex - this._bufferedBegin];
+                var cell = line.childNodes[colIndex];
+                if (cell.childNodes[1] && cell.childNodes[1]["_ctrl"]) {
+                    cell.childNodes[1]["_ctrl"].focus();
+                    return true;
+                }
+                else if (cell.childNodes[0] && cell.childNodes[0].childNodes[0] && cell.childNodes[0].childNodes[0]["_ctrl"]) {
+                    cell.childNodes[0].childNodes[0]["_ctrl"].focus();
+                    return true;
+                }
+                else
+                    return false;
+            };
+            Grid.prototype.editRow = function (rowIndex) {
+                if (typeof rowIndex !== "number" ||
+                    rowIndex < 0 || rowIndex >= this.myData().length())
+                    return false;
+                for (var i = 0; i < this._columns.length; i++) {
+                    if (this.editCell(rowIndex, i))
+                        return true;
+                }
+                return false;
+            };
+            Grid.prototype.resizable = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-resizable", val);
+                    this._initialized = false;
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-resizable");
+            };
+            Grid.prototype.value = function (data) {
+                if (data === null) {
+                    return this.data([]);
+                }
+                else if (data) {
+                    return this.data(data);
+                }
+                else {
+                    var result = [];
+                    var dt = this.data();
+                    for (var i = 0; i < dt.length(); i++) {
+                        result.push(dt.at(i));
+                    }
+                    return result;
+                }
+            };
+            Grid.prototype.data = function (data) {
+                var _this = this;
+                if (data) {
+                    var self = this;
+                    if (data instanceof Array || data.data && data.data instanceof Array) {
+                        data = new tui.ArrayProvider(data);
+                    }
+                    if (typeof data.length !== "function" ||
+                        typeof data.sort !== "function" ||
+                        typeof data.at !== "function" ||
+                        typeof data.columnKeyMap !== "function") {
+                        this._initialized = false;
+                        this.refresh();
+                        throw new Error("TUI Grid: need a data provider.");
+                    }
+                    this._data && this._data.onupdate && this._data.onupdate(null);
+                    this._data = data;
+                    if (this._sortColumn != null) {
+                        this.sort(this._sortColumn, this._sortDesc);
+                    }
+                    typeof this._data.onupdate === "function" && this._data.onupdate(function (updateInfo) {
+                        var b = updateInfo.begin;
+                        var e = b + updateInfo.data.length;
+                        _this._initialized = false;
+                        self.refresh();
+                    });
+                    this._initialized = false;
+                    this.refresh();
+                    return this;
+                }
+                else {
+                    return this.myData();
+                }
+            };
+            Grid.prototype.consumeMouseWheelEvent = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-consume-mwe", val);
+                    return this;
+                }
+                else
+                    return this.is("data-consume-mwe");
+            };
+            Grid.prototype.noRefresh = function (val) {
+                if (typeof val === "boolean") {
+                    this._noRefresh = val;
+                    return this;
+                }
+                else
+                    return this._noRefresh;
+            };
+            Grid.prototype.refreshHead = function () {
+                this.drawHead();
+            };
+            Grid.prototype.refresh = function () {
+                if (this._noRefresh)
+                    return;
+                if (!this[0] || this[0].parentElement === null)
+                    return;
+                if (this[0].offsetWidth === 0 || this[0].offsetHeight === 0)
+                    return;
+                this._initialized = true;
+                this.computeScroll();
+                this.clearBufferLines();
+                //			this._columnKeyMap = this.myData().columnKeyMap();
+                this.drawHead();
+                this.drawLines();
+                this.drawColumnLines();
+            };
+            Grid.prototype.autoRefresh = function () {
+                return !this._initialized;
+            };
+            /// Following static methods are used for cell formatting.
+            Grid.menu = function (itemMenu, func, menuPos) {
+                if (menuPos === void 0) { menuPos = "Rb"; }
+                return function (data) {
+                    if (data.rowIndex < 0)
+                        return;
+                    var tb = data.grid;
+                    var array = data.grid.data().src();
+                    data.cell.firstChild.innerHTML = "";
+                    var btnMenu = tui.ctrl.button();
+                    btnMenu.addClass("tui-grid-menu-button");
+                    btnMenu.text("<i class='fa fa-bars'></i>");
+                    if (typeof itemMenu === "function")
+                        btnMenu.menu(itemMenu(data));
+                    else
+                        btnMenu.menu(itemMenu);
+                    btnMenu.menuPos(menuPos);
+                    data.cell.firstChild.appendChild(btnMenu[0]);
+                    btnMenu.on("select", function (d) {
+                        func && func(d.item, data);
+                    });
+                    $(btnMenu[0]).mousedown(function (e) {
+                        data.grid.editCell(data.rowIndex, data.colIndex);
+                        e.stopPropagation();
+                        tui.fire("#tui.check.popup");
+                    });
+                    $(btnMenu[0]).keydown(function (e) {
+                        handleKeyDownEvent(e, data, "button");
+                    });
+                };
+            };
+            Grid.button = function (text, func) {
+                return function (data) {
+                    if (data.rowIndex < 0)
+                        return;
+                    var tb = data.grid;
+                    var array = data.grid.data().src();
+                    data.cell.firstChild.innerHTML = "";
+                    var btnMenu = tui.ctrl.button();
+                    btnMenu.text(text);
+                    data.cell.firstChild.appendChild(btnMenu[0]);
+                    btnMenu.on("click", function () {
+                        func && func(data);
+                    });
+                    $(btnMenu[0]).mousedown(function (e) {
+                        data.grid.editCell(data.rowIndex, data.colIndex);
+                        e.stopPropagation();
+                        tui.fire("#tui.check.popup");
+                    });
+                    $(btnMenu[0]).keydown(function (e) {
+                        handleKeyDownEvent(e, data, "button");
+                    });
+                };
+            };
+            Grid.checkbox = function (withHeader) {
+                if (withHeader === void 0) { withHeader = true; }
+                return function (data) {
+                    if (data.rowIndex < 0) {
+                        if (withHeader) {
+                            var headCheck = tui.ctrl.checkbox();
+                            data.cell.firstChild.innerHTML = "";
+                            data.cell.firstChild.appendChild(headCheck[0]);
+                            data.cell.style.textAlign = "center";
+                            var dataSet = data.grid.data();
+                            var totalLen = dataSet.length();
+                            var checkedCount = 0;
+                            var uncheckCount = 0;
+                            for (var i = 0; i < totalLen; i++) {
+                                if (dataSet.at(i)[data.colKey])
+                                    checkedCount++;
+                                else
+                                    uncheckCount++;
+                            }
+                            if (totalLen === uncheckCount) {
+                                headCheck.checked(false);
+                                headCheck.triState(false);
+                            }
+                            else if (totalLen === checkedCount) {
+                                headCheck.checked(true);
+                                headCheck.triState(false);
+                            }
+                            else
+                                headCheck.triState(true);
+                            headCheck.on("click", function () {
+                                if (typeof data.colKey !== tui.undef) {
+                                    for (var i = 0; i < totalLen; i++) {
+                                        dataSet.at(i)[data.colKey] = headCheck.checked();
+                                    }
+                                }
+                                data.value = headCheck.checked();
+                                data.grid.refresh();
+                            });
+                        }
+                        return;
+                    }
+                    else {
+                        data.cell.firstChild.innerHTML = "";
+                        var chk = tui.ctrl.checkbox();
+                        data.cell.firstChild.appendChild(chk[0]);
+                        data.cell.style.textAlign = "center";
+                        chk.checked(data.value);
+                        chk.on("click", function () {
+                            if (typeof data.colKey !== tui.undef)
+                                data.row[data.colKey] = chk.checked();
+                            data.value = chk.checked();
+                            data.grid.refreshHead();
+                        });
+                        $(chk[0]).keydown(function (e) {
+                            handleKeyDownEvent(e, data, "checkbox");
+                        });
+                    }
+                };
+            }; // end of chechBox
+            Grid.textEditor = function (listData) {
+                return createInputFormatter("text", listData);
+            };
+            Grid.selector = function (listData) {
+                return createInputFormatter("select", listData);
+            }; // end of selector
+            Grid.fileSelector = function (address, accept) {
+                return createInputFormatter("file", address, accept);
+            }; // end of fileSelector
+            Grid.calendarSelector = function () {
+                return createInputFormatter("calendar");
+            }; // end of calendarSelector
+            Grid.customSelector = function (func, icon) {
+                if (icon === void 0) { icon = "fa-ellipsis-h"; }
+                return createInputFormatter("custom-select", func, icon);
+            }; // end of calendarSelector
+            Grid.CLASS = "tui-grid";
+            return Grid;
+        })(ctrl.Control);
+        ctrl.Grid = Grid;
+        function handleKeyDownEvent(e, data, type) {
+            var k = e.keyCode;
+            var col, row;
+            if (k === tui.KEY_DOWN) {
+                if (data.rowIndex < data.grid.data().length() - 1)
+                    data.grid.editCell(data.rowIndex + 1, data.colIndex);
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            else if (k === tui.KEY_UP) {
+                if (data.rowIndex > 0)
+                    data.grid.editCell(data.rowIndex - 1, data.colIndex);
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            else if (k === tui.KEY_LEFT) {
+                if (type !== "text" || e.ctrlKey) {
+                    col = data.colIndex - 1;
+                    while (col >= 0) {
+                        if (data.grid.editCell(data.rowIndex, col--))
+                            break;
+                    }
+                }
+                e.stopPropagation();
+            }
+            else if (k === tui.KEY_RIGHT) {
+                if (type !== "text" || e.ctrlKey) {
+                    col = data.colIndex + 1;
+                    while (col < data.grid.columns().length) {
+                        if (data.grid.editCell(data.rowIndex, col++))
+                            break;
+                    }
+                }
+                e.stopPropagation();
+            }
+            else if (k === tui.KEY_TAB && e.shiftKey) {
+                col = data.colIndex;
+                row = data.rowIndex;
+                while (row >= 0 && col >= 0) {
+                    col--;
+                    if (col < 0) {
+                        col = data.grid.columns().length - 1;
+                        row--;
+                    }
+                    if (data.grid.editCell(row, col))
+                        break;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            else if (k === tui.KEY_TAB) {
+                col = data.colIndex;
+                row = data.rowIndex;
+                while (row < data.grid.data().length() && col < data.grid.columns().length) {
+                    col++;
+                    if (col >= data.grid.columns().length) {
+                        col = 0;
+                        row++;
+                    }
+                    if (data.grid.editCell(row, col))
+                        break;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            else {
+                if (type === "text") {
+                    data.grid.editCell(data.rowIndex, data.colIndex);
+                }
+            }
+        }
+        function createInputFormatter(type, param1, param2) {
+            return function (data) {
+                if (data.rowIndex < 0 /*|| !data.isRowActived*/) {
+                    return;
+                }
+                var editor = tui.ctrl.input(null, type);
+                editor.useLabelClick(false);
+                editor.addClass("tui-grid-editor");
+                editor.on("select change", function () {
+                    if (typeof data.colKey !== tui.undef)
+                        data.row[data.colKey] = editor.value();
+                    data.value = editor.value();
+                });
+                if (type === "text") {
+                    if (param1)
+                        editor.data(param1);
+                }
+                else if (type === "select") {
+                    editor.data(param1);
+                }
+                else if (type === "custom-select") {
+                    editor.on("btnclick", param1);
+                    editor.icon(param2);
+                }
+                else if (type === "calendar") {
+                }
+                else if (type === "file") {
+                    editor.uploadUrl(param1);
+                    editor.accept(param2);
+                }
+                $(editor[0]).mousedown(function (e) {
+                    data.grid.editCell(data.rowIndex, data.colIndex);
+                    e.stopPropagation();
+                    tui.fire("#tui.check.popup");
+                });
+                $(editor[0]).keydown(function (e) {
+                    handleKeyDownEvent(e, data, type);
+                });
+                editor[0].style.width = $(data.cell).innerWidth() - 1 + "px";
+                editor[0].style.height = $(data.cell).innerHeight() - 1 + "px";
+                data.cell.appendChild(editor[0]);
+                editor.value(data.value);
+            };
+        }
+        /**
+         * Construct a grid.
+         * @param el {HTMLElement or element id or construct info}
+         */
+        function grid(param) {
+            return tui.ctrl.control(param, Grid);
+        }
+        ctrl.grid = grid;
+        tui.ctrl.registerInitCallback(Grid.CLASS, grid);
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.ctrl.grid.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl) {
+        var TriState;
+        (function (TriState) {
+            TriState[TriState["Unchecked"] = 0] = "Unchecked";
+            TriState[TriState["Checked"] = 1] = "Checked";
+            TriState[TriState["HalfChecked"] = 2] = "HalfChecked";
+        })(TriState || (TriState = {}));
+        var List = (function (_super) {
+            __extends(List, _super);
+            //private _columnKeyMap: {} = null;
+            function List(el) {
+                var _this = this;
+                _super.call(this, "div", List.CLASS, null);
+                var self = this;
+                this._grid = ctrl.grid(el);
+                this._grid.noRefresh(true);
+                this[0] = this._grid[0];
+                this[0]._ctrl = this;
+                this.addClass(List.CLASS);
+                var columns = this._grid.columns();
+                if (columns === null) {
+                    this._grid.columns([{
+                            key: "value",
+                            format: function (info) {
+                                if (info.rowIndex < 0)
+                                    return;
+                                var rowcheckable = _this.rowcheckable();
+                                var cell = info.cell.firstChild;
+                                var itemIcon = info.row[_this._iconColumnKey];
+                                var isExpanded = !!info.row[_this._expandColumnKey];
+                                var hasCheckbox = (typeof info.row[_this._checkedColumnKey] !== tui.undef);
+                                var isChecked = !!info.row[_this._checkedColumnKey];
+                                var hasChild = !!info.row[_this._childrenColumKey] && info.row[_this._childrenColumKey].length > 0;
+                                var isHalfChecked = (_this.triState() && info.row[_this._checkedColumnKey] === TriState.HalfChecked);
+                                var spaceSpan = document.createElement("span");
+                                spaceSpan.className = "tui-list-space";
+                                var foldIcon = document.createElement("span");
+                                foldIcon.className = "tui-list-fold";
+                                if (hasChild) {
+                                    if (isExpanded) {
+                                        $(foldIcon).addClass("tui-list-fold-expand");
+                                        $(foldIcon).mousedown(function (e) {
+                                            _this.onFoldRow(info.row, info.rowIndex, e);
+                                        });
+                                    }
+                                    else {
+                                        $(foldIcon).addClass("tui-list-fold-unexpand");
+                                        $(foldIcon).mousedown(function (e) {
+                                            _this.onExpandRow(info.row, info.rowIndex, e);
+                                        });
+                                    }
+                                }
+                                if (typeof itemIcon === "string") {
+                                    var icon = document.createElement("i");
+                                    icon.className = "fa " + itemIcon;
+                                    icon.style.marginRight = "4px";
+                                    cell.insertBefore(icon, cell.firstChild);
+                                }
+                                if (hasCheckbox && rowcheckable) {
+                                    var checkIcon = document.createElement("span");
+                                    checkIcon.className = "tui-list-checkbox";
+                                    if (isChecked) {
+                                        if (isHalfChecked)
+                                            $(checkIcon).addClass("tui-half-checked");
+                                        else
+                                            $(checkIcon).addClass("tui-checked");
+                                    }
+                                    cell.insertBefore(checkIcon, cell.firstChild);
+                                    $(checkIcon).mouseup(function (e) {
+                                        _this.onCheckRow(info.row, info.rowIndex, e);
+                                    });
+                                }
+                                cell.insertBefore(foldIcon, cell.firstChild);
+                                cell.insertBefore(spaceSpan, cell.firstChild);
+                                var singleWidth = spaceSpan.offsetWidth;
+                                var level = info.row[_this._levelColumnKey];
+                                spaceSpan.style.width = singleWidth * (typeof level === "number" ? level : 0) + "px";
+                            }
+                        }]);
+                }
+                this._grid.on("rowclick", function (data) {
+                    return _this.fire("rowclick", data);
+                });
+                this._grid.on("rowdblclick", function (data) {
+                    return _this.fire("rowdblclick", data);
+                });
+                this._grid.on("rowmousedown", function (data) {
+                    return _this.fire("rowmousedown", data);
+                });
+                this._grid.on("rowdragstart", function (data) {
+                    return _this.fire("rowdragstart", data);
+                });
+                this._grid.on("rowdragover", function (data) {
+                    return _this.fire("rowdragover", data);
+                });
+                this._grid.on("rowdragend", function (data) {
+                    return _this.fire("rowdragend", data);
+                });
+                this._grid.on("rowmouseup", function (data) {
+                    return _this.fire("rowmouseup", data);
+                });
+                this._grid.on("rowmouseenter", function (data) {
+                    return _this.fire("rowmouseenter", data);
+                });
+                this._grid.on("rowmouseleave", function (data) {
+                    return _this.fire("rowmouseleave", data);
+                });
+                this._grid.on("rowcontextmenu", function (data) {
+                    return _this.fire("rowcontextmenu", data);
+                });
+                this._grid.on("resizecolumn", function (data) {
+                    return _this.fire("resizecolumn", data);
+                });
+                this._grid.on("contextmenu", function (data) {
+                    return _this.fire("contextmenu", data);
+                });
+                this._grid.on("keydown", function (data) {
+                    if (_this.fire("keydown", data) === false)
+                        return false;
+                    var keyCode = data["event"].keyCode;
+                    if (keyCode === 32) {
+                        var activeRowIndex = self._grid.activerow();
+                        if (activeRowIndex >= 0) {
+                            data["event"].preventDefault();
+                            data["event"].stopPropagation();
+                        }
+                    }
+                    else if (keyCode === 37 /*Left*/) {
+                        var activeRowIndex = self._grid.activerow();
+                        var item = self._grid.activeItem();
+                        if (item) {
+                            var children = item[self._childrenColumKey];
+                            if (children && children.length > 0 && item[self._expandColumnKey]) {
+                                _this.onFoldRow(item, activeRowIndex, data["event"]);
+                            }
+                            else {
+                                if (item["__parent"]) {
+                                    self.activeItem(item["__parent"]);
+                                    self.scrollTo(self.activerow());
+                                    self.refresh();
+                                }
+                            }
+                            data["event"].preventDefault();
+                            data["event"].stopPropagation();
+                        }
+                    }
+                    else if (keyCode === 39 /*Right*/) {
+                        var item = self._grid.activeItem();
+                        if (item) {
+                            var children = item[self._childrenColumKey];
+                            if (children && children.length > 0 && !item[self._expandColumnKey]) {
+                                _this.onExpandRow(item, activeRowIndex, data["event"]);
+                            }
+                            data["event"].preventDefault();
+                            data["event"].stopPropagation();
+                        }
+                    }
+                });
+                this._grid.on("keyup", function (data) {
+                    if (data["event"].keyCode === 32) {
+                        var activeRowIndex = self._grid.activerow();
+                        if (activeRowIndex >= 0) {
+                            var row = self._grid.data().at(activeRowIndex);
+                            _this.onCheckRow(row, activeRowIndex, data["event"]);
+                        }
+                    }
+                    return _this.fire("keyup", data);
+                });
+                if (!this.hasAttr("data-no-head"))
+                    this.noHead(true);
+                if (!this.hasAttr("data-delay-drawing"))
+                    this.delayDrawing(false);
+                if (!this.hasAttr("data-rowselectable"))
+                    this.rowselectable(true);
+                if (!this.hasAttr("data-rowcheckable"))
+                    this.rowcheckable(true);
+                if (this._grid.data()) {
+                    this._grid.noRefresh(false);
+                    this.data(this._grid.data());
+                }
+                else {
+                    this._grid.noRefresh(false);
+                    this.refresh();
+                }
+            }
+            List.prototype.checkChildren = function (children, checkState) {
+                for (var i = 0; i < children.length; i++) {
+                    if (!children[i])
+                        continue;
+                    if (typeof children[i][this._checkedColumnKey] !== tui.undef)
+                        children[i][this._checkedColumnKey] = checkState;
+                    var myChildren = children[i][this._childrenColumKey];
+                    myChildren && myChildren.length > 0 && this.checkChildren(myChildren, checkState);
+                }
+            };
+            List.prototype.checkParent = function (parent) {
+                var children = parent[this._childrenColumKey];
+                var checkedCount = 0, uncheckedCount = 0;
+                for (var i = 0; i < children.length; i++) {
+                    var row = children[i];
+                    if (!row)
+                        continue;
+                    if (typeof row[this._checkedColumnKey] === tui.undef)
+                        continue;
+                    else if (row[this._checkedColumnKey] === TriState.HalfChecked) {
+                        uncheckedCount++;
+                        checkedCount++;
+                        break;
+                    }
+                    else if (!!row[this._checkedColumnKey])
+                        checkedCount++;
+                    else
+                        uncheckedCount++;
+                }
+                if (typeof parent[this._checkedColumnKey] !== tui.undef) {
+                    if (checkedCount === 0)
+                        parent[this._checkedColumnKey] = TriState.Unchecked;
+                    else if (uncheckedCount === 0)
+                        parent[this._checkedColumnKey] = TriState.Checked;
+                    else
+                        parent[this._checkedColumnKey] = TriState.HalfChecked;
+                }
+                parent["__parent"] && this.checkParent(parent["__parent"]);
+            };
+            List.prototype.checkRow = function (row, checkState) {
+                if (typeof row[this._checkedColumnKey] !== tui.undef)
+                    row[this._checkedColumnKey] = checkState;
+                if (this.triState()) {
+                    var children = row[this._childrenColumKey];
+                    children && children.length > 0 && this.checkChildren(children, checkState);
+                    var parent = row["__parent"];
+                    parent && this.checkParent(parent);
+                }
+            };
+            List.prototype.onCheckRow = function (row, rowIndex, event) {
+                var checkState;
+                if (this.triState()) {
+                    checkState = row[this._checkedColumnKey];
+                    if (checkState === TriState.HalfChecked || !checkState)
+                        checkState = TriState.Checked;
+                    else
+                        checkState = TriState.Unchecked;
+                }
+                else
+                    checkState = !row[this._checkedColumnKey];
+                this.checkRow(row, checkState);
+                this.fire("rowcheck", { event: event, checked: row[this._checkedColumnKey], row: row, index: rowIndex });
+                this.refresh();
+            };
+            List.prototype.expandRow = function (rowIndex) {
+                var row = this.data().at(rowIndex);
+                row[this._expandColumnKey] = true;
+                this.formatData();
+                this.fire("rowexpand", { row: row, index: rowIndex });
+            };
+            List.prototype.onExpandRow = function (row, rowIndex, event) {
+                row[this._expandColumnKey] = true;
+                this.formatData();
+                this.fire("rowexpand", { event: event, row: row, index: rowIndex });
+            };
+            List.prototype.foldRow = function (rowIndex) {
+                var row = this.data().at(rowIndex);
+                row[this._expandColumnKey] = false;
+                this.formatData();
+                this.fire("rowfold", { row: row, index: rowIndex });
+            };
+            List.prototype.onFoldRow = function (row, rowIndex, event) {
+                row[this._expandColumnKey] = false;
+                this.formatData();
+                this.fire("rowfold", { event: event, row: row, index: rowIndex });
+            };
+            List.prototype.initData = function (useTriState) {
+                if (useTriState === void 0) { useTriState = false; }
+                var self = this;
+                var data = this._grid.data();
+                if (data && typeof data.process === "function") {
+                    function checkChildren(input, parentRow) {
+                        var checkedCount = 0, uncheckedCount = 0;
+                        for (var i = 0; i < input.length; i++) {
+                            var row = input[i];
+                            if (!row)
+                                continue;
+                            if (useTriState) {
+                                if (row[self._childrenColumKey] && row[self._childrenColumKey].length > 0) {
+                                    var state = checkChildren(row[self._childrenColumKey], row);
+                                    row[self._checkedColumnKey] = state;
+                                }
+                                if (row[self._checkedColumnKey] === TriState.HalfChecked) {
+                                    uncheckedCount++;
+                                    checkedCount++;
+                                }
+                                else if (!!row[self._checkedColumnKey])
+                                    checkedCount++;
+                                else
+                                    uncheckedCount++;
+                            }
+                            else {
+                                if (row[self._childrenColumKey] && row[self._childrenColumKey].length > 0) {
+                                    checkChildren(row[self._childrenColumKey], row);
+                                }
+                            }
+                            row["__parent"] = parentRow;
+                        }
+                        if (useTriState) {
+                            if (checkedCount === 0)
+                                return TriState.Unchecked;
+                            else if (uncheckedCount === 0)
+                                return TriState.Checked;
+                            else
+                                return TriState.HalfChecked;
+                        }
+                    }
+                    function processTree(input) {
+                        checkChildren(input, null);
+                        return input;
+                    }
+                    data.process(processTree);
+                }
+            };
+            List.prototype.initTriState = function () {
+                this.initData(true);
+            };
+            List.prototype.formatData = function () {
+                var self = this;
+                var data = this._grid.data();
+                if (data && typeof data.process === "function") {
+                    function addChildren(input, output, level) {
+                        for (var i = 0; i < input.length; i++) {
+                            var row = input[i];
+                            if (!row)
+                                continue;
+                            output.push(row);
+                            row[self._levelColumnKey] = level;
+                            if (!!row[self._expandColumnKey] &&
+                                row[self._childrenColumKey] && row[self._childrenColumKey].length > 0) {
+                                addChildren(row[self._childrenColumKey], output, level + 1);
+                            }
+                        }
+                    }
+                    function processTree(input) {
+                        var output = [];
+                        addChildren(input, output, 0);
+                        return output;
+                    }
+                    data.process(processTree);
+                }
+                this.refresh();
+            };
+            List.prototype.select = function (rows) {
+                return this._grid.select(rows);
+            };
+            List.prototype.activerow = function (rowIndex) {
+                return this._grid.activerow(rowIndex);
+            };
+            List.prototype.activeItem = function (rowItem) {
+                if (typeof rowItem !== tui.undef) {
+                    if (rowItem) {
+                        var parent = rowItem["__parent"];
+                        while (parent) {
+                            parent[this._expandColumnKey] = true;
+                            parent = parent["__parent"];
+                        }
+                        this.formatData();
+                    }
+                }
+                return this._grid.activeItem(rowItem);
+            };
+            List.prototype.activeRowByKey = function (key) {
+                var self = this;
+                var activeRow = null;
+                function checkChildren(children) {
+                    for (var i = 0; i < children.length; i++) {
+                        if (!children[i])
+                            continue;
+                        if (children[i][self._keyColumKey] === key) {
+                            activeRow = children[i];
+                            return true;
+                        }
+                        var myChilren = children[i][self._childrenColumKey];
+                        if (myChilren && myChilren.length > 0)
+                            if (checkChildren(myChilren))
+                                return true;
+                    }
+                }
+                var data = this._grid.data();
+                if (typeof data.src === "function") {
+                    if (checkChildren(data.src())) {
+                        return this.activeItem(activeRow);
+                    }
+                    else
+                        return this.activeItem(null);
+                }
+                else
+                    return null;
+            };
+            List.prototype.editCell = function (rowIndex, colIndex) {
+                return this._grid.editCell(rowIndex, colIndex);
+            };
+            List.prototype.editRow = function (rowIndex) {
+                return this._grid.editRow(rowIndex);
+            };
+            List.prototype.doCheck = function (keys, checkState) {
+                var self = this;
+                //var useTriState = this.triState();
+                var map = {};
+                if (keys) {
+                    for (var i = 0; i < keys.length; i++) {
+                        map[keys[i]] = true;
+                    }
+                }
+                function checkChildren(keys, children) {
+                    for (var i = 0; i < children.length; i++) {
+                        if (!children[i])
+                            continue;
+                        if (keys === null || map[children[i][self._keyColumKey]]) {
+                            //children[i][self._checkedColumnKey] = checkState;
+                            self.checkRow(children[i], checkState);
+                        }
+                        var myChilren = children[i][self._childrenColumKey];
+                        if (myChilren && myChilren.length > 0)
+                            checkChildren(keys, myChilren);
+                    }
+                }
+                var data = this._grid.data();
+                if (data && typeof data.src === "function") {
+                    checkChildren(keys, data.src());
+                    //if (useTriState) {
+                    //	this.initTriState();
+                    //}
+                    this.refresh();
+                }
+            };
+            List.prototype.checkItems = function (keys) {
+                this.doCheck(keys, TriState.Checked);
+                return this;
+            };
+            List.prototype.checkAllItems = function () {
+                this.doCheck(null, TriState.Checked);
+                return this;
+            };
+            List.prototype.uncheckItems = function (keys) {
+                this.doCheck(keys, TriState.Unchecked);
+                return this;
+            };
+            List.prototype.uncheckAllItems = function () {
+                this.doCheck(null, TriState.Unchecked);
+                return this;
+            };
+            List.prototype.checkedItems = function () {
+                var self = this;
+                var checkedItems = [];
+                function checkChildren(children) {
+                    for (var i = 0; i < children.length; i++) {
+                        if (!children[i])
+                            continue;
+                        if (!!children[i][self._checkedColumnKey])
+                            checkedItems.push(children[i]);
+                        var myChilren = children[i][self._childrenColumKey];
+                        if (myChilren && myChilren.length > 0)
+                            checkChildren(myChilren);
+                    }
+                }
+                var data = this._grid.data();
+                if (data && typeof data.src === "function") {
+                    checkChildren(data.src());
+                }
+                return checkedItems;
+            };
+            List.prototype.allKeys = function (onlyCheckable) {
+                var self = this;
+                var keys = [];
+                function checkChildren(children) {
+                    for (var i = 0; i < children.length; i++) {
+                        if (!children[i])
+                            continue;
+                        var k = children[i][self._keyColumKey];
+                        if ((onlyCheckable && typeof children[i][self._checkedColumnKey] !== tui.undef || !onlyCheckable) &&
+                            typeof k !== tui.undef && k !== null)
+                            keys.push(k);
+                        var myChilren = children[i][self._childrenColumKey];
+                        if (myChilren && myChilren.length > 0)
+                            checkChildren(myChilren);
+                    }
+                }
+                var data = this._grid.data();
+                if (data && typeof data.src === "function") {
+                    checkChildren(data.src());
+                }
+                return keys;
+            };
+            List.prototype.enumerate = function (func) {
+                var self = this;
+                var checkedItems = [];
+                function enumChildren(children) {
+                    for (var i = 0; i < children.length; i++) {
+                        func(children[i]);
+                        if (!children[i])
+                            continue;
+                        var myChilren = children[i][self._childrenColumKey];
+                        if (myChilren && myChilren.length > 0)
+                            enumChildren(myChilren);
+                    }
+                }
+                var data = this._grid.data();
+                if (data && typeof data.src === "function") {
+                    enumChildren(data.src());
+                }
+            };
+            /**
+             * Adjust column width to adapt column content
+             * @param {Number} columnIndex
+             * @param {Boolean} expandOnly Only expand column width
+             * @param {Boolean} displayedOnly Only compute displayed lines,
+             *		if this parameter is false then grid will compute all lines
+             *		regardless of whether it is visible
+             */
+            List.prototype.autofitColumn = function (columnIndex, expandOnly, displayedOnly) {
+                if (expandOnly === void 0) { expandOnly = false; }
+                if (displayedOnly === void 0) { displayedOnly = true; }
+                this._grid.autofitColumn(columnIndex, expandOnly, displayedOnly);
+            };
+            List.prototype.delayDrawing = function (val) {
+                return this._grid.delayDrawing(val);
+            };
+            List.prototype.noHead = function (val) {
+                return this._grid.noHead(val);
+            };
+            List.prototype.hasHScroll = function (val) {
+                return this._grid.hasHScroll(val);
+            };
+            List.prototype.columns = function (val) {
+                return this._grid.columns(val);
+            };
+            List.prototype.rowdraggable = function (val) {
+                return this._grid.rowdraggable(val);
+            };
+            List.prototype.rowselectable = function (val) {
+                return this._grid.rowselectable(val);
+            };
+            List.prototype.rowcheckable = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-rowcheckable", val);
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-rowcheckable");
+            };
+            List.prototype.consumeMouseWheelEvent = function (val) {
+                return this._grid.consumeMouseWheelEvent(val);
+            };
+            List.prototype.triState = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-tri-state", val);
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-tri-state");
+            };
+            List.prototype.scrollTo = function (rowIndex) {
+                this._grid.scrollTo(rowIndex);
+            };
+            List.prototype.value = function (keys) {
+                if (typeof keys !== tui.undef) {
+                    this.uncheckAllItems();
+                    if (keys != null)
+                        this.checkItems(keys);
+                    return this;
+                }
+                else {
+                    var items = this.checkedItems();
+                    var result = [];
+                    for (var i = 0; i < items.length; i++) {
+                        if (typeof items[i][this._keyColumKey] !== tui.undef)
+                            result.push(items[i][this._keyColumKey]);
+                    }
+                    return result;
+                }
+            };
+            List.prototype.data = function (data) {
+                if (typeof data !== tui.undef) {
+                    var noRef = this._grid.noRefresh();
+                    this._grid.noRefresh(true);
+                    this._grid.data(data);
+                    var finalData = this._grid.data();
+                    this._keyColumKey = finalData.mapKey("key");
+                    this._childrenColumKey = finalData.mapKey("children");
+                    this._checkedColumnKey = finalData.mapKey("checked");
+                    this._levelColumnKey = finalData.mapKey("level");
+                    this._valueColumnKey = finalData.mapKey("value");
+                    this._expandColumnKey = finalData.mapKey("expand");
+                    this._iconColumnKey = finalData.mapKey("icon");
+                    if (this.triState())
+                        this.initTriState();
+                    else
+                        this.initData();
+                    this._grid.noRefresh(noRef);
+                    this.formatData();
+                    return this;
+                }
+                else
+                    return this._grid.data();
+            };
+            List.prototype.lineHeight = function () {
+                if (!this._grid)
+                    return 0;
+                return this._grid.lineHeight();
+            };
+            List.prototype.refresh = function () {
+                if (!this._grid)
+                    return;
+                this._grid.refresh();
+            };
+            List.CLASS = "tui-list";
+            return List;
+        })(ctrl.Control);
+        ctrl.List = List;
+        /**
+         * Construct a grid.
+         * @param el {HTMLElement or element id or construct info}
+         */
+        function list(param) {
+            return tui.ctrl.control(param, List);
+        }
+        ctrl.list = list;
+        tui.ctrl.registerInitCallback(List.CLASS, list);
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.ctrl.form.ts" />
+/// <reference path="tui.dataprovider.ts" />
+/// <reference path="tui.ctrl.menu.ts" />
+/// <reference path="tui.ctrl.list.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl) {
+        var Button = (function (_super) {
+            __extends(Button, _super);
+            function Button(el) {
+                var _this = this;
+                _super.call(this, "a", Button.CLASS, el);
+                this._data = null;
+                this._columnKeyMap = null;
+                this._isMenu = false;
+                this.disabled(this.disabled());
+                this.selectable(false);
+                this.exposeEvents("mousedown mouseup mousemove mouseenter mouseleave keydown keyup");
+                var self = this;
+                function openMenu() {
+                    var pos = self.menuPos();
+                    if (self.isMenu()) {
+                        var menu = tui.ctrl.menu(self._data);
+                        menu.show(self[0], pos || "Lb");
+                        menu.on("select", function (data) {
+                            self.fire("select", data);
+                        });
+                        menu.on("close", function () {
+                            self.actived(false);
+                        });
+                        return;
+                    }
+                    var pop = tui.ctrl.popup();
+                    var list = tui.ctrl.list();
+                    list.consumeMouseWheelEvent(true);
+                    list.rowcheckable(false);
+                    pop.on("close", function () {
+                        self.actived(false);
+                    });
+                    function doSelectItem(data) {
+                        var item = list.activeItem();
+                        var link = item[self._linkColumnKey];
+                        if (link) {
+                            pop.close();
+                            window.location.href = link;
+                            return;
+                        }
+                        var action = item["action"];
+                        if (typeof action !== tui.undef) {
+                            if (typeof action === "function") {
+                                action();
+                            }
+                            pop.close();
+                            self.focus();
+                            self.fireClick(data["event"]);
+                            return;
+                        }
+                        self.value(item[self._keyColumnKey]);
+                        var targetElem = self.menuBind();
+                        if (targetElem === null)
+                            self.text(item[self._valueColumnKey]);
+                        else {
+                            targetElem = document.getElementById(targetElem);
+                            if (targetElem) {
+                                if (targetElem._ctrl) {
+                                    if (typeof targetElem._ctrl.text === "function")
+                                        targetElem._ctrl.text(item[self._valueColumnKey]);
+                                }
+                                else
+                                    targetElem.innerHTML = item[self._valueColumnKey];
+                            }
+                        }
+                        pop.close();
+                        self.focus();
+                        self.fireClick(data["event"]);
+                    }
+                    list.on("rowclick", function (data) {
+                        doSelectItem(data);
+                    });
+                    list.on("keydown", function (data) {
+                        if (data["event"].keyCode === 13) {
+                            doSelectItem(data);
+                        }
+                    });
+                    var testDiv = document.createElement("span");
+                    testDiv.className = "tui-list-test-width-cell";
+                    document.body.appendChild(testDiv);
+                    var listWidth = self[0].offsetWidth;
+                    for (var i = 0; i < self._data.length(); i++) {
+                        var item = self._data.at(i);
+                        testDiv.innerHTML = item[self._valueColumnKey];
+                        if (testDiv.offsetWidth + 40 > listWidth) {
+                            listWidth = testDiv.offsetWidth + 40;
+                        }
+                    }
+                    document.body.removeChild(testDiv);
+                    list[0].style.width = listWidth + "px";
+                    list.data(self._data);
+                    pop.show(list[0], self[0], pos || "Rb");
+                    var items = self._data ? self._data.length() : 0;
+                    if (items < 1)
+                        items = 1;
+                    else if (items > 15)
+                        items = 15;
+                    list[0].style.height = items * list.lineHeight() + 4 + "px";
+                    list.refresh();
+                    pop.refresh();
+                    var val = self.value();
+                    if (val && val.length > 0) {
+                        list.activeRowByKey(val);
+                        list.scrollTo(list.activerow());
+                    }
+                    list.focus();
+                }
+                $(this[0]).on("mousedown", function (e) {
+                    if (_this.disabled())
+                        return;
+                    _this.actived(true);
+                    var self = _this;
+                    if (_this.data()) {
+                        setTimeout(openMenu, 50);
+                    }
+                    else {
+                        function releaseMouse(e) {
+                            self.actived(false);
+                            if (tui.isFireInside(self[0], e))
+                                self.fireClick(e);
+                            $(document).off("mouseup", releaseMouse);
+                        }
+                        $(document).on("mouseup", releaseMouse);
+                    }
+                });
+                $(this[0]).on("keydown", function (e) {
+                    if (_this.disabled())
+                        return;
+                    if (e.keyCode === 32) {
+                        _this.actived(true);
+                        e.preventDefault();
+                    }
+                    if (e.keyCode === 13) {
+                        e.preventDefault();
+                        if (_this.data()) {
+                            _this.actived(true);
+                            openMenu();
+                        }
+                        else {
+                            e.type = "click";
+                            setTimeout(function () {
+                                _this.fireClick(e);
+                            }, 100);
+                        }
+                    }
+                });
+                $(this[0]).on("keyup", function (e) {
+                    if (_this.disabled())
+                        return;
+                    if (e.keyCode === 32) {
+                        if (_this.data()) {
+                            openMenu();
+                        }
+                        else {
+                            _this.actived(false);
+                            e.type = "click";
+                            setTimeout(function () {
+                                _this.fireClick(e);
+                            }, 50);
+                        }
+                    }
+                });
+                var predefined = this.attr("data-data");
+                if (predefined) {
+                    predefined = eval("(" + predefined + ")");
+                    this.data(predefined);
+                }
+                predefined = this.attr("data-menu");
+                if (predefined) {
+                    predefined = eval("(" + predefined + ")");
+                    this.menu(predefined);
+                }
+            }
+            Button.prototype.fireClick = function (e) {
+                if (this.fire("click", { "ctrl": this[0], "event": e }) === false)
+                    return;
+                if (tui.fire(this.id(), { "ctrl": this[0], "event": e }) === false)
+                    return;
+                var formId = this.submitForm();
+                if (formId) {
+                    var form = tui.ctrl.form(formId);
+                    form && form.submit();
+                }
+            };
+            Button.prototype.submitForm = function (formId) {
+                if (typeof formId === "string") {
+                    this.attr("data-submit-form", formId);
+                    return this;
+                }
+                else
+                    return this.attr("data-submit-form");
+            };
+            Button.prototype.value = function (val) {
+                if (typeof val !== tui.undef) {
+                    this.attr("data-value", JSON.stringify(val));
+                    return this;
+                }
+                else {
+                    val = this.attr("data-value");
                     if (val === null) {
                         return null;
                     }
                     else {
                         try {
-                            val = eval("(" + val + ")");
-                            if (typeof val !== "object")
-                                return null;
-                            else
-                                return val;
+                            return eval("(" + val + ")");
                         }
                         catch (err) {
                             return null;
@@ -9783,193 +10436,406 @@ var tui;
                     }
                 }
             };
-            TextArea.prototype.validate = function (txt) {
-                var finalText = typeof txt === "string" ? txt : this.text();
-                if (finalText === null)
-                    finalText = "";
-                this._invalid = false;
-                var validator = this.validator();
-                if (validator) {
-                    for (var k in validator) {
-                        if (k && validator.hasOwnProperty(k)) {
-                            if (k === "*password") {
-                                if (!/[a-z]/.test(finalText) || !/[A-Z]/.test(finalText) || !/[0-9]/.test(finalText) || !/[\~\`\!\@\#\$\%\^\&\*\(\)\_\-\+\=\\\]\[\{\}\:\;\"\'\/\?\,\.\<\>\|]/.test(finalText) || finalText.length < 6) {
-                                    this._invalid = true;
-                                }
-                            }
-                            else if (k.substr(0, 5) === "*max:") {
-                                var imax = parseFloat(k.substr(5));
-                                if (isNaN(imax))
-                                    throw new Error("Invalid validator: '*max:...' must follow a number");
-                                var ival = parseFloat(finalText);
-                                if (isNaN(ival) || ival > imax) {
-                                    this._invalid = true;
-                                }
-                            }
-                            else if (k.substr(0, 4) === "*min:") {
-                                var imin = parseFloat(k.substr(5));
-                                if (isNaN(imin))
-                                    throw new Error("Invalid validator: '*min:...' must follow a number");
-                                var ival = parseFloat(finalText);
-                                if (isNaN(ival) || ival < imin) {
-                                    this._invalid = true;
-                                }
-                            }
-                            else {
-                                var regexp;
-                                if (k.substr(0, 1) === "*") {
-                                    var v = ctrl.Input.VALIDATORS[k];
-                                    if (v)
-                                        regexp = new RegExp(v);
-                                    else
-                                        throw new Error("Invalid validator: " + k + " is not a valid validator");
-                                }
-                                else {
-                                    regexp = new RegExp(k);
-                                }
-                                this._invalid = !regexp.test(finalText);
-                            }
-                            if (this._invalid) {
-                                this._message = validator[k];
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (this._invalid && !this._message) {
-                    this._message = tui.str("Invalid input.");
-                }
-                this.refresh();
-                return !this._invalid;
-            };
-            TextArea.prototype.text = function (txt) {
-                if (typeof txt !== tui.undef) {
-                    this.attr("data-text", txt);
-                    this.attr("data-value", txt);
-                    this._invalid = false;
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.attr("data-text");
-            };
-            TextArea.prototype.readonly = function (val) {
-                if (typeof val === "boolean") {
-                    this.is("data-readonly", val);
-                    this.refresh();
-                    return this;
-                }
-                else
-                    return this.is("data-readonly");
-            };
-            TextArea.prototype.value = function (val) {
+            Button.prototype.menuBind = function (val) {
                 if (typeof val !== tui.undef) {
-                    if (val === null) {
-                        this.attr("data-text", "");
-                        this.attr("data-value", "");
-                    }
-                    else {
-                        this.attr("data-text", val);
-                        this.attr("data-value", val);
-                    }
-                    this._invalid = false;
-                    this.refresh();
+                    this.attr("data-menu-bind", val);
                     return this;
                 }
-                else {
-                    val = this.attr("data-value");
+                else
+                    return this.attr("data-menu-bind");
+            };
+            Button.prototype.menuPos = function (val) {
+                if (typeof val !== tui.undef) {
+                    this.attr("data-menu-pos", val);
+                    return this;
+                }
+                else
+                    return this.attr("data-menu-pos");
+            };
+            Button.prototype.columnKey = function (key) {
+                var val = this._columnKeyMap[key];
+                if (typeof val === "number" && val >= 0)
                     return val;
-                }
+                else
+                    return key;
             };
-            TextArea.prototype.autoResize = function (val) {
+            Button.prototype.isMenu = function (val) {
                 if (typeof val === "boolean") {
-                    this.is("data-auto-resize", val);
-                    this.refresh();
+                    this.is("data-is-menu", val);
                     return this;
                 }
                 else
-                    return this.is("data-auto-resize");
+                    return this.is("data-is-menu");
             };
-            TextArea.prototype.placeholder = function (txt) {
-                if (typeof txt === "string") {
-                    this.attr("data-placeholder", txt);
-                    this.refresh();
+            Button.prototype.menu = function (data) {
+                if (data) {
+                    this.isMenu(true);
+                    this.data(data);
+                }
+                else {
+                    if (this.isMenu())
+                        return this._data;
+                    else
+                        return null;
+                }
+            };
+            Button.prototype.data = function (data) {
+                if (data) {
+                    var self = this;
+                    if (data instanceof Array || data.data && data.data instanceof Array) {
+                        data = new tui.ArrayProvider(data);
+                    }
+                    if (typeof data.length !== "function" ||
+                        typeof data.sort !== "function" ||
+                        typeof data.at !== "function" ||
+                        typeof data.columnKeyMap !== "function") {
+                        throw new Error("TUI Button: need a data provider.");
+                    }
+                    this._data = data;
+                    if (data)
+                        this._columnKeyMap = data.columnKeyMap();
+                    else
+                        this._columnKeyMap = {};
+                    this._keyColumnKey = this.columnKey("key");
+                    this._valueColumnKey = this.columnKey("value");
+                    this._childrenColumnKey = this.columnKey("children");
+                    this._linkColumnKey = this.columnKey("link");
                     return this;
                 }
                 else
-                    return this.attr("data-placeholder");
+                    return this._data;
             };
-            TextArea.prototype.refresh = function () {
-                var placeholder = this.placeholder();
-                if (placeholder === null)
-                    placeholder = "";
-                var text = this.text();
-                if (text === null)
-                    text = "";
-                var withBtn = false;
-                if (this._textbox.value !== text)
-                    this._textbox.value = text;
-                if (this.readonly())
-                    this._textbox.readOnly = true;
+            Button.prototype.text = function (val) {
+                if (typeof val !== tui.undef) {
+                    $(this[0]).html(val);
+                    return this;
+                }
                 else
-                    this._textbox.readOnly = false;
-                this._textbox.style.display = "";
-                this._label.style.display = "none";
-                this._textbox.style.width = "";
-                this._textbox.style.width = ($(this[0]).innerWidth() - ($(this._textbox).outerWidth() - $(this._textbox).width())) + "px";
-                //this._textbox.scrollHeight
-                this._textbox.style.height = "";
-                var maxHeight = parseInt($(this[0]).css("max-height"), 10);
-                if (this._textbox.scrollHeight < maxHeight || isNaN(maxHeight)) {
-                    this._textbox.style.overflow = "hidden";
-                    $(this[0]).css("height", this._textbox.scrollHeight + "px");
-                }
-                else {
-                    this._textbox.style.overflow = "auto";
-                    $(this[0]).css("height", maxHeight + "px");
-                }
-                this._textbox.style.height = ($(this[0]).innerHeight() - ($(this._textbox).outerHeight() - $(this._textbox).height())) + "px";
-                //this._textbox.style.lineHeight = this._textbox.style.height;
-                this._label.style.width = this._textbox.style.width;
-                if (placeholder && !text) {
-                    this._label.innerHTML = placeholder;
-                    this._label.style.display = "";
-                    $(this._label).addClass("tui-placeholder");
-                    this._label.style.lineHeight = $(this._label).height() + "px";
-                }
-                else {
-                    $(this._label).removeClass("tui-placeholder");
-                }
-                if (this._invalid) {
-                    $(this._notify).attr("data-tooltip", this._message);
-                    $(this._notify).css({
-                        "display": "",
-                        "right": "0px"
-                    });
-                    $(this._notify).css({
-                        "line-height": this._notify.offsetHeight + "px"
-                    });
-                }
-                else {
-                    $(this._notify).css("display", "none");
-                }
+                    return $(this[0]).html();
             };
-            TextArea.CLASS = "tui-textarea";
-            return TextArea;
+            Button.prototype.html = function (val) {
+                return this.text(val);
+            };
+            Button.prototype.disabled = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-disabled", val);
+                    if (val)
+                        this.removeAttr("tabIndex");
+                    else
+                        this.attr("tabIndex", "0");
+                    return this;
+                }
+                else
+                    return this.is("data-disabled");
+            };
+            Button.CLASS = "tui-button";
+            return Button;
         })(ctrl.Control);
-        ctrl.TextArea = TextArea;
+        ctrl.Button = Button;
         /**
          * Construct a button.
          * @param el {HTMLElement or element id or construct info}
          */
-        function textarea(param) {
-            return tui.ctrl.control(param, TextArea);
+        function button(param) {
+            return tui.ctrl.control(param, Button);
         }
-        ctrl.textarea = textarea;
-        tui.ctrl.registerInitCallback(TextArea.CLASS, textarea);
+        ctrl.button = button;
+        tui.ctrl.registerInitCallback(Button.CLASS, button);
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
 /// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.dataprovider.ts" />
+/// <reference path="tui.ctrl.grid.ts" />
+var tui;
+(function (tui) {
+    var ctrl;
+    (function (ctrl) {
+        var Table = (function (_super) {
+            __extends(Table, _super);
+            function Table(el) {
+                _super.call(this, "table", Table.CLASS, el);
+                this._splitters = [];
+                this._columns = [];
+                this._data = null;
+                var self = this;
+                this.addClass(Table.CLASS);
+                this._columns = [];
+                var noHead = this.noHead();
+                var headLine = this.headLine();
+                var headKeys = [];
+                if (headLine) {
+                    for (var i = 0; i < headLine.cells.length; i++) {
+                        var cell = headLine.cells[i];
+                        var colKey = $(cell).attr("data-key");
+                        if (!noHead) {
+                            var col = {
+                                name: cell.innerHTML,
+                                key: colKey ? colKey : i
+                            };
+                            headKeys.push(colKey ? colKey : i);
+                            this._columns.push(col);
+                        }
+                        else {
+                            headKeys.push(i);
+                            this._columns.push({ name: "", key: i });
+                        }
+                    }
+                }
+                else {
+                    if (!this.hasAttr("data-columns")) {
+                        this._columns = [];
+                    }
+                }
+                var data = {
+                    head: headKeys,
+                    data: []
+                };
+                for (var i = noHead ? 0 : 1; i < this[0].rows.length; i++) {
+                    var row = this[0].rows[i];
+                    var rowData = [];
+                    for (var j = 0; j < this._columns.length; j++) {
+                        rowData.push(row.cells[j].innerHTML);
+                    }
+                    data.data.push(rowData);
+                }
+                this.data(data);
+            }
+            Table.prototype.headLine = function () {
+                var tb = this[0];
+                if (!tb)
+                    return null;
+                return tb.rows[0];
+            };
+            Table.prototype.createSplitters = function () {
+                var self = this;
+                this._splitters.length = 0;
+                var tb = this[0];
+                if (!tb)
+                    return;
+                var headLine = this.headLine();
+                if (!headLine)
+                    return;
+                if (this.noHead())
+                    return;
+                for (var i = 0; i < this._splitters.length; i++) {
+                    tui.removeNode(this._splitters[i]);
+                }
+                if (this.resizable()) {
+                    for (var i = 0; i < headLine.cells.length; i++) {
+                        var cell = headLine.cells[i];
+                        var splitter = document.createElement("span");
+                        splitter["colIndex"] = i;
+                        splitter.className = "tui-table-splitter";
+                        if (typeof this._columns[i].width !== "number")
+                            this._columns[i].width = $(cell).width();
+                        $(splitter).attr("unselectable", "on");
+                        headLine.cells[i].appendChild(splitter);
+                        this._splitters.push(splitter);
+                        $(splitter).mousedown(function (e) {
+                            var target = e.target;
+                            var l = target.offsetLeft;
+                            var srcX = e.clientX;
+                            target.style.height = self[0].clientHeight + "px";
+                            target.style.bottom = "";
+                            $(target).addClass("tui-splitter-move");
+                            var mask = tui.mask();
+                            mask.style.cursor = "col-resize";
+                            function onDragEnd(e) {
+                                $(document).off("mousemove", onDrag);
+                                $(document).off("mouseup", onDragEnd);
+                                $(target).removeClass("tui-splitter-move");
+                                tui.unmask();
+                                var colIndex = target["colIndex"];
+                                var tmpWidth = self._columns[colIndex].width + e.clientX - srcX;
+                                if (tmpWidth < 0)
+                                    tmpWidth = 0;
+                                self._columns[colIndex].width = tmpWidth;
+                                self._columns[colIndex].important = true;
+                                self.refresh();
+                                self.fire("resizecolumn", colIndex);
+                            }
+                            function onDrag(e) {
+                                target.style.left = l + e.clientX - srcX + "px";
+                            }
+                            $(document).mousemove(onDrag);
+                            $(document).mouseup(onDragEnd);
+                        });
+                    }
+                }
+            };
+            Table.prototype.noHead = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-no-head", val);
+                    this.data(this.data());
+                    return this;
+                }
+                else
+                    return this.is("data-no-head");
+            };
+            Table.prototype.columns = function (val) {
+                if (val) {
+                    this._columns = val;
+                    this.data(this.data());
+                    return this;
+                }
+                else {
+                    if (!this._columns) {
+                        var valstr = this.attr("data-columns");
+                        this._columns = eval("(" + valstr + ")");
+                    }
+                    return this._columns;
+                }
+            };
+            Table.prototype.value = function (data) {
+                if (data === null) {
+                    return this.data([]);
+                }
+                else if (data) {
+                    return this.data(data);
+                }
+                else {
+                    var result = [];
+                    var dt = this.data();
+                    for (var i = 0; i < dt.length(); i++) {
+                        result.push(dt.at(i));
+                    }
+                    return result;
+                }
+            };
+            Table.prototype.data = function (data) {
+                if (data) {
+                    var self = this;
+                    if (data instanceof Array || data.data && data.data instanceof Array) {
+                        data = new tui.ArrayProvider(data);
+                    }
+                    if (typeof data.length !== "function" ||
+                        typeof data.sort !== "function" ||
+                        typeof data.at !== "function" ||
+                        typeof data.columnKeyMap !== "function") {
+                        throw new Error("TUI Table: need a data provider.");
+                    }
+                    var tb = this[0];
+                    while (tb.rows.length > 0) {
+                        tb.deleteRow(0);
+                    }
+                    if (!this.noHead()) {
+                        var row = tb.insertRow(-1);
+                        for (var j = 0; j < this._columns.length; j++) {
+                            var cell = row.insertCell(-1);
+                            cell.className = "tui-table-head";
+                            if (["center", "left", "right"].indexOf(this._columns[j].headAlign) >= 0)
+                                cell.style.textAlign = this._columns[j].headAlign;
+                            var contentDiv = cell.appendChild(document.createElement("div"));
+                            contentDiv.innerHTML = this._columns[j].name;
+                        }
+                    }
+                    for (var i = 0; i < data.length(); i++) {
+                        var rowData = data.at(i);
+                        var row = tb.insertRow(-1);
+                        for (var j = 0; j < this._columns.length; j++) {
+                            var cell = row.insertCell(-1);
+                            if (["center", "left", "right"].indexOf(this._columns[j].align) >= 0)
+                                cell.style.textAlign = this._columns[j].align;
+                            var contentDiv = cell.appendChild(document.createElement("div"));
+                            var key;
+                            if (this._columns[j].key) {
+                                key = this._columns[j].key;
+                            }
+                            else {
+                                key = j;
+                            }
+                            contentDiv.innerHTML = rowData[key];
+                        }
+                    }
+                    this.createSplitters();
+                    this.refresh();
+                    return this;
+                }
+                else {
+                    return this._data;
+                }
+            };
+            Table.prototype.resizable = function (val) {
+                if (typeof val === "boolean") {
+                    this.is("data-resizable", val);
+                    this.createSplitters();
+                    this.refresh();
+                    return this;
+                }
+                else
+                    return this.is("data-resizable");
+            };
+            Table.prototype.refresh = function () {
+                if (!this.resizable())
+                    return;
+                var tb = this[0];
+                if (!tb)
+                    return;
+                var headLine = tb.rows[0];
+                if (!headLine)
+                    return;
+                var cellPadding = headLine.cells.length > 0 ? $(headLine.cells[0]).outerWidth() - $(headLine.cells[0]).width() : 0;
+                var defaultWidth = Math.floor(tb.offsetWidth / (headLine.cells.length > 0 ? headLine.cells.length : 1) - cellPadding);
+                var totalWidth = 0;
+                var computeWidth = tb.offsetWidth - cellPadding * (headLine.cells.length > 0 ? headLine.cells.length : 1);
+                for (var i = 0; i < this._columns.length; i++) {
+                    if (typeof this._columns[i].width !== "number") {
+                        this._columns[i].width = defaultWidth;
+                        totalWidth += defaultWidth;
+                    }
+                    else if (!this._columns[i].important) {
+                        totalWidth += this._columns[i].width;
+                    }
+                    else {
+                        if (this._columns[i].width > computeWidth)
+                            this._columns[i].width = computeWidth;
+                        if (this._columns[i].width < 1)
+                            this._columns[i].width = 1;
+                        computeWidth -= this._columns[i].width;
+                    }
+                }
+                for (var i = 0; i < this._columns.length; i++) {
+                    if (!this._columns[i].important) {
+                        if (totalWidth === 0)
+                            this._columns[i].width = 0;
+                        else
+                            this._columns[i].width = Math.floor(this._columns[i].width / totalWidth * computeWidth);
+                        if (this._columns[i].width < 1)
+                            this._columns[i].width = 1;
+                    }
+                    else {
+                        this._columns[i].important = false;
+                    }
+                    if (tb.rows.length > 0) {
+                        var row = tb.rows[0];
+                        $(row.cells[i]).css("width", this._columns[i].width + "px");
+                    }
+                }
+                var headLine = this.headLine();
+                for (var i = 0; i < this._splitters.length; i++) {
+                    var splitter = this._splitters[i];
+                    var cell = headLine.cells[i];
+                    splitter.style.left = cell.offsetLeft + cell.offsetWidth - Math.round(splitter.offsetWidth / 2) + "px";
+                    splitter.style.height = headLine.offsetHeight + "px";
+                }
+            };
+            Table.CLASS = "tui-table";
+            return Table;
+        })(ctrl.Control);
+        ctrl.Table = Table;
+        /**
+         * Construct a table control.
+         * @param el {HTMLElement or element id or construct info}
+         */
+        function table(param) {
+            return tui.ctrl.control(param, Table);
+        }
+        ctrl.table = table;
+        tui.ctrl.registerInitCallback(Table.CLASS, table);
+    })(ctrl = tui.ctrl || (tui.ctrl = {}));
+})(tui || (tui = {}));
+/// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.ctrl.radiobox.ts" />
 var tui;
 (function (tui) {
     var ctrl;
@@ -10105,6 +10971,7 @@ var tui;
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
 /// <reference path="tui.ctrl.control.ts" />
+/// <reference path="tui.ctrl.form.ts" />
 var tui;
 (function (tui) {
     var ctrl;
@@ -10339,9 +11206,7 @@ var tui;
                 $(this[0]).animate({ opacity: 1 }, 100, function () {
                     var autoClose = _this.autoCloseTime();
                     if (autoClose !== null) {
-                        setTimeout(function () {
-                            _this.close();
-                        }, autoClose);
+                        setTimeout(function () { _this.close(); }, autoClose);
                     }
                 });
             };
@@ -10376,7 +11241,10 @@ var tui;
     var ctrl;
     (function (ctrl) {
         function getRealParent(monitoredParent) {
-            if (monitoredParent && monitoredParent.window && monitoredParent.document || monitoredParent.nodeName.toLowerCase() === "#document" || monitoredParent.nodeName.toLowerCase() === "body" || monitoredParent.nodeName.toLowerCase() === "html") {
+            if (monitoredParent && monitoredParent.window && monitoredParent.document ||
+                monitoredParent.nodeName.toLowerCase() === "#document" ||
+                monitoredParent.nodeName.toLowerCase() === "body" ||
+                monitoredParent.nodeName.toLowerCase() === "html") {
                 // Bind to a window
                 if (monitoredParent.window && monitoredParent.document) {
                     return monitoredParent;
@@ -10610,10 +11478,13 @@ var tui;
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
 /// <reference path="tui.ctrl.accordiongroup.ts" />
+/// <reference path="tui.ctrl.list.ts" />
+/// <reference path="tui.dataprovider.ts" />
+/// <reference path="tui.ctrl.grid.ts" />
 var tui;
 (function (tui) {
     var ctrl;
-    (function (_ctrl) {
+    (function (ctrl_5) {
         /**
          * Accordion class used to display a navigation sidebar to
          * let user easy jump to a particular page section to read.
@@ -10867,233 +11738,13 @@ var tui;
             Accordion.CLASS = "tui-accordion";
             Accordion.ANIMATION_DURATION = 200;
             return Accordion;
-        })(_ctrl.Control);
-        _ctrl.Accordion = Accordion;
+        })(ctrl_5.Control);
+        ctrl_5.Accordion = Accordion;
         function accordion(param) {
             return tui.ctrl.control(param, Accordion);
         }
-        _ctrl.accordion = accordion;
+        ctrl_5.accordion = accordion;
         tui.ctrl.registerInitCallback(Accordion.CLASS, accordion);
-    })(ctrl = tui.ctrl || (tui.ctrl = {}));
-})(tui || (tui = {}));
-/// <reference path="tui.ctrl.popup.ts" />
-var tui;
-(function (tui) {
-    var ctrl;
-    (function (ctrl) {
-        var Menu = (function (_super) {
-            __extends(Menu, _super);
-            function Menu(data) {
-                _super.call(this);
-                this._items = [];
-                this._menuDiv = null;
-                this._parentMenu = null;
-                if (data instanceof Array || data.data && data.data instanceof Array) {
-                    data = new tui.ArrayProvider(data);
-                }
-                else if (typeof data === "function" || typeof data.length !== "function" || typeof data.sort !== "function" || typeof data.at !== "function" || typeof data.columnKeyMap !== "function") {
-                    throw new Error("TUI Menu: need a data provider.");
-                }
-                this._data = data;
-                var self = this;
-                this.on("close", function () {
-                    self._items = [];
-                    delete self._activedItem;
-                });
-            }
-            Menu.prototype.fireClick = function (item, row) {
-                if (item._showChildTimer)
-                    clearTimeout(item._showChildTimer);
-                if (item._childMenu && (typeof row.key === tui.undef || row.key === null)) {
-                    item._childMenu.show(item.firstChild, "rT");
-                }
-                else {
-                    this.closeAll();
-                    if (this.fire("select", { "ctrl": self[0], "item": row }) === false) {
-                        return;
-                    }
-                    if (typeof row.key !== tui.undef && row.key !== null) {
-                        if (tui.fire(row.key, row) === false)
-                            return;
-                    }
-                    if (row.link) {
-                        window.location.href = row.link;
-                    }
-                }
-            };
-            Menu.prototype.bindMouseEvent = function (item, row) {
-                var self = this;
-                $(item).mousemove(function (e) {
-                    if (item["_menuIndex"] !== self._activedItem) {
-                        self.deactiveItem(self._activedItem);
-                        $(item).addClass("tui-actived");
-                        self._activedItem = item["_menuIndex"];
-                        if (item._childMenu) {
-                            item._showChildTimer = setTimeout(function () {
-                                item._childMenu.show(item.firstChild, "rT");
-                            }, 400);
-                        }
-                    }
-                });
-                $(item).mouseleave(function (e) {
-                    if (!tui.isAncestry(document.activeElement, self._menuDiv))
-                        return;
-                    if (item._showChildTimer)
-                        clearTimeout(item._showChildTimer);
-                    $(item).removeClass("tui-actived");
-                    delete self._activedItem;
-                });
-                $(item).click(function (e) {
-                    self.fireClick(item, row);
-                });
-            };
-            Menu.prototype.deactiveItem = function (itemIndex) {
-                if (itemIndex >= 0 && itemIndex < this._items.length) {
-                    var item = this._items[itemIndex];
-                    $(item).removeClass("tui-actived");
-                    if (item._childMenu)
-                        item._childMenu.close();
-                    if (item._showChildTimer)
-                        clearTimeout(item._showChildTimer);
-                }
-            };
-            Menu.prototype.setParentMenu = function (parent) {
-                this._parentMenu = parent;
-            };
-            Menu.prototype.closeAll = function () {
-                if (this._parentMenu) {
-                    this._parentMenu.closeAll();
-                }
-                else
-                    this.close();
-            };
-            Menu.prototype.focus = function () {
-                this._menuDiv.focus();
-            };
-            Menu.prototype.show = function (param, bindType) {
-                if (this.isShowing())
-                    return;
-                if (!this._data)
-                    return;
-                var self = this;
-                var data;
-                if (typeof this._data === "function") {
-                    data = this._data();
-                    if (typeof data.length !== "function" || typeof data.sort !== "function" || typeof data.at !== "function" || typeof data.columnKeyMap !== "function") {
-                        return;
-                    }
-                }
-                else
-                    data = this._data;
-                var div = document.createElement("div");
-                this._menuDiv = div;
-                div.className = Menu.CLASS;
-                $(div).attr("unselectable", "on");
-                $(div).attr("tabIndex", "-1");
-                for (var i = 0; i < data.length(); i++) {
-                    var row = data.at(i);
-                    var item = document.createElement("div");
-                    if (row.value === "-") {
-                        item.className = "tui-menu-line";
-                    }
-                    else {
-                        var innerBox = document.createElement("div");
-                        item.appendChild(innerBox);
-                        innerBox.innerHTML = row.value;
-                        var icon = document.createElement("i");
-                        icon.className = "tui-menu-icon";
-                        innerBox.insertBefore(icon, innerBox.firstChild);
-                        if (row.checked) {
-                            $(icon).addClass("tui-menu-icon-checked");
-                        }
-                        else if (row.icon) {
-                            $(icon).addClass(row.icon);
-                        }
-                        if (row.children) {
-                            $(item).addClass("tui-menu-has-children");
-                            var childMenu = menu(row.children);
-                            childMenu.on("select", function (data) {
-                                self.fire("select", data);
-                            });
-                            childMenu.setParentMenu(this);
-                            item["_childMenu"] = childMenu;
-                        }
-                        this.bindMouseEvent(item, row);
-                        item["_menuIndex"] = this._items.length;
-                        this._items.push(item);
-                    }
-                    div.appendChild(item);
-                }
-                $(div).keydown(function (e) {
-                    var c = e.keyCode;
-                    if (c === tui.KEY_DOWN || c === tui.KEY_TAB) {
-                        if (typeof self._activedItem !== "number" && self._items.length > 0) {
-                            self._activedItem = 0;
-                        }
-                        else {
-                            $(self._items[self._activedItem]).removeClass("tui-actived");
-                            self._activedItem++;
-                            if (self._activedItem > self._items.length - 1)
-                                self._activedItem = 0;
-                        }
-                        if (typeof self._activedItem === "number" && self._activedItem >= 0 && self._activedItem < self._items.length)
-                            $(self._items[self._activedItem]).addClass("tui-actived");
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                    else if (c === tui.KEY_UP) {
-                        if (typeof self._activedItem !== "number" && self._items.length > 0) {
-                            self._activedItem = self._items.length - 1;
-                        }
-                        else {
-                            $(self._items[self._activedItem]).removeClass("tui-actived");
-                            self._activedItem--;
-                            if (self._activedItem < 0)
-                                self._activedItem = self._items.length - 1;
-                        }
-                        if (typeof self._activedItem === "number" && self._activedItem >= 0 && self._activedItem < self._items.length)
-                            $(self._items[self._activedItem]).addClass("tui-actived");
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                    else if (c === tui.KEY_ESC) {
-                        self.close();
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                    else if (c === tui.KEY_LEFT) {
-                        if (self._parentMenu) {
-                            self.close();
-                            self._parentMenu.focus();
-                        }
-                    }
-                    else if (c === tui.KEY_RIGHT) {
-                        if (typeof self._activedItem === "number" && self._activedItem >= 0 && self._activedItem < self._items.length) {
-                            var item = self._items[self._activedItem];
-                            if (item._childMenu) {
-                                item._childMenu.show(item.firstChild, "rT");
-                            }
-                        }
-                    }
-                    else if (c === tui.KEY_ENTER) {
-                        if (typeof self._activedItem === "number" && self._activedItem >= 0 && self._activedItem < self._items.length) {
-                            var item = self._items[self._activedItem];
-                            var row = data.at(self._activedItem);
-                            self.fireClick(item, row);
-                        }
-                    }
-                });
-                _super.prototype.show.call(this, div, param, bindType);
-                div.focus();
-            };
-            Menu.CLASS = "tui-menu";
-            return Menu;
-        })(ctrl.Popup);
-        ctrl.Menu = Menu;
-        function menu(data) {
-            return new Menu(data);
-        }
-        ctrl.menu = menu;
     })(ctrl = tui.ctrl || (tui.ctrl = {}));
 })(tui || (tui = {}));
 /// <reference path="tui.ctrl.control.ts" />

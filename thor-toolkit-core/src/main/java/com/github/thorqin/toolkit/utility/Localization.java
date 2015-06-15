@@ -71,12 +71,14 @@ public class Localization {
                 localeString = localeString.substring(0, pos);
             }
         }
-        if (localeString.matches("^[a-zA-Z]+_[a-zA-Z]+$")) {
+        if (localeString.matches("^[a-zA-Z]+(_[a-zA-Z]+){1,2}$")) {
             return localeString.split("_");
-        } else if (localeString.matches("^[a-zA-Z]+-[a-zA-Z]+$")) {
+        } else if (localeString.matches("^[a-zA-Z]+(-[a-zA-Z]+){1,2}$")) {
+            return localeString.split("-");
+        } else {
+            localeString = "en-US";
             return localeString.split("-");
         }
-        throw new InvalidParameterException("Invalid locale name.");
     }
 
 	/**
@@ -95,8 +97,14 @@ public class Localization {
 	 * @param country "CN"
 	 */
 	public Localization(String bundleName, String language, String country) {
-		if (language == null || country == null)
-			throw new InvalidParameterException("Invalid loacle.");
+        if (language == null)
+            language = "en";
+		if (country == null)
+            country = "US";
+        else if (country.matches("(?i)hans|chs"))
+            country = "CN";
+        else if (country.matches("(?i)hant|cht"))
+            country = "TW";
 		locale = new Locale(language.toLowerCase(), country.toUpperCase());
 		bundle = ResourceBundle.getBundle(bundleName, locale, this.getClass().getClassLoader(), new UTF8Control());
 	}

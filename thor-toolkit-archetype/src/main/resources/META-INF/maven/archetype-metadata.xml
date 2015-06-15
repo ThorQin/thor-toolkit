@@ -41,12 +41,8 @@
       <includes>
         <include>**/*.json</include>
         <include>**/*.key</include>
-      </includes>
-    </fileSet>
-    <fileSet encoding="UTF-8">
-      <directory></directory>
-      <includes>
-        <include>test-website.iml</include>
+        <include>**/*.xml</include>
+        <include>**/*.properties</include>
       </includes>
     </fileSet>
   </fileSets>
