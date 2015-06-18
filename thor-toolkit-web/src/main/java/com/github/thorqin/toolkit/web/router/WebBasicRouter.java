@@ -445,7 +445,12 @@ public final class WebBasicRouter extends WebRouterBase {
 		} else if (paramType.equals(WebSession.class)) {
 			return mInfo.session;
 		} else if (paramType.equals(Localization.class)) {
-            String language = mInfo.request.getHeader("Accept-Language");
+            Object lang = mInfo.session.get("lang");
+            String language;
+            if (lang != null && lang.getClass().equals(String.class)) {
+                language = (String)lang;
+            } else
+                language = mInfo.request.getHeader("Accept-Language");
             return Localization.getInstance(mInfo.localeMessage, language);
         } else {
 			for (Annotation ann : annos) {

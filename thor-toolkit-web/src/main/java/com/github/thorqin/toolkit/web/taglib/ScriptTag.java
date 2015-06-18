@@ -1,10 +1,12 @@
 package com.github.thorqin.toolkit.web.taglib;
 
+import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.google.javascript.jscomp.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.JspWriter;
+import javax.servlet.jsp.tagext.JspFragment;
 import javax.servlet.jsp.tagext.SimpleTagSupport;
 import java.io.*;
 import java.util.HashMap;
@@ -19,40 +21,28 @@ public class ScriptTag extends SimpleTagSupport {
     public String id = null;
     private static Map<String, String> cache = new HashMap<>();
     private String appName = null;
+    private String src = null;
 
-    @Override
-    public void doTag() throws JspException, IOException {
 
-        boolean compressJs = false;
-        WebApplication app = WebApplication.get(appName);
-        if (app != null)
-            compressJs = app.getSetting().compressJs;
-        if (!compressJs) {
-            getJspBody().invoke(getJspContext().getOut());
-            return;
-        }
-
-        StringWriter stringWriter = new StringWriter();
-        getJspBody().invoke(stringWriter);
-        String jsContent = stringWriter.toString().trim();
-
-        String compressed;
+    private String compress(String content) throws JspException {
+        if (content == null || content.trim().isEmpty())
+            return "";
         boolean found;
         synchronized (cache) {
-            found = cache.containsKey(jsContent);
+            found = cache.containsKey(content);
         }
         if (found) {
-            compressed = cache.get(jsContent);
+            return cache.get(content);
         } else {
-            HttpServletRequest request = (HttpServletRequest)this.getJspContext()
+            HttpServletRequest request = (HttpServletRequest) this.getJspContext()
                     .getAttribute("javax.servlet.jsp.jspRequest");
             String scriptName;
             if (id != null) {
                 scriptName = request.getRequestURI() + "#" + id;
             } else {
-                scriptName = request.getRequestURI() + "#" + (long)(Math.random() * 10000000);
+                scriptName = request.getRequestURI() + "#" + (long) (Math.random() * 10000000);
             }
-            SourceFile sourceFile = SourceFile.builder().buildFromCode(scriptName , jsContent);
+            SourceFile sourceFile = SourceFile.builder().buildFromCode(scriptName, content);
             SourceFile externalSource = SourceFile.builder().buildFromCode("tmp", "");
             com.google.javascript.jscomp.Compiler compiler = new com.google.javascript.jscomp.Compiler();
             CompilerOptions options = new CompilerOptions();
@@ -60,28 +50,73 @@ public class ScriptTag extends SimpleTagSupport {
             WarningLevel.DEFAULT.setOptionsForWarningLevel(options);
             Result result = compiler.compile(externalSource, sourceFile, options);
             if (result.success) {
-                compressed = compiler.toSource();
+                String compressed = compiler.toSource();
                 synchronized (cache) {
-                    cache.put(jsContent, compressed);
+                    cache.put(content, compressed);
                 }
+                return compressed;
             } else {
                 StringBuilder sb = new StringBuilder();
-                for (JSError err: result.errors) {
+                for (JSError err : result.errors) {
                     sb.append(err.toString()).append("\n");
                 }
                 throw new JspException(sb.toString());
             }
         }
+    }
 
+    @Override
+    public void doTag() throws JspException, IOException {
+        boolean compressJs = false;
+        WebApplication app = WebApplication.get(appName);
+        if (app != null)
+            compressJs = app.getSetting().compressJs;
+
+        boolean srcContent = false;
+        StringBuilder result = new StringBuilder();
         JspWriter out = getJspContext().getOut();
+        // compress src
+        if (src != null) {
+            HttpServletRequest request = (HttpServletRequest) this.getJspContext()
+                    .getAttribute("javax.servlet.jsp.jspRequest");
+            if (src.matches(request.getContextPath() + "/.+\\.(?i)js")) {
+                // Reference to a local file
+                File file = new File(request.getServletContext().getRealPath(src));
+                if (file.isFile()) {
+                    String content = Serializer.loadTextFile(file);
+                    result.append(compressJs ? compress(content) : content);
+                    src = null;
+                    srcContent = true;
+                }
+            }
+        }
+
+        StringWriter stringWriter = new StringWriter();
+        JspFragment jsBody = getJspBody();
+        if (jsBody != null)
+            jsBody.invoke(stringWriter);
+        String jsContent = stringWriter.toString().trim();
+        if (srcContent && !jsContent.isEmpty())
+            result.append("\n\n");
+        result.append(compressJs ? compress(jsContent) : jsContent);
+
+        out.print("<script");
         if (id != null) {
-            out.print("<script id=\"");
+            out.print(" id=\"");
             out.print(id);
-            out.println("\">");
-        } else
-            out.println("<script>");
-        out.println(compressed);
-        out.println("</script>");
+            out.print("\"");
+        }
+        if (src != null) {
+            out.print(" src=\"");
+            out.print(src);
+            out.print("\"");
+        }
+        out.print(">");
+        if (result.length() > 0) {
+            out.print("\n");
+            out.println(result.toString());
+        }
+        out.print("</script>");
     }
 
     public void setId(String id) {
@@ -90,6 +125,10 @@ public class ScriptTag extends SimpleTagSupport {
 
     public void setAppName(String appName) {
         this.appName = appName;
+    }
+
+    public void setSrc(String src) {
+        this.src = src;
     }
 
 }

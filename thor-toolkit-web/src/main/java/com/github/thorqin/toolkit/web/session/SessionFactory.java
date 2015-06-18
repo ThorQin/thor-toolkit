@@ -29,21 +29,31 @@ public class SessionFactory {
     @SuppressWarnings("unchecked")
     public void setSessionType(String sessionTypeName) throws ServletException {
         if (sessionTypeName != null && !sessionTypeName.isEmpty()) {
+            Class<?> type;
             try {
-                Class<?> type = Class.forName(sessionTypeName);
-                if (WebSession.class.isAssignableFrom(type)) {
-                    Constructor<?> constructor = type.getConstructor(
-                            WebApplication.class, HttpServletRequest.class, HttpServletResponse.class);
-                    if (constructor == null) {
-                        throw new NoSuchMethodException("Invalid constructor, see WebSession class definition.");
-                    }
-                    sessionType = (Class<? extends WebSession>)type;
-                } else {
-                    throw new ServletException("Session class must inherit from WebSession.");
-                }
+                type = Class.forName(sessionTypeName);
             } catch (Exception ex) {
                 throw new ServletException("Invalid session type.", ex);
             }
+            setSessionType(type);
+        } else
+            throw new ServletException("Invalid session type, cannot be null or empty.");
+    }
+
+    public void setSessionType(Class<?> type) throws ServletException {
+        try {
+            if (WebSession.class.isAssignableFrom(type)) {
+                Constructor<?> constructor = type.getConstructor(
+                        WebApplication.class, HttpServletRequest.class, HttpServletResponse.class);
+                if (constructor == null) {
+                    throw new NoSuchMethodException("Invalid constructor, see WebSession class definition.");
+                }
+                sessionType = (Class<? extends WebSession>)type;
+            } else {
+                throw new ServletException("Session class must inherit from WebSession.");
+            }
+        } catch (Exception ex) {
+            throw new ServletException("Invalid session type.", ex);
         }
     }
 }

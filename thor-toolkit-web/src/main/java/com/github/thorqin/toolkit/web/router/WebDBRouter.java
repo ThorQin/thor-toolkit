@@ -249,7 +249,6 @@ public abstract class WebDBRouter extends WebRouterBase {
         if (mappingInfo == null)
             return false;
 
-        String language=request.getHeader("Accept-Language");
         WebSession session = null;
         try {
             RequestPostType postType;
@@ -274,6 +273,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (session != null && !session.isNew()) {
                 session.touch();
             }
+
             DBService.DBRefString refSession = null;
             DBService.DBOutString outResponseHeader = null;
             DBService.DBOutString outResponse = null;
@@ -374,9 +374,16 @@ public abstract class WebDBRouter extends WebRouterBase {
                     String msg = matcher.group(2);
                     if (msg == null)
                         ServletUtils.send(response, status);
-                    else
+                    else {
+                        Object lang = session.get("lang");
+                        String language;
+                        if (lang != null && lang.getClass().equals(String.class)) {
+                            language = (String)lang;
+                        } else
+                            language = request.getHeader("Accept-Language");
                         ServletUtils.sendText(response, status,
-                            Localization.get(localeBundle, language, msg));
+                                Localization.get(localeBundle, language, msg));
+                    }
                     logger.log(Level.WARNING, "Return HTTP error: " + ex.getMessage());
                 } else {
                     ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");

@@ -6,28 +6,59 @@
     <tlib-version>1.0</tlib-version>
     <uri>/thor-toolkit</uri>
     <tag>
+        <name>env</name>
+        <tag-class>com.github.thorqin.toolkit.web.taglib.InitTag</tag-class>
+        <body-content>empty</body-content>
+        <attribute>
+            <name>appName</name>
+            <required>false</required>
+            <rtexprvalue>true</rtexprvalue>
+            <elexprvalue>true</elexprvalue>
+        </attribute>
+    </tag>
+    <tag>
         <name>script</name>
         <tag-class>com.github.thorqin.toolkit.web.taglib.ScriptTag</tag-class>
         <body-content>scriptless</body-content>
         <attribute>
             <name>id</name>
             <required>false</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
         </attribute>
         <attribute>
             <name>appName</name>
             <required>false</required>
+            <rtexprvalue>true</rtexprvalue>
+            <elexprvalue>true</elexprvalue>
+        </attribute>
+        <attribute>
+            <name>src</name>
+            <required>false</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
         </attribute>
     </tag>
     <tag>
-        <name>toolkit</name>
-        <tag-class>com.github.thorqin.toolkit.web.taglib.InitTag</tag-class>
+        <name>loc</name>
+        <tag-class>com.github.thorqin.toolkit.web.taglib.LocaleTag</tag-class>
+        <attribute>
+            <name>appName</name>
+            <required>false</required>
+            <rtexprvalue>true</rtexprvalue>
+            <elexprvalue>true</elexprvalue>
+        </attribute>
         <attribute>
             <name>bundle</name>
             <required>false</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
         </attribute>
         <attribute>
             <name>locale</name>
             <required>false</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
         </attribute>
         <body-content>empty</body-content>
     </tag>

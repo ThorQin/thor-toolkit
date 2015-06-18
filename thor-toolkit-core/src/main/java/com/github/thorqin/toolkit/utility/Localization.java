@@ -57,6 +57,7 @@ public class Localization {
 	private ResourceBundle bundle;
 
     private static Map<String, Localization> cache = new HashMap<>();
+    private static Localization defaultLoc = new Localization();
 
     private static String[] splitLocalePart(String localeString) {
         if (localeString == null) {
@@ -109,12 +110,19 @@ public class Localization {
 		bundle = ResourceBundle.getBundle(bundleName, locale, this.getClass().getClassLoader(), new UTF8Control());
 	}
 
+    public Localization() {
+        locale = null;
+        bundle = null;
+    }
+
     /**
      * Translate message in specified locale.
      * @param msg Message to be translated
      * @return Translated message
      */
 	public String get(String msg) {
+        if (bundle == null)
+            return msg;
 		try {
 			if (bundle.keySet().contains(msg))
 				return bundle.getString(msg);
@@ -127,6 +135,10 @@ public class Localization {
 
     public static synchronized String get(String bundle, String locale, String msg) {
         return getInstance(bundle, locale).get(msg);
+    }
+
+    public static Localization getInstance() {
+        return defaultLoc;
     }
 
     public static synchronized Localization getInstance(String bundle, String locale) {
