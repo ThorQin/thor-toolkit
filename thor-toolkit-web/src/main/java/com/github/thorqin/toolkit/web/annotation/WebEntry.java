@@ -32,33 +32,41 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface WebEntry {
-    /**
-     * @author nuo.qin
-     */
-    public static enum HttpMethod {
-        GET,
-        POST,
-        PUT,
-        DELETE,
-        HEAD,
-        OPTIONS,
-        TRACE
-    }
-
-    public static enum CacheType {
-        AUTO,
-        ENABLED,
-        DISABLED
-    }
 
     HttpMethod[] method();
 
+    /**
+     * Path name, if name is same with the method name then keep this value in empty.
+     * @return
+     */
     String value() default "";
 
+    /**
+     * If set to TRUE then will send cross-site header to client
+     * @return
+     */
     boolean crossSite() default false;
 
+    /**
+     * If multiple path can match the request url,
+     * then use order value to define which path have high priority,
+     * Rule is: order value smaller have the high priority.
+     * @return
+     */
     int order() default 10000;
 
+    /**
+     * Whether or not use rule search cache.
+     * If URL path have PART definition and this PART have plenty of values
+     * then you should not use cache otherwise it will expend a lot of memory.
+     * for example: if your path is /userInfo/{userName} then you should not use cache,
+     * because there maybe have a lot of users in your system. But if your path is
+     * /userList/{userType} then you may use the cache in safety.
+     * By default, this parameter is set to AUTO,
+     * means if there have PART definition then do not use cache.
+     *
+     * @return
+     */
     CacheType cache() default CacheType.AUTO;
 
 }

@@ -53,5 +53,5 @@ public @interface WebModule {
      * Use specified properties file to translate DB raised http message.
      * @return Message that translated in specified locale
      */
-    public String localeMessage() default "message";
+    String localeMessage() default "message";
 }

@@ -5,6 +5,10 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -28,10 +32,17 @@ public class UtilityTest {
         System.out.println("Matched: " + count);
     }
 
+    private class OrderComparetor implements Comparator<Integer> {
+        @Override
+        public int compare(Integer o1, Integer o2) {
+            return o1 - o2;
+        }
+    }
+
     @Test
     public void testDownloadManager() throws IOException {
-        Pattern pattern = Pattern.compile("(?i).+\\.(ktr|kjb)");
-        System.out.println(pattern.matcher("abc.ktr").matches());
+//        Pattern pattern = Pattern.compile("(?i).+\\.(ktr|kjb)");
+//        System.out.println(pattern.matcher("abc.ktr").matches());
 //        File f = new File("/home/thor/test.data");
 //        String name = f.getName();
 //        name = f.getParent() + "/" + name.substring(0, name.length() - 4) + "json";

@@ -121,7 +121,7 @@ public final class StringUtils {
 	}
 	
 	/**
-	 * Convert name from 'xxxYyyyZzzz' format to 'xxxx_yyyy_zzzz' format
+	 * Convert name from 'xxxYyyyZzzz' value to 'xxxx_yyyy_zzzz' value
 	 * @param name String that separated in camel form
 	 * @return String that separated by underline
 	 */
@@ -153,7 +153,7 @@ public final class StringUtils {
 	}
 	
 	/**
-	 * Convert name from 'xxxx_yyyy_zzzz' format to 'xxxYyyyZzzz' format
+	 * Convert name from 'xxxx_yyyy_zzzz' value to 'xxxYyyyZzzz' value
 	 * @param name String that separated by underline
 	 * @return String that separated in camel form
 	 */

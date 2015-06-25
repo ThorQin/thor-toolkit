@@ -11,8 +11,7 @@ import com.github.thorqin.toolkit.web.LifeCycleListener;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.WebModule;
 import com.github.thorqin.toolkit.web.annotation.Entity;
-import com.github.thorqin.toolkit.web.annotation.Entity.ParseEncoding;
-import com.github.thorqin.toolkit.web.annotation.Entity.SourceType;
+import com.github.thorqin.toolkit.web.annotation.Encoding;
 import com.github.thorqin.toolkit.web.annotation.*;
 import java.io.DataInputStream;
 import java.io.File;
@@ -186,8 +185,8 @@ public final class WebBasicRouter extends WebRouterBase {
 			if (annotations != null) {
 				for (Annotation annotation : annotations) {
 					if (annotation instanceof Entity ||
-							annotation instanceof Param ||
-                            annotation instanceof Query) {
+							annotation instanceof Part ||
+                            annotation instanceof Param) {
 						continue PARAMETER_CHECK;
 					}
 				}
@@ -201,9 +200,9 @@ public final class WebBasicRouter extends WebRouterBase {
 	}
 
     private static boolean shouldUseCache(WebEntry entry, String address) {
-        if (entry.cache() == WebEntry.CacheType.ENABLED)
+        if (entry.cache() == CacheType.ENABLED)
             return true;
-        else if (entry.cache() == WebEntry.CacheType.DISABLED)
+        else if (entry.cache() == CacheType.DISABLED)
             return false;
         else {
             if (RuleMatcher.paramPattern.matcher(address).find())
@@ -223,6 +222,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			if (!applyAppName.isEmpty() && !applyAppName.equals(application.getName()))
 				return;
 		}
+        String className = clazz.getName();
 		boolean crossSite = classAnno.crossSite();
 		String path = clazz.getAnnotation(WebModule.class).value();
 		if (!path.startsWith("/")) {
@@ -274,7 +274,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			}
 			String fullPath = path + name;
 			if (crossSite || entry.crossSite()) {
-				String key = WebEntry.HttpMethod.OPTIONS + ":" + fullPath;
+				String key = HttpMethod.OPTIONS + ":" + fullPath;
 				System.out.println("Add Mapping: " + key);
 				MappingInfo info = new MappingInfo();
 				info.instance = this;
@@ -285,7 +285,7 @@ public final class WebBasicRouter extends WebRouterBase {
                         shouldUseCache(entry, fullPath));
 			}
 			String methodPrefix = "";
-			for (WebEntry.HttpMethod httpMethod : entry.method()) {
+			for (HttpMethod httpMethod : entry.method()) {
 				if (!methodPrefix.isEmpty())
 					methodPrefix += "|";
 				methodPrefix += httpMethod;
@@ -294,7 +294,10 @@ public final class WebBasicRouter extends WebRouterBase {
             Set<String> parameters = new HashSet<>();
             String exp = RuleMatcher.ruleToExp(fullPath, parameters);
 			String key = methodPrefix + ":" + exp;
-			System.out.println("Add Mapping: " + methodPrefix + ":" + fullPath);
+            // Print to console to show mapping information
+			System.out.println("Add Mapping: " + methodPrefix + ":" +
+                    fullPath + " -> " + className + "::" + method.getName());
+
 			MappingInfo info = new MappingInfo();
 			info.instance = inst;
 			info.method = method;
@@ -353,12 +356,12 @@ public final class WebBasicRouter extends WebRouterBase {
 	
 	private Object parseFromBody(Class<?> paramType, Entity annoEntity, MethodRuntimeInfo mInfo) {
 		try {
-			if ((annoEntity.encoding() == ParseEncoding.JSON ||
-					annoEntity.encoding() == ParseEncoding.EITHER) &&
+			if ((annoEntity.encoding() == Encoding.JSON ||
+					annoEntity.encoding() == Encoding.EITHER) &&
 					mInfo.postType == RequestPostType.JSON) {
 				return Serializer.fromJson(mInfo.httpBody, paramType);
-			} else if ((annoEntity.encoding() == ParseEncoding.HTTP_FORM ||
-					annoEntity.encoding() == ParseEncoding.EITHER) &&
+			} else if ((annoEntity.encoding() == Encoding.HTTP_FORM ||
+					annoEntity.encoding() == Encoding.EITHER) &&
 					mInfo.postType == RequestPostType.HTTP_FORM) {
 				return Serializer.fromUrlEncoding(mInfo.httpBody, paramType);
 			} else {
@@ -454,9 +457,9 @@ public final class WebBasicRouter extends WebRouterBase {
             return Localization.getInstance(mInfo.localeMessage, language);
         } else {
 			for (Annotation ann : annos) {
-				if (ann instanceof Param) {
-                    Param annParam = (Param) ann;
-                    String paramName = annParam.value();
+				if (ann instanceof Part) {
+                    Part annPart = (Part) ann;
+                    String paramName = annPart.value();
                     Object obj = null;
                     if (mInfo.urlParams.containsKey(paramName)) {
                         String val = mInfo.urlParams.get(paramName);
@@ -465,14 +468,26 @@ public final class WebBasicRouter extends WebRouterBase {
                     Validator validator = new Validator();
                     validator.validate(obj, paramType, annos);
                     return obj;
-                } else if (ann instanceof Query) {
-                    Query annParam = (Query) ann;
+                } else if (ann instanceof Param) {
+                    Param annParam = (Param) ann;
                     String paramName = annParam.value();
-                    Map<String, String> queryMap = Serializer.fromUrlEncoding(mInfo.request.getQueryString());
                     Object obj = null;
-                    if (queryMap != null && queryMap.containsKey(paramName)) {
-                        String val = queryMap.get(paramName);
-                        obj = convertParam(val, paramType, paramName);
+                    if ((annParam.source() == SourceType.EITHER || annParam.source() == SourceType.HTTP_BODY) &&
+                            mInfo.postType == RequestPostType.HTTP_FORM) {
+                        if (mInfo.formParams == null)
+                            mInfo.formParams = Serializer.fromUrlEncoding(mInfo.httpBody);
+                        if (mInfo.formParams != null && mInfo.formParams.containsKey(paramName)) {
+                            String val = mInfo.formParams.get(paramName);
+                            obj = convertParam(val, paramType, paramName);
+                        }
+                    }
+                    if (obj == null && (annParam.source() == SourceType.EITHER || annParam.source() == SourceType.QUERY_STRING)) {
+                        if (mInfo.queryParams == null)
+                            mInfo.queryParams = Serializer.fromUrlEncoding(mInfo.request.getQueryString());
+                        if (mInfo.queryParams != null && mInfo.queryParams.containsKey(paramName)) {
+                            String val = mInfo.queryParams.get(paramName);
+                            obj = convertParam(val, paramType, paramName);
+                        }
                     }
                     Validator validator = new Validator();
                     validator.validate(obj, paramType, annos);
@@ -498,7 +513,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		}
 	}
 	
-	private static enum RequestPostType {
+	private enum RequestPostType {
 		JSON,
 		HTTP_FORM,
         UNKNOWN
@@ -511,6 +526,8 @@ public final class WebBasicRouter extends WebRouterBase {
 		public HttpServletResponse response;
 		public WebSession session = null;
         public String localeMessage;
+        public Map<String, String> queryParams = null;
+        public Map<String, String> formParams = null;
 		public Map<String, String> urlParams = new HashMap<>();
 	}
 

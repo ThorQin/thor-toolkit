@@ -196,8 +196,8 @@ public final class Validator {
 			}
 			if (value.length() < anno.minLength()|| value.length() > anno.maxLength())
 				throw new ValidateException("String length should between " + anno.minLength() + " and " + anno.maxLength() + "!");
-			if (!anno.format().trim().isEmpty()) {
-				boolean matches = value.matches(anno.format().trim());
+			if (!anno.value().trim().isEmpty()) {
+				boolean matches = value.matches(anno.value().trim());
 				if (!matches) {
 					throw new ValidateException("String does not match the given pattern!");
 				}
@@ -227,7 +227,7 @@ public final class Validator {
 					(!anno.max().isEmpty() && value.getTime() > parseDate(anno.max()).getTime()))
 				throw new ValidateException("Date value range should between " + anno.min() + " and " + anno.max() + "!");
 			} catch (ParseException ex) {
-				throw new ValidateException("Specify invalid date format for min/max value", ex);
+				throw new ValidateException("Specify invalid date value for min/max value", ex);
 			}
 		}
 	}

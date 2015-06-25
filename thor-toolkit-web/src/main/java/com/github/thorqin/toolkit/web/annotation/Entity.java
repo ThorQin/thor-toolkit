@@ -14,28 +14,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 public @interface Entity {
 
-	/**
-	 *
-	 * @author nuo.qin
-	 */
-	public static enum SourceType {
-		QUERY_STRING,
-		HTTP_BODY,
-		EITHER
-	}
+    SourceType source() default SourceType.EITHER;
 
-	/**
-	 *
-	 * @author nuo.qin
-	 */
-	public static enum ParseEncoding {
-		JSON,
-		HTTP_FORM,
-		EITHER
-	}
-
-	SourceType source() default SourceType.EITHER;
-
-	ParseEncoding encoding() default ParseEncoding.EITHER;
+	Encoding encoding() default Encoding.EITHER;
 
 }

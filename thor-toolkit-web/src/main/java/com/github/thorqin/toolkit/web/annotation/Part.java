@@ -12,17 +12,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Define the parameter of the query string or the posted FORM-URL-ENCODED content
+ * Define the variable which is a part of the URL
  * @author nuo.qin
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
-public @interface Param {
+public @interface Part {
     /**
-     * Parameter name
+     * Part name
      * @return
      */
 	String value();
-
-    SourceType source() default SourceType.EITHER;
 }
