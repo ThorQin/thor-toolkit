@@ -5,7 +5,6 @@ package ${package};
 
 import com.github.thorqin.toolkit.web.annotation.*;
 import com.github.thorqin.toolkit.web.router.WebContent;
-import com.github.thorqin.toolkit.web.annotation.WebEntry.HttpMethod;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import javax.servlet.http.HttpServletRequest;

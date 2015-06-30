@@ -31,10 +31,7 @@ import com.github.thorqin.toolkit.trace.TraceService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.AppClassLoader;
 import com.github.thorqin.toolkit.utility.ConfigManager;
-import com.github.thorqin.toolkit.web.annotation.WebApp;
-import com.github.thorqin.toolkit.web.annotation.WebAppService;
-import com.github.thorqin.toolkit.web.annotation.WebFilter;
-import com.github.thorqin.toolkit.web.annotation.WebRouter;
+import com.github.thorqin.toolkit.web.annotation.*;
 import com.github.thorqin.toolkit.web.filter.WebFilterBase;
 import com.github.thorqin.toolkit.web.filter.WebSecurityManager;
 import com.github.thorqin.toolkit.web.router.WebBasicRouter;
@@ -43,12 +40,16 @@ import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.UploadManager;
 import com.google.common.base.Strings;
+import javassist.bytecode.AnnotationsAttribute;
+import javassist.bytecode.ClassFile;
 
+import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -66,6 +67,9 @@ public abstract class WebApplication extends TraceService
 	private static final String NO_APP_NAME_MESSAGE = "Web application name is null or empty, use @WebApp annotation or explicitly call super constructor by pass application name!";
 	private static final String APP_NAME_DUP_MESSAGE = "Web application name duplicated!";
     private static final String INVALID_SERVICE_NAME = "Invalid service name!";
+    private static final String SERVICE_NAME_DUPLICATED = "Service name already in used.";
+    private static final String SERVICE_NAME_NOT_REGISTERED = "Service name not registered.";
+    private static final String NEED_APPLICATION_NAME = "Must provide application name when more than one instance exiting.";
 
 	public static class Setting {
         public boolean compressJs = true;
@@ -102,8 +106,6 @@ public abstract class WebApplication extends TraceService
 	private List<RouterInfo> routers = null;
 	private List<FilterInfo> filters = null;
 	private Class<? extends WebSession> sessionType = ClientSession.class;
-//	private final Map<String, DBService> dbMapping = new HashMap<>();
-//    private final Map<String, MailService> mailMapping = new HashMap<>();
     private final Map<String, Class<?>> serviceTypes = new HashMap<>();
     private final Map<String, Object> serviceMapping = new HashMap<>();
 	private Setting setting;
@@ -133,13 +135,69 @@ public abstract class WebApplication extends TraceService
 		applicationName = name;
 		sessionType = appAnno.sessionType();
         logger = Logger.getLogger(applicationName);
-        for (WebAppService service: appAnno.service()) {
-            if (Strings.isNullOrEmpty(service.name()))
+        for (Service service: appAnno.services()) {
+            String serviceName = service.value();
+            if (Strings.isNullOrEmpty(serviceName)) {
                 throw new RuntimeException(INVALID_SERVICE_NAME);
-            serviceTypes.put(service.name(), service.type());
+            }
+            serviceTypes.put(serviceName, service.type());
+        }
+        try {
+            File file = new File(WebBasicRouter.class.getResource("/").toURI());
+            scanClasses(file, serviceTypes, applicationName);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
 		init();
 	}
+
+    private static void scanClasses(File path, Map<String, Class<?>> serviceTypes, String applicationName) throws Exception {
+        if (path == null) {
+            return;
+        }
+        if (path.isDirectory()) {
+            File[] files = path.listFiles();
+            if (files != null) {
+                for (File item : files) {
+                    scanClasses(item, serviceTypes, applicationName);
+                }
+            }
+            return;
+        }
+        else if (!path.isFile() || !path.getName().endsWith(".class")) {
+            return;
+        }
+        try (DataInputStream fstream = new DataInputStream(new FileInputStream(path.getPath()))){
+            ClassFile cf = new ClassFile(fstream);
+            String className = cf.getName();
+            AnnotationsAttribute visible = (AnnotationsAttribute) cf.getAttribute(
+                    AnnotationsAttribute.visibleTag);
+            if (visible == null) {
+                return;
+            }
+            for (javassist.bytecode.annotation.Annotation ann : visible.getAnnotations()) {
+                if (!ann.getTypeName().equals(Service.class.getName())) {
+                    continue;
+                }
+                Class<?> clazz = Class.forName(className);
+                if (clazz == null) {
+                    continue;
+                }
+                Service service = clazz.getAnnotation(Service.class);
+                if (service == null)
+                    continue;
+                String appName = service.application().trim();
+                if (!appName.isEmpty() && !appName.equals(applicationName)) {
+                    continue;
+                }
+                String serviceName = service.value();
+                if (Strings.isNullOrEmpty(serviceName)) {
+                    throw new RuntimeException(INVALID_SERVICE_NAME);
+                }
+                serviceTypes.put(serviceName, clazz);
+            }
+        }
+    }
 
     public synchronized void unregisterService(String name) {
         serviceTypes.remove(name);
@@ -147,25 +205,39 @@ public abstract class WebApplication extends TraceService
     }
 
     public synchronized void registerService(String name, Class<?> type) {
+        if (Strings.isNullOrEmpty(name)) {
+            throw new RuntimeException(SERVICE_NAME_DUPLICATED);
+        }
         if (serviceTypes.containsKey(name))
-            throw new RuntimeException("Service name already in used.");
+            throw new RuntimeException(INVALID_SERVICE_NAME);
         serviceTypes.put(name, type);
+        System.out.println("Register Service: " + name + " -> " + type.getName());
         createServiceInstance(name);
+        bindingField(name);
     }
 
     private void createServiceInstance(String name) {
         Class<?> type = serviceTypes.get(name);
         if (type == null)
-            throw new RuntimeException("Service name not registered.");
+            throw new RuntimeException(SERVICE_NAME_NOT_REGISTERED);
+        Object obj;
         try {
             Constructor<?> constructor = type.getConstructor(ConfigManager.class, String.class, Tracer.class);
             constructor.setAccessible(true);
-            Object obj = constructor.newInstance(configManager, name, this);
-            serviceMapping.put(name, obj);
-            callServiceStart(obj);
+            obj = constructor.newInstance(configManager, name, this);
+        } catch (NoSuchMethodException ex) {
+            try {
+                Constructor<?> constructor = type.getConstructor();
+                constructor.setAccessible(true);
+                obj = constructor.newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+        serviceMapping.put(name, obj);
+        callServiceStart(obj);
     }
 
     private void callServiceStart(Object serviceInstance) {
@@ -216,8 +288,7 @@ public abstract class WebApplication extends TraceService
 			else
 				return null;
 		} else {
-			throw new RuntimeException(
-					"Must provide application name when more than one instance exiting.");
+			throw new RuntimeException(NEED_APPLICATION_NAME);
 		}
 	}
 
@@ -237,6 +308,26 @@ public abstract class WebApplication extends TraceService
 		loadConfig();
 	}
 
+    private void bindingField(String key) {
+        Class<?> clazz = serviceTypes.get(key);
+        Object service = serviceMapping.get(key);
+        for (Field field : clazz.getDeclaredFields()) {
+            try {
+                Service annotation = field.getAnnotation(Service.class);
+                if (annotation != null) {
+                    field.setAccessible(true);
+                    Object fieldValue = serviceMapping.get(annotation.value());
+                    if (fieldValue == null) {
+                        throw new RuntimeException("Service not registered: " + annotation.value());
+                    }
+                    field.set(service, fieldValue);
+                }
+            } catch (Exception ex) {
+                logger.log(Level.SEVERE, "Service binding field failed: " + clazz.getName() + ": " + field.getName(), ex);
+            }
+        }
+    }
+
 	private synchronized void loadConfig() {
 		setting = configManager.get("/", Setting.class, new Setting());
         for (String key: serviceTypes.keySet()) {
@@ -248,6 +339,9 @@ public abstract class WebApplication extends TraceService
                 }
             } else
                 createServiceInstance(key);
+        }
+        for (String key : serviceTypes.keySet()) {
+            bindingField(key);
         }
 	}
 
@@ -291,6 +385,9 @@ public abstract class WebApplication extends TraceService
 		} catch (IOException e) {
 			logger.log(Level.WARNING, "Configuration file not exists!");
 		}
+        for (String key: serviceTypes.keySet()) {
+            System.out.println("Register Service: " + key + " -> " + serviceTypes.get(key).getName());
+        }
 		loadConfig();
 	}
 
@@ -394,8 +491,10 @@ public abstract class WebApplication extends TraceService
     public final synchronized <T> T getService(String name) {
         if (serviceMapping.containsKey(name)) {
             return (T)serviceMapping.get(name);
-        } else
-            throw new RuntimeException("Service not registered: " + name);
+        } else {
+            logger.log(Level.WARNING, "Service not registered: " + name);
+            return null;
+        }
     }
 
     public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {

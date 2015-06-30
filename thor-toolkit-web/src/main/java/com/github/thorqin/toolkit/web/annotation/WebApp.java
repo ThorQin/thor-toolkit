@@ -40,7 +40,7 @@ public @interface WebApp {
 	String name();
 	WebRouter[] routers() default { @WebRouter("*.do") };
 	WebFilter[] filters() default { @WebFilter(type = WebSecurityManager.class)};
-    WebAppService[] service() default {};
+    Service[] services() default {};
 	Class<? extends WebSession> sessionType() default ClientSession.class;
     String appDataEnv() default "app.data.dir";
 }

@@ -19,12 +19,14 @@
     <tt:script>
         $(function(){
             tui.ctrl.button("btnTest").on("click", function(){
-                tui.infobox("<span id='serverInfo' style='display:inline-block;text-align:left;vertical-align:middle;width:180px;height:40px'></span>");
                 var form = tui.ctrl.form();
                 form.action("getServerInfo.do");
                 form.target("serverInfo");
                 form.field("*");
                 form.targetProperty("innerHTML");
+                form.on("success", function(){
+                    tui.infobox("<span id='serverInfo' style='display:inline-block;text-align:left;vertical-align:middle;width:180px;height:40px'></span>");
+                });
                 form.submit();
             });
         });
