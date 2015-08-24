@@ -622,7 +622,7 @@ public class ConfigManager {
                         if (osName.matches("(?i)windows.*")) {
                             dataDir = System.getenv("APPDATA");
                         } else {
-                            dataDir = System.getProperty("user.home") + "/.webapp";
+                            dataDir = System.getProperty("user.home") + "/.appdata";
                         }
                     }
                 }
