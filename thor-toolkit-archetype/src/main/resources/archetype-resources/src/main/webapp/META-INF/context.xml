@@ -2,4 +2,9 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\' )
 <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Context [
+  <!ELEMENT Context (#PCDATA)>
+  <!ATTLIST Context antiJARLocking CDATA "true">
+  <!ATTLIST Context path CDATA "">
+]>
 <Context antiJARLocking="true" path=""/>
