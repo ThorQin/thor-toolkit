@@ -23,7 +23,7 @@ public final class RuleMatcher<T> {
         public T info;
         public int order;
         public boolean useCache;
-        private Set<String> parameters;
+        private final Set<String> parameters;
         public Rule(String exp, Set<String> parameters, T info, int order, boolean useCache) {
             this.pattern = Pattern.compile(exp);
             this.info = info;

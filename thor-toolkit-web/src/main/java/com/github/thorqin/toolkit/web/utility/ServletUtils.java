@@ -3,7 +3,6 @@ package com.github.thorqin.toolkit.web.utility;
 import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.MimeUtils;
 import com.github.thorqin.toolkit.utility.Serializer;
-import com.github.thorqin.toolkit.utility.UserAgentUtils;
 import com.github.thorqin.toolkit.web.HttpException;
 
 import javax.servlet.http.Cookie;
@@ -196,7 +195,6 @@ public final class ServletUtils {
             }
         } catch (UnsupportedEncodingException e1) {
             fileName = "download.dat";
-            e1.printStackTrace();
         }
         if (mimeType == null) {
             String extName = "";

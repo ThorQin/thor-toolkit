@@ -31,7 +31,6 @@ public class ConfigManager {
     private JsonElement rootObj = null;
     private String rawContent = null;
     private JsonElement defaultRoot = null;
-    private String appName = null;
 
     private static synchronized void setWatchConfig(WatchKey key, ConfigManager config) {
         monitoredMap.put(key, config);
@@ -57,7 +56,7 @@ public class ConfigManager {
                             WatchKey key = monitorService.take();
                             ConfigManager config = getWatchConfig(key);
                             if (config != null) {
-                                for (WatchEvent event : key.pollEvents()) {
+                                for (WatchEvent<?> event : key.pollEvents()) {
                                     if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
                                         continue;
                                     }
@@ -141,7 +140,7 @@ public class ConfigManager {
         try {
             loadFile(file);
         } catch (IOException e) {
-            Logger.getLogger(ConfigManager.class.getName()).log(Level.WARNING, "Load config file failed: " + file.toString());
+            Logger.getLogger(ConfigManager.class.getName()).log(Level.WARNING, "Load config file failed: {0}", file.toString());
         }
     }
 
@@ -150,14 +149,6 @@ public class ConfigManager {
     }
 
     public ConfigManager() {
-    }
-
-    public void setAppName(String appName) {
-        this.appName = appName;
-    }
-
-    public String getAppName() {
-        return this.appName;
     }
 
     private void fireChanged() {
@@ -186,7 +177,7 @@ public class ConfigManager {
             Thread.sleep(100);
             loadFile(_file, false);
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.err.println("Reload config error: " + ex.getMessage());
         }
         try {
             setMonitorFileChange(true);
@@ -219,15 +210,14 @@ public class ConfigManager {
         try {
             loadFile(configFile, false);
         } catch (IOException ex) {
-            System.err.println("Load configuration file error: " + configFile);
-            ex.printStackTrace();
+            System.err.println("Load configuration file error: " + configFile + ": " + ex.getMessage());
         }
     }
 
     public void loadDefaultResource(String resource) {
         try {
             defaultRoot = Serializer.fromJson(
-                    Serializer.loadTextResource(resource), JsonElement.class);
+                    Serializer.readTextResource(resource), JsonElement.class);
         } catch (Exception ex) {
             System.out.println("No default resource found: " + resource);
             defaultRoot = null;
@@ -235,10 +225,10 @@ public class ConfigManager {
     }
 
     public void loadResource(String resource) throws IOException {
-        rawContent = null; // Should set to null because loadTextResource maybe throw exception
+        rawContent = null; // Should set to null because readTextResource maybe throw exception
         rootObj = null;
         defaultRoot = null;
-        rawContent = Serializer.loadTextResource(resource);
+        rawContent = Serializer.readTextResource(resource);
     }
 
     public void loadFile(File file) throws IOException {
@@ -254,7 +244,7 @@ public class ConfigManager {
         try {
             setMonitorFileChange(false);
             if (file.exists())
-                rawContent = Serializer.loadTextFile(file);
+                rawContent = Serializer.readTextFile(file);
             else
                 System.out.println("Configuration file does not exist!");
         } finally {
@@ -272,7 +262,7 @@ public class ConfigManager {
             defaultRoot = null;
         }
         try {
-            rawContent = Serializer.loadTextURL(url);
+            rawContent = Serializer.readTextURL(url);
         } finally {
             merge();
         }
@@ -335,10 +325,8 @@ public class ConfigManager {
             newRoot = Serializer.fromJson(rawContent, JsonElement.class);
         if (defaultRoot == null) {
             rootObj = newRoot;
-            return;
         } else if (newRoot == null) {
             rootObj = defaultRoot;
-            return;
         } else {
             JsonArray container = new JsonArray();
             margeChild(container, defaultRoot, newRoot, null);
@@ -530,7 +518,7 @@ public class ConfigManager {
             return new ArrayList<>();
     }
 
-    public List getList(String jsonPath) {
+    public List<?> getList(String jsonPath) {
         JsonElement obj = get(jsonPath);
         if (obj != null) {
             if (obj.isJsonArray()) {
@@ -613,19 +601,19 @@ public class ConfigManager {
         String dataDir = System.getProperty(javaStyle);
         if (dataDir == null) { // there have many nested blocks because for performance reason
             dataDir = System.getProperty(envStyle);
-            if (dataDir == null) {
-                dataDir = System.getenv(envStyle);
-                if (dataDir == null) {
-                    dataDir = System.getenv(javaStyle);
-                    if (dataDir == null) {
-                        String osName = System.getProperty("os.name");
-                        if (osName.matches("(?i)windows.*")) {
-                            dataDir = System.getenv("APPDATA");
-                        } else {
-                            dataDir = System.getProperty("user.home") + "/.appdata";
-                        }
-                    }
-                }
+        }
+        if (dataDir == null) {
+            dataDir = System.getenv(envStyle);
+        }
+        if (dataDir == null) {
+            dataDir = System.getenv(javaStyle);
+        }
+        if (dataDir == null) {
+            String osName = System.getProperty("os.name");
+            if (osName.matches("(?i)windows.*")) {
+                dataDir = System.getenv("APPDATA");
+            } else {
+                dataDir = System.getProperty("user.home") + "/.appdata";
             }
         }
 

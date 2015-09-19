@@ -19,17 +19,17 @@ import java.util.regex.Pattern;
  * @author nuo.qin
  */
 public final class StringUtils {
-	private static Pattern intPattern =
+	private static final Pattern INT_PATTERN =
 			Pattern.compile("^[+-]?\\d+$");
-	private static Pattern doublePattern =
+	private static final Pattern DOUBLE_PATTERN =
 			Pattern.compile("^[+-]?\\d*\\.\\d+$");
 
 	public static boolean isInteger(String text) {
-		return intPattern.matcher(text).find();
+		return INT_PATTERN.matcher(text).find();
 	}
 
 	public static boolean isDouble(String text) {
-		return doublePattern.matcher(text).find();
+		return DOUBLE_PATTERN.matcher(text).find();
 	}
 
 	public static boolean isNumber(String text) {

@@ -19,7 +19,7 @@ import java.util.Map;
 public class ScriptTag extends SimpleTagSupport {
 
     public String id = null;
-    private static Map<String, String> cache = new HashMap<>();
+    private static final Map<String, String> CACHE = new HashMap<>();
     private String appName = null;
     private String src = null;
 
@@ -28,11 +28,11 @@ public class ScriptTag extends SimpleTagSupport {
         if (content == null || content.trim().isEmpty())
             return "";
         boolean found;
-        synchronized (cache) {
-            found = cache.containsKey(content);
+        synchronized (CACHE) {
+            found = CACHE.containsKey(content);
         }
         if (found) {
-            return cache.get(content);
+            return CACHE.get(content);
         } else {
             HttpServletRequest request = (HttpServletRequest) this.getJspContext()
                     .getAttribute("javax.servlet.jsp.jspRequest");
@@ -51,8 +51,8 @@ public class ScriptTag extends SimpleTagSupport {
             Result result = compiler.compile(externalSource, sourceFile, options);
             if (result.success) {
                 String compressed = compiler.toSource();
-                synchronized (cache) {
-                    cache.put(content, compressed);
+                synchronized (CACHE) {
+                    CACHE.put(content, compressed);
                 }
                 return compressed;
             } else {
@@ -83,7 +83,7 @@ public class ScriptTag extends SimpleTagSupport {
                 // Reference to a local file
                 File file = new File(request.getServletContext().getRealPath(src));
                 if (file.isFile()) {
-                    String content = Serializer.loadTextFile(file);
+                    String content = Serializer.readTextFile(file);
                     result.append(compressJs ? compress(content) : content);
                     src = null;
                     srcContent = true;

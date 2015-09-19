@@ -15,7 +15,7 @@ public class TaskService<T> {
 
     private final ExecutorService executorService;
     private final TaskHandler<T> handler;
-    private AtomicInteger offerTaskCount = new AtomicInteger(0);
+    private final AtomicInteger offerTaskCount = new AtomicInteger(0);
 
     public TaskService(TaskHandler<T> handler) {
         this(handler, 1);

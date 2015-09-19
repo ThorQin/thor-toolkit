@@ -16,7 +16,7 @@ public abstract class TraceService implements Tracer {
 	private boolean alive = false;
 	private Thread thread = null;
 	private final LinkedBlockingQueue<Info> queue = new LinkedBlockingQueue<>();
-	private static final Info stopSignal = new Info();
+	private static final Info STOP_SIGNAL = new Info();
 
 	protected abstract void onTraceInfo(Info info);
 
@@ -30,7 +30,7 @@ public abstract class TraceService implements Tracer {
 				while (alive || !queue.isEmpty()) {
 					try {
 						Info info = queue.take();
-						if (info != stopSignal)
+						if (info != STOP_SIGNAL)
 							onTraceInfo(info);
 						else
 							alive = false;
@@ -48,7 +48,7 @@ public abstract class TraceService implements Tracer {
 		if (!alive)
 			return;
 		alive = false;
-		queue.offer(stopSignal);
+		queue.offer(STOP_SIGNAL);
 	}
 
 	@Override

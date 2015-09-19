@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.github.thorqin.toolkit.utility;
+package com.github.thorqin.toolkit.web.utility;
 
 
 /**
@@ -29,7 +29,7 @@ public final class UserAgentUtils {
 		CHROME,
 		SAFARI,
 		OPERA,
-		BrowserType, OTHER
+		OTHER
 	}
 
 	public static class UserAgentInfo {

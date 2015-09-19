@@ -68,7 +68,7 @@ public final class Encryptor {
 	public final static byte[] sha1(byte[] bytes) {
 		return digest(bytes, "SHA1");
 	}
-	private final static char hexDigits[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+	private final static char HEX_DIGITS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 			'a', 'b', 'c', 'd', 'e', 'f' };
 	public final static String hexString(byte[] bytes) {
 		if (bytes == null)
@@ -76,8 +76,8 @@ public final class Encryptor {
 		char str[] = new char[bytes.length * 2];
 		int k = 0;
 		for (int i = 0; i < bytes.length; i++) {
-			str[k++] = hexDigits[bytes[i] >>> 4 & 0xf];
-			str[k++] = hexDigits[bytes[i] & 0xf];
+			str[k++] = HEX_DIGITS[bytes[i] >>> 4 & 0xf];
+			str[k++] = HEX_DIGITS[bytes[i] & 0xf];
 		}
 		return new String(str);
 	}

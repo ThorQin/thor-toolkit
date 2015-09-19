@@ -1020,6 +1020,11 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 				}
 			}
 		}
+		@Override
+		protected void finalize() throws Throwable {
+			close();
+			super.finalize();
+		}
 	}
 	
 
@@ -1046,9 +1051,10 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 
     /**
      * In order to support registration of WebApplication service.
-     * @param configManager
-     * @param configName
-     * @param tracer
+     * @param configManager Application's config manager
+     * @param configName Configuration entry name
+     * @param tracer Tracer to trace every DB operations
+	 * @throws com.github.thorqin.toolkit.validation.ValidateException Throw if config file contain invalid content
      */
     public DBService(ConfigManager configManager, String configName, Tracer tracer) throws ValidateException {
         this(configManager.get(configName, DBService.DBSetting.class), tracer);
@@ -1146,6 +1152,14 @@ public final class DBService implements AutoCloseable, ISettingComparable {
                 }
             }
 			conn.close();
+		}
+		@Override
+		protected void finalize() throws Throwable {
+			try {
+				close();
+			} catch (SQLException ex) {
+			}
+			super.finalize();
 		}
 
 		@SuppressWarnings("unchecked")
