@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.web.taglib;
 
+import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.google.javascript.jscomp.*;
@@ -68,7 +69,7 @@ public class ScriptTag extends SimpleTagSupport {
     @Override
     public void doTag() throws JspException, IOException {
         boolean compressJs = false;
-        WebApplication app = WebApplication.get(appName);
+        WebApplication app = (WebApplication)Application.get(appName);
         if (app != null)
             compressJs = app.getSetting().compressJs;
 

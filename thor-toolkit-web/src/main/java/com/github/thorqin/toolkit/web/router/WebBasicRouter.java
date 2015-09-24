@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.web.router;
 
+import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.utility.Localization;

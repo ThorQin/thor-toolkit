@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.web.taglib;
 
+import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
@@ -31,7 +32,7 @@ public class LocaleTag extends SimpleTagSupport {
         } else {
             String currentLocale;
             if (locale == null) {
-                WebApplication app = WebApplication.get(appName);
+                WebApplication app = (WebApplication) Application.get(appName);
                 if (app != null) {
                     try {
                         HttpServletResponse response = (HttpServletResponse)this.getJspContext()

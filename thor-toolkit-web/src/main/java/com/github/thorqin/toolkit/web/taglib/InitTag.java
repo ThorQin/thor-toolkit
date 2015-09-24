@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.web.taglib;
 
+import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
@@ -25,7 +26,7 @@ public class InitTag extends SimpleTagSupport {
         HttpServletResponse response = (HttpServletResponse)this.getJspContext()
                 .getAttribute("javax.servlet.jsp.jspResponse");
 
-        WebApplication app = WebApplication.get(appName);
+        WebApplication app = (WebApplication) Application.get(appName);
         if (app != null) {
             try {
                 SessionFactory sessionFactory = new SessionFactory();

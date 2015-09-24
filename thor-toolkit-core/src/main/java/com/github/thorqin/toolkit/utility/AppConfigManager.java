@@ -1,5 +1,7 @@
 package com.github.thorqin.toolkit.utility;
 
+import com.github.thorqin.toolkit.Application;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -7,26 +9,18 @@ import java.io.IOException;
  * Created by thor on 2015/9/19.
  */
 public class AppConfigManager extends ConfigManager {
-    protected String appName = null;
-    protected String environmentValueName = null;
-    public AppConfigManager(String appName, String configName) throws IOException {
-        this.appName = appName;
-        this.environmentValueName = null;
-        this.load(ConfigManager.getAppDataDir(appName), configName);
+    protected Application application = null;
+    public AppConfigManager(Application application, String configName) throws IOException {
+        this.application = application;
+        this.load(application.getDataDir(), configName);
     }
 
-    public AppConfigManager(String environmentValueName, String appName, String configName) throws IOException {
-        this.appName = appName;
-        this.environmentValueName = environmentValueName;
-        this.load(ConfigManager.getAppDataDir(environmentValueName, appName), configName);
-    }
-
-    public String getAppName() {
-        return this.appName;
+    public Application getApplication() {
+        return this.application;
     }
 
     public String getDataDir() {
-        return ConfigManager.getAppDataDir(null, appName);
+        return application.getDataDir();
     }
 
     /**

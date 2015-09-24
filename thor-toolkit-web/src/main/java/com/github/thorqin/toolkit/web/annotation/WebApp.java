@@ -24,7 +24,7 @@
 
 package com.github.thorqin.toolkit.web.annotation;
 
-import com.github.thorqin.toolkit.db.DBService;
+import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.web.filter.WebSecurityManager;
 import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.WebSession;

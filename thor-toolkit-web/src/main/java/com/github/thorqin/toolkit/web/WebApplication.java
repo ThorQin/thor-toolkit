@@ -24,12 +24,8 @@
 
 package com.github.thorqin.toolkit.web;
 
-import com.github.thorqin.toolkit.service.ISettingComparable;
-import com.github.thorqin.toolkit.service.IStartable;
-import com.github.thorqin.toolkit.service.IStoppable;
-import com.github.thorqin.toolkit.trace.TraceService;
-import com.github.thorqin.toolkit.trace.Tracer;
-import com.github.thorqin.toolkit.utility.AppClassLoader;
+import com.github.thorqin.toolkit.Application;
+import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.web.annotation.*;
 import com.github.thorqin.toolkit.web.filter.WebFilterBase;
@@ -46,13 +42,10 @@ import javassist.bytecode.ClassFile;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.logging.*;
 import javax.servlet.*;
@@ -61,15 +54,9 @@ import javax.servlet.*;
  *
  * @author nuo.qin
  */
-public abstract class WebApplication extends TraceService
-		implements ServletContextListener, ConfigManager.ChangeListener, LifeCycleListener {
+public abstract class WebApplication extends Application
+		implements ServletContextListener, LifeCycleListener {
 
-	private static final String NO_APP_NAME_MESSAGE = "Web application name is null or empty, use @WebApp annotation or explicitly call super constructor by pass application name!";
-	private static final String APP_NAME_DUP_MESSAGE = "Web application name duplicated!";
-    private static final String INVALID_SERVICE_NAME = "Invalid service name!";
-    private static final String SERVICE_NAME_DUPLICATED = "Service name already in used.";
-    private static final String SERVICE_NAME_NOT_REGISTERED = "Service name not registered.";
-    private static final String NEED_APPLICATION_NAME = "Must provide application name when more than one instance exiting.";
 
 	public static class Setting {
         public boolean compressJs = true;
@@ -96,43 +83,24 @@ public abstract class WebApplication extends TraceService
 		}
 	}
 
-
-	private static Map<String, WebApplication> applicationMap = new HashMap<>();
-
-    private final Logger logger;
-	private String applicationName;
-	private ConfigManager configManager;
 	private ServletContext servletContext;
 	private List<RouterInfo> routers = null;
 	private List<FilterInfo> filters = null;
 	private Class<? extends WebSession> sessionType = ClientSession.class;
-    private final Map<String, Class<?>> serviceTypes = new HashMap<>();
-    private final Map<String, Object> serviceMapping = new HashMap<>();
-	private Setting setting;
-    private String appDataEnv = null;
+    protected Setting setting;
 
-	public WebApplication(String name) {
-		if (name == null || name.isEmpty())
-			throw new RuntimeException(NO_APP_NAME_MESSAGE);
-		if (applicationMap.containsKey(name))
-			throw new RuntimeException(APP_NAME_DUP_MESSAGE);
-		applicationMap.put(name, this);
-		applicationName = name;
-        logger = Logger.getLogger(applicationName);
-		init();
-	}
 
 	public WebApplication() {
-		String name = null;
 		WebApp appAnno = this.getClass().getAnnotation(WebApp.class);
-		if (appAnno != null)
-			name = appAnno.name();
-		if (name == null || name.isEmpty())
+		if (appAnno != null) {
+            applicationName = appAnno.name();
+            appDataEnv = appAnno.appDataEnv();
+        }
+		if (applicationName == null || applicationName.isEmpty())
 			throw new RuntimeException(NO_APP_NAME_MESSAGE);
-		if (applicationMap.containsKey(name))
+		if (applicationMap.containsKey(applicationName))
 			throw new RuntimeException(APP_NAME_DUP_MESSAGE);
-		applicationMap.put(name, this);
-		applicationName = name;
+		applicationMap.put(applicationName, this);
 		sessionType = appAnno.sessionType();
         logger = Logger.getLogger(applicationName);
         for (Service service: appAnno.services()) {
@@ -199,197 +167,17 @@ public abstract class WebApplication extends TraceService
         }
     }
 
-    public synchronized void unregisterService(String name) {
-        serviceTypes.remove(name);
-        serviceMapping.remove(name);
-    }
 
-    public synchronized void registerService(String name, Class<?> type) {
-        if (Strings.isNullOrEmpty(name)) {
-            throw new RuntimeException(SERVICE_NAME_DUPLICATED);
-        }
-        if (serviceTypes.containsKey(name))
-            throw new RuntimeException(INVALID_SERVICE_NAME);
-        serviceTypes.put(name, type);
-        System.out.println("Register Service: " + name + " -> " + type.getName());
-        createServiceInstance(name);
-        bindingField(name);
-    }
-
-    private void createServiceInstance(String name) {
-        Class<?> type = serviceTypes.get(name);
-        if (type == null)
-            throw new RuntimeException(SERVICE_NAME_NOT_REGISTERED);
-        Object obj;
-        try {
-            Constructor<?> constructor = type.getConstructor(ConfigManager.class, String.class, Tracer.class);
-            constructor.setAccessible(true);
-            obj = constructor.newInstance(configManager, name, this);
-        } catch (NoSuchMethodException ex) {
-            try {
-                Constructor<?> constructor = type.getConstructor();
-                constructor.setAccessible(true);
-                obj = constructor.newInstance();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
-        serviceMapping.put(name, obj);
-        callServiceStart(obj);
-    }
-
-    private void callServiceStart(Object serviceInstance) {
-        if (IStartable.class.isAssignableFrom(serviceInstance.getClass())) {
-            IStartable service = (IStartable)serviceInstance;
-            service.start();
-        }
-    }
-
-    private void callServiceStop(Object serviceInstance) {
-        if (IStoppable.class.isAssignableFrom(serviceInstance.getClass())) {
-            IStoppable service = (IStoppable)serviceInstance;
-            service.stop();
-        } else if (AutoCloseable.class.isAssignableFrom(serviceInstance.getClass())) {
-            AutoCloseable closeable = (AutoCloseable)serviceInstance;
-            try {
-                closeable.close();
-            } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Close service exception.", ex);
-            }
-        }
-    }
-
-    private boolean isServiceSettingChanged(Object serviceInstance, ConfigManager configManager, String configName) {
-        if (ISettingComparable.class.isAssignableFrom(serviceInstance.getClass())) {
-            ISettingComparable service = (ISettingComparable)serviceInstance;
-            return service.isSettingChanged(configManager, configName);
-        } else
-            return true;
-    }
 
 	public final Class<? extends WebSession> getSessionType() {
 		return sessionType;
 	}
 
-	public static WebApplication get(String appName) {
-        if (appName == null)
-            return get();
-        else
-		    return applicationMap.get(appName);
-	}
-
-	public static WebApplication get() {
-		if (applicationMap.size() == 1) {
-			Iterator<Map.Entry<String, WebApplication>> iterator = applicationMap.entrySet().iterator();
-			if (iterator.hasNext())
-				return iterator.next().getValue();
-			else
-				return null;
-		} else {
-			throw new RuntimeException(NEED_APPLICATION_NAME);
-		}
-	}
-
-    public AppClassLoader getAppClassLoader(ClassLoader parent) {
-        String path;
-        try {
-            path = getDataPath("lib");
-        } catch (Exception ex) {
-            path = null;
-        }
-        AppClassLoader appClassLoader = new AppClassLoader(parent, path);
-        return appClassLoader;
+    @Override
+    public void onConfigChanged(ConfigManager configManager) {
+        super.onConfigChanged(configManager);
+        setting = configManager.get("/", Setting.class, new Setting());
     }
-
-	@Override
-	public void onConfigChanged(ConfigManager configManager) {
-		loadConfig();
-	}
-
-    private void bindingField(String key) {
-        Class<?> clazz = serviceTypes.get(key);
-        Object service = serviceMapping.get(key);
-        for (Field field : clazz.getDeclaredFields()) {
-            try {
-                Service annotation = field.getAnnotation(Service.class);
-                if (annotation != null) {
-                    field.setAccessible(true);
-                    Object fieldValue = serviceMapping.get(annotation.value());
-                    if (fieldValue == null) {
-                        throw new RuntimeException("Service not registered: " + annotation.value());
-                    }
-                    field.set(service, fieldValue);
-                }
-            } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Service binding field failed: " + clazz.getName() + ": " + field.getName(), ex);
-            }
-        }
-    }
-
-	private synchronized void loadConfig() {
-		setting = configManager.get("/", Setting.class, new Setting());
-        for (String key: serviceTypes.keySet()) {
-            if (serviceMapping.containsKey(key)) {
-                Object service = serviceMapping.get(key);
-                if (isServiceSettingChanged(service, configManager, key)) {
-                    callServiceStop(service);
-                    createServiceInstance(key);
-                }
-            } else
-                createServiceInstance(key);
-        }
-        for (String key : serviceTypes.keySet()) {
-            bindingField(key);
-        }
-	}
-
-    public Logger getLogger() {
-        return logger;
-    }
-
-	private void init() {
-        WebApp appAnno = this.getClass().getAnnotation(WebApp.class);
-        if (appAnno != null)
-            appDataEnv = appAnno.appDataEnv();
-        final String dataDir = ConfigManager.getAppDataDir(appDataEnv, applicationName);
-        if (dataDir != null) {
-            try {
-                String logFile = dataDir;
-                if (logFile.endsWith("/") || logFile.endsWith("\\"))
-                    logFile += "log";
-                else
-                    logFile += "/log";
-                Files.createDirectories(new File(logFile).toPath());
-                logFile += "/ " + applicationName + ".log";
-                try {
-                    FileHandler fileHandler = new FileHandler(logFile, 1024 * 1024, 3, true);
-                    fileHandler.setEncoding("utf-8");
-                    fileHandler.setFormatter(new SimpleFormatter());
-                    logger.addHandler(fileHandler);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
-		this.start(); // Start trace service
-		this.configManager = new ConfigManager();
-        this.configManager.setAppName(applicationName);
-		configManager.addChangeListener(this);
-		try {
-			configManager.load(dataDir, "config.json");
-			configManager.setMonitorFileChange(true);
-		} catch (IOException e) {
-			logger.log(Level.WARNING, "Configuration file not exists!");
-		}
-        for (String key: serviceTypes.keySet()) {
-            System.out.println("Register Service: " + key + " -> " + serviceTypes.get(key).getName());
-        }
-		loadConfig();
-	}
 
 	/**
 	 * If 
@@ -402,27 +190,16 @@ public abstract class WebApplication extends TraceService
 	}
 
 	@Override
-	protected void onTraceInfo(Info info) {
-		if (logger != null)
-			logger.log(Level.INFO, info.toString());
-	}
-	
-	@Override
 	public final void contextInitialized(ServletContextEvent sce) {}
 
 	@Override
 	public final synchronized void contextDestroyed(ServletContextEvent sce) {
-        for (String name : serviceMapping.keySet()) {
-            Object service = serviceMapping.get(name);
-            callServiceStop(service);
-        }
-		try {
+        try {
             this.onShutdown();
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-		this.stop();
-		applicationMap.remove(applicationName);
+        super.destory();
 	}
 
 	public final ServletContext getServletContext() {
@@ -435,43 +212,9 @@ public abstract class WebApplication extends TraceService
 	@Override
 	public void onShutdown() {}
 
-	public final String getName() {
-		return applicationName;
-	}
-
-	public final String getDataPath() throws MalformedURLException, URISyntaxException {
-		String dataDir = ConfigManager.getAppDataDir(appDataEnv, applicationName);
-		if (dataDir != null) {
-			return dataDir;
-		} else {
-			File dataPath = new File(servletContext.getResource("/WEB-INF/").toURI());
-			dataPath = new File(dataPath.getAbsolutePath() + "/data");
-			return dataPath.getAbsolutePath();
-		}
-	}
-	
-	public final String getDataPath(String subDir) throws MalformedURLException, URISyntaxException {
-		String baseDir = getDataPath();
-		if (subDir.startsWith("/") || subDir.startsWith("\\")) {
-			if (baseDir.endsWith("/") || baseDir.endsWith("\\"))
-				return baseDir + subDir.substring(1);
-			else
-				return baseDir + subDir;
-		} else {
-			if (baseDir.endsWith("/") || baseDir.endsWith("\\"))
-				return baseDir + subDir;
-			else
-				return baseDir + "/" + subDir;
-		}
-	}
-
 	public final UploadManager getUploadManager(String uploadFolderName, boolean storeDetail) {
-		try {
-			File filePath = new File(getDataPath(uploadFolderName));
-			return new UploadManager(filePath, storeDetail);
-		} catch (MalformedURLException | URISyntaxException ex) {
-			throw new RuntimeException(ex);
-		}
+        File filePath = new File(getDataDir(uploadFolderName));
+        return new UploadManager(filePath, storeDetail);
 	}
 
 	public final UploadManager getUploadManager(String uploadFolderName) {
@@ -482,20 +225,6 @@ public abstract class WebApplication extends TraceService
 		return getUploadManager("upload", true);
 
 	}
-
-	public final ConfigManager getConfigManager() {
-		return configManager;
-	}
-
-    @SuppressWarnings("unchecked")
-    public final synchronized <T> T getService(String name) {
-        if (serviceMapping.containsKey(name)) {
-            return (T)serviceMapping.get(name);
-        } else {
-            logger.log(Level.WARNING, "Service not registered: " + name);
-            return null;
-        }
-    }
 
     public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<? extends T> constructor;
