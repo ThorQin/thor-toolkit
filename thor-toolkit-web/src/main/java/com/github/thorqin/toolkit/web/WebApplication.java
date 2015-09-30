@@ -36,16 +36,10 @@ import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.UploadManager;
 import com.google.common.base.Strings;
-import javassist.bytecode.AnnotationsAttribute;
-import javassist.bytecode.ClassFile;
 
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.logging.*;
 import javax.servlet.*;
@@ -110,64 +104,8 @@ public abstract class WebApplication extends Application
             }
             serviceTypes.put(serviceName, service.type());
         }
-        try {
-            File file = new File(WebBasicRouter.class.getResource("/").toURI());
-            scanClasses(file, serviceTypes, applicationName);
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
 		init();
 	}
-
-    private static void scanClasses(File path, Map<String, Class<?>> serviceTypes, String applicationName) throws Exception {
-        if (path == null) {
-            return;
-        }
-        if (path.isDirectory()) {
-            File[] files = path.listFiles();
-            if (files != null) {
-                for (File item : files) {
-                    scanClasses(item, serviceTypes, applicationName);
-                }
-            }
-            return;
-        }
-        else if (!path.isFile() || !path.getName().endsWith(".class")) {
-            return;
-        }
-        try (DataInputStream fstream = new DataInputStream(new FileInputStream(path.getPath()))){
-            ClassFile cf = new ClassFile(fstream);
-            String className = cf.getName();
-            AnnotationsAttribute visible = (AnnotationsAttribute) cf.getAttribute(
-                    AnnotationsAttribute.visibleTag);
-            if (visible == null) {
-                return;
-            }
-            for (javassist.bytecode.annotation.Annotation ann : visible.getAnnotations()) {
-                if (!ann.getTypeName().equals(Service.class.getName())) {
-                    continue;
-                }
-                Class<?> clazz = Class.forName(className);
-                if (clazz == null) {
-                    continue;
-                }
-                Service service = clazz.getAnnotation(Service.class);
-                if (service == null)
-                    continue;
-                String appName = service.application().trim();
-                if (!appName.isEmpty() && !appName.equals(applicationName)) {
-                    continue;
-                }
-                String serviceName = service.value();
-                if (Strings.isNullOrEmpty(serviceName)) {
-                    throw new RuntimeException(INVALID_SERVICE_NAME);
-                }
-                serviceTypes.put(serviceName, clazz);
-            }
-        }
-    }
-
-
 
 	public final Class<? extends WebSession> getSessionType() {
 		return sessionType;
@@ -212,32 +150,19 @@ public abstract class WebApplication extends Application
 	@Override
 	public void onShutdown() {}
 
-	public final UploadManager getUploadManager(String uploadFolderName, boolean storeDetail) {
+	public final UploadManager createUploadManager(String uploadFolderName, boolean storeDetail) {
         File filePath = new File(getDataDir(uploadFolderName));
         return new UploadManager(filePath, storeDetail);
 	}
 
-	public final UploadManager getUploadManager(String uploadFolderName) {
-		return getUploadManager(uploadFolderName, true);
+	public final UploadManager createUploadManager(String uploadFolderName) {
+		return createUploadManager(uploadFolderName, true);
 	}
 
-	public final UploadManager getUploadManager() {
-		return getUploadManager("upload", true);
+	public final UploadManager createUploadManager() {
+		return createUploadManager("upload", true);
 
 	}
-
-    public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        Constructor<? extends T> constructor;
-        try {
-            constructor = clazz.getConstructor(WebApplication.class);
-            constructor.setAccessible(true);
-            return constructor.newInstance(application);
-        } catch (NoSuchMethodException ex) {
-            constructor = clazz.getConstructor();
-            constructor.setAccessible(true);
-            return constructor.newInstance();
-        }
-    }
 
 	public final List<RouterInfo> getRouters() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
 		if (routers == null) {
@@ -287,5 +212,18 @@ public abstract class WebApplication extends Application
 
 	public final Setting getSetting() {
 		return setting;
+	}
+
+	public static <T> T createInstance(Class<T> clazz, WebApplication application) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+		Constructor<? extends T> constructor;
+		try {
+			constructor = clazz.getConstructor(WebApplication.class);
+			constructor.setAccessible(true);
+			return constructor.newInstance(application);
+		} catch (NoSuchMethodException ex) {
+			constructor = clazz.getConstructor();
+			constructor.setAccessible(true);
+			return constructor.newInstance();
+		}
 	}
 }

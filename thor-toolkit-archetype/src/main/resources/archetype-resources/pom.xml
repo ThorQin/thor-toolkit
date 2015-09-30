@@ -16,18 +16,20 @@
 		<downloadJavadocs>true</downloadJavadocs>		
 	</properties>
 
+	<!-- Uncomment following lines to specify internal repositories.
     <repositories>
         <repository>
-            <id>nexus-releases</id>
+            <id>internal-releases</id>
             <name>Internal Releases</name>
-            <url>http://10.63.2.111:8081/nexus/content/repositories/releases</url>
+            <url>${release.url}</url>
         </repository>
         <repository>
-            <id>nexus-snapshots</id>
+            <id>internal-snapshots</id>
             <name>Internal Snapshots</name>
-            <url>http://10.63.2.111:8081/nexus/content/repositories/snapshots</url>
+            <url>${snapshot.url}</url>
         </repository>
     </repositories>
+    -->
 	
 	<dependencies>
         <dependency>
@@ -45,7 +47,7 @@
 		<dependency>
 			<groupId>com.github.thorqin.thor-toolkit</groupId>
 			<artifactId>thor-toolkit-web</artifactId>
-			<version>1.1-SNAPSHOT</version>
+			<version>1.2-SNAPSHOT</version>
 		</dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

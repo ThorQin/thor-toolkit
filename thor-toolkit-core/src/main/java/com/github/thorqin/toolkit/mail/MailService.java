@@ -294,4 +294,10 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
             return createMailByTemplateStream(in, replaced);
         }
 	}
+
+    public static Mail createMailByTemplate(String templateContent, Map<String,String> replaced) throws IOException {
+        try (InputStream in = new ByteArrayInputStream(templateContent.getBytes("utf-8"))) {
+            return createMailByTemplateStream(in, replaced);
+        }
+    }
 }

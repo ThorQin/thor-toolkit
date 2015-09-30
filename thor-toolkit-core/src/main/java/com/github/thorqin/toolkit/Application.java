@@ -10,8 +10,12 @@ import com.github.thorqin.toolkit.utility.AppClassLoader;
 import com.github.thorqin.toolkit.utility.AppConfigManager;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.google.common.base.Strings;
+import javassist.bytecode.AnnotationsAttribute;
+import javassist.bytecode.ClassFile;
 
+import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -35,6 +39,7 @@ public abstract class Application extends TraceService implements ConfigManager.
     protected String appDataEnv = null;
     protected final Map<String, Class<?>> serviceTypes = new HashMap<>();
     protected final Map<String, Object> serviceMapping = new HashMap<>();
+    protected ClassLoader appClassLoader = null;
 
     protected static final String NO_APP_NAME_MESSAGE = "Web application name is null or empty, use @WebApp annotation or explicitly call super constructor by pass application name!";
     protected static final String APP_NAME_DUP_MESSAGE = "Web application name duplicated!";
@@ -97,15 +102,18 @@ public abstract class Application extends TraceService implements ConfigManager.
         applicationMap.remove(applicationName);
     }
 
-    public AppClassLoader getAppClassLoader(ClassLoader parent) {
-        String path;
-        try {
-            path = getDataDir("lib");
-        } catch (Exception ex) {
-            path = null;
-        }
-        AppClassLoader appClassLoader = new AppClassLoader(parent, path);
-        return appClassLoader;
+    public static ClassLoader createAppClassLoader(ClassLoader parent, String searchPath) {
+        return new AppClassLoader(parent, searchPath);
+    }
+
+    /**
+     * Get application defined class loader which extends original
+     * class loader by add an additional search path.
+     * Additional search path is under the application's data path, named 'lib'.
+     * @return Application class loader
+     */
+    public ClassLoader getAppClassLoader() {
+        return this.appClassLoader;
     }
 
     public final String getName() {
@@ -137,8 +145,57 @@ public abstract class Application extends TraceService implements ConfigManager.
         }
     }
 
+    private static void scanClasses(File path, Map<String, Class<?>> serviceTypes, String applicationName) throws Exception {
+        if (path == null) {
+            return;
+        }
+        if (path.isDirectory()) {
+            File[] files = path.listFiles();
+            if (files != null) {
+                for (File item : files) {
+                    scanClasses(item, serviceTypes, applicationName);
+                }
+            }
+            return;
+        }
+        else if (!path.isFile() || !path.getName().endsWith(".class")) {
+            return;
+        }
+        try (DataInputStream fstream = new DataInputStream(new FileInputStream(path.getPath()))){
+            ClassFile cf = new ClassFile(fstream);
+            String className = cf.getName();
+            AnnotationsAttribute visible = (AnnotationsAttribute) cf.getAttribute(
+                    AnnotationsAttribute.visibleTag);
+            if (visible == null) {
+                return;
+            }
+            for (javassist.bytecode.annotation.Annotation ann : visible.getAnnotations()) {
+                if (!ann.getTypeName().equals(Service.class.getName())) {
+                    continue;
+                }
+                Class<?> clazz = Class.forName(className);
+                if (clazz == null) {
+                    continue;
+                }
+                Service service = clazz.getAnnotation(Service.class);
+                if (service == null)
+                    continue;
+                String appName = service.application().trim();
+                if (!appName.isEmpty() && !appName.equals(applicationName)) {
+                    continue;
+                }
+                String serviceName = service.value();
+                if (Strings.isNullOrEmpty(serviceName)) {
+                    throw new RuntimeException(INVALID_SERVICE_NAME);
+                }
+                serviceTypes.put(serviceName, clazz);
+            }
+        }
+    }
+
     protected final void init() {
         final String dataDir = getAppDataDir(appDataEnv, applicationName);
+        appClassLoader = createAppClassLoader(Application.class.getClassLoader(), getDataDir("lib"));
         if (dataDir != null) {
             try {
                 String logFile = dataDir;
@@ -177,6 +234,15 @@ public abstract class Application extends TraceService implements ConfigManager.
             System.out.println("Register Service: " + key + " -> " + serviceTypes.get(key).getName());
         }
         loadConfig();
+
+        try {
+            File file = new File(Application.class.getResource("/").toURI());
+            scanClasses(file, serviceTypes, applicationName);
+            File fileExtend = new File(getDataDir("lib"));
+            scanClasses(fileExtend, serviceTypes, applicationName);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public static Application get(String appName) {
