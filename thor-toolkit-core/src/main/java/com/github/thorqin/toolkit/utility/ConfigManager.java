@@ -7,11 +7,7 @@ import java.io.*;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URL;
-import java.nio.file.*;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created by nuo.qin on 12/11/2014.
@@ -21,170 +17,48 @@ public class ConfigManager {
         void onConfigChanged(ConfigManager configManager);
     }
 
-    private static WatchService monitorService = null;
-    private static final Map<WatchKey, ConfigManager> monitoredMap = new HashMap<>();
-
-    private File _file = null;
-    private boolean monitorFileChange = false;
     private Set<ChangeListener> listenerSet = new HashSet<>();
-    private WatchKey watchKey = null;
+    private File file = null;
+    private FileMonitor.Monitor monitor = null;
     private JsonElement rootObj = null;
     private String rawContent = null;
     private JsonElement defaultRoot = null;
 
-    private static synchronized void setWatchConfig(WatchKey key, ConfigManager config) {
-        monitoredMap.put(key, config);
-    }
-
-    private static synchronized ConfigManager getWatchConfig(WatchKey key) {
-        return monitoredMap.get(key);
-    }
-
-    private static synchronized void removeWatchConfig(WatchKey key) {
-        monitoredMap.remove(key);
-    }
-
-    static {
-        try {
-            monitorService = FileSystems.getDefault().newWatchService();
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                @SuppressWarnings("unchecked")
-                public void run() {
-                    for (;;) {
-                        try {
-                            WatchKey key = monitorService.take();
-                            ConfigManager config = getWatchConfig(key);
-                            if (config != null) {
-                                for (WatchEvent<?> event : key.pollEvents()) {
-                                    if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
-                                        continue;
-                                    }
-                                    Path eventPath = ((WatchEvent<Path>) event).context();
-                                    Path configPath = config._file.toPath().getFileName();
-                                    if (eventPath.compareTo(configPath) == 0) {
-                                        if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-                                            System.out.println("Config file is deleted.");
-                                            config.clearReload();
-                                        } else if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-                                            System.out.println("Config file is modified.");
-                                            config.reloadFile();
-                                        }
-                                    }
-                                }
-                            }
-                            if (!key.reset())
-                                removeWatchConfig(key);
-                        } catch (InterruptedException e) {
-                            break;
-                        } catch (Exception ex) {
-                        }
-                    }
-                }
-            });
-            thread.setDaemon(true);
-            thread.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public boolean isMonitorFileChange() {
-        return monitorFileChange;
-    }
-
-    public void setMonitorFileChange(boolean monitorFileChange) throws IOException {
-        if (!isLoadFromFile()) {
-            monitorFileChange = false;
-        }
-        if (this.monitorFileChange == monitorFileChange)
-            return;
-        this.monitorFileChange = monitorFileChange;
-        if (monitorFileChange) {
+    private FileMonitor.FileChangeListener listener = new FileMonitor.FileChangeListener() {
+        @Override
+        public void onFileChange(File file, FileMonitor.ChangeType changeType, Object param) {
+            String oldHash = getHash();
             try {
-                watchKey = _file.toPath().getParent().register(monitorService,
-                        StandardWatchEventKinds.ENTRY_CREATE,
-                        StandardWatchEventKinds.ENTRY_MODIFY,
-                        StandardWatchEventKinds.ENTRY_DELETE);
-                setWatchConfig(watchKey, this);
-            } catch (Exception ex) {
-                watchKey = null;
-                throw ex;
+                Thread.sleep(100);
+                loadFile();
+            } catch (InterruptedException e) {
             }
-        } else {
-            if (watchKey != null) {
-                watchKey.cancel();
-                removeWatchConfig(watchKey);
-                watchKey = null;
+            if (oldHash.equals(getHash()))
+                return;
+            for (ChangeListener listener: listenerSet) {
+                try {
+                    listener.onConfigChanged(ConfigManager.this);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }
         }
+    };
+
+    public boolean isWatching() {
+        return monitor != null;
     }
 
     public void addChangeListener(ChangeListener listener) {
         listenerSet.add(listener);
     }
-
     public void removeChangeListener(ChangeListener listener) {
         listenerSet.remove(listener);
     }
 
-    public boolean isLoadFromFile() {
-        return _file != null;
-    }
 
-    public ConfigManager(String resource) throws IOException {
-        loadResource(resource);
-    }
-
-    public ConfigManager(File file) {
-        try {
-            loadFile(file);
-        } catch (IOException e) {
-            Logger.getLogger(ConfigManager.class.getName()).log(Level.WARNING, "Load config file failed: {0}", file.toString());
-        }
-    }
-
-    public ConfigManager(URL url) throws IOException {
-        loadURL(url);
-    }
-
-    public ConfigManager() {
-    }
-
-    private void fireChanged() {
-        for (ChangeListener listener: listenerSet) {
-            try {
-                listener.onConfigChanged(this);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
-
-    public void clear() {
-        rawContent = null;
-        rootObj = null;
-    }
-
-    private void clearReload() {
-        clear();
-        fireChanged();
-    }
-
-    private void reloadFile() {
-        try {
-            // If did not sleep a while then it maybe will load failed.
-            Thread.sleep(100);
-            loadFile(_file, false);
-        } catch (Exception ex) {
-            System.err.println("Reload config error: " + ex.getMessage());
-        }
-        try {
-            setMonitorFileChange(true);
-        } catch (Exception ex) {
-            Logger.getLogger(ConfigManager.class.getName()).log(Level.SEVERE, ex.getMessage());
-        }
-        fireChanged();
+    public ConfigManager(String dataDir, String configFileName) throws IOException {
+        load(dataDir, configFileName);
     }
 
     /**
@@ -194,83 +68,64 @@ public class ConfigManager {
      * config manager will receive a notify.
      * @param dataDir Configurable directory path
      * @param configFileName Config file name if load from resource, then it be a resource file name
-     * @throws IOException Not found file either in data dir or in resource.
      */
-    public void load(String dataDir, String configFileName) throws IOException {
-        loadDefaultResource(configFileName);
+    public synchronized void load(String dataDir, String configFileName) {
+        stopWatch();
         rawContent = null;
         rootObj = null;
+        file = null;
+        loadDefaultResource(configFileName);
         if (dataDir == null) {
             merge();
             return;
         }
         dataDir = dataDir.replace('\\', '/');
         String path = (dataDir.endsWith("/") ? dataDir : dataDir + "/") + configFileName;
-        File configFile = new File(path);
-        try {
-            loadFile(configFile, false);
-        } catch (IOException ex) {
-            System.err.println("Load configuration file error: " + configFile + ": " + ex.getMessage());
-        }
+        file = new File(path);
+        loadFile();
     }
 
-    public void loadDefaultResource(String resource) {
+    private synchronized void loadFile() {
+        rawContent = null;
+        rootObj = null;
+        if (file != null && file.isFile()) {
+            try {
+                rawContent = Serializer.readTextFile(file);
+            } catch (Exception ex) {
+                rawContent = null;
+                System.err.println("Load configuration file error: " + file + ": " + ex.getMessage());
+            }
+        }
+        merge();
+    }
+
+    private void loadDefaultResource(String resource) {
         try {
             defaultRoot = Serializer.fromJson(
                     Serializer.readTextResource(resource), JsonElement.class);
         } catch (Exception ex) {
-            System.out.println("No default resource found: " + resource);
             defaultRoot = null;
         }
     }
 
-    public void loadResource(String resource) throws IOException {
-        rawContent = null; // Should set to null because readTextResource maybe throw exception
-        rootObj = null;
-        defaultRoot = null;
-        rawContent = Serializer.readTextResource(resource);
-    }
-
-    public void loadFile(File file) throws IOException {
-        loadFile(file, true);
-    }
-
-    private void loadFile(File file, boolean clearDefault) throws IOException {
-        rawContent = null;
-        rootObj = null;
-        if (clearDefault) {
-            defaultRoot = null;
-        }
+    public synchronized void startWatch() {
+        if (file == null || monitor != null)
+            return;
         try {
-            setMonitorFileChange(false);
-            if (file.exists())
-                rawContent = Serializer.readTextFile(file);
-            else
-                System.out.println("Configuration file does not exist!");
-        } finally {
-            _file = file;
-            merge();
-        }
-    }
-    public void loadURL(URL url) throws IOException {
-        loadURL(url, true);
-    }
-    public void loadURL(URL url, boolean clearDefault) throws IOException {
-        rawContent = null;
-        rootObj = null;
-        if (clearDefault) {
-            defaultRoot = null;
-        }
-        try {
-            rawContent = Serializer.readTextURL(url);
-        } finally {
-            merge();
+            monitor = FileMonitor.watch(file, listener);
+        } catch (Exception ex) {
+            monitor = null;
+            System.err.println("Watch configuration file error: " + file + ": " + ex.getMessage());
         }
     }
 
-    public String getRawContent() {
-        return rawContent;
+    public synchronized void stopWatch() {
+        if (isWatching()) {
+            monitor.close();
+            monitor = null;
+        }
     }
+
 
     private void margeChild(JsonElement parent, JsonElement defaultObj, JsonElement newObj, String key) {
         // Both defaultObj and newObj must not be null.
@@ -584,5 +439,10 @@ public class ConfigManager {
         return Serializer.toJsonString(obj, false);
     }
 
-
+    public String getHash() {
+        if (rawContent == null) {
+            return Encryptor.md5String(new byte[0]);
+        } else
+            return Encryptor.md5String(rawContent.getBytes());
+    }
 }

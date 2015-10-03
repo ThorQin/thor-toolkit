@@ -35,12 +35,12 @@ public class SessionFactory {
             } catch (Exception ex) {
                 throw new ServletException("Invalid session type.", ex);
             }
-            setSessionType(type);
+            setSessionType((Class<? extends WebSession>)type);
         } else
             throw new ServletException("Invalid session type, cannot be null or empty.");
     }
 
-    public void setSessionType(Class<?> type) throws ServletException {
+    public void setSessionType(Class<? extends WebSession> type) throws ServletException {
         try {
             if (WebSession.class.isAssignableFrom(type)) {
                 Constructor<?> constructor = type.getConstructor(
@@ -48,7 +48,7 @@ public class SessionFactory {
                 if (constructor == null) {
                     throw new NoSuchMethodException("Invalid constructor, see WebSession class definition.");
                 }
-                sessionType = (Class<? extends WebSession>)type;
+                sessionType = type;
             } else {
                 throw new ServletException("Session class must inherit from WebSession.");
             }

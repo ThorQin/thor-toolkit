@@ -11,8 +11,8 @@ import java.io.IOException;
 public class AppConfigManager extends ConfigManager {
     protected Application application = null;
     public AppConfigManager(Application application, String configName) throws IOException {
+        super(application.getDataDir(), configName);
         this.application = application;
-        this.load(application.getDataDir(), configName);
     }
 
     public Application getApplication() {
@@ -28,7 +28,7 @@ public class AppConfigManager extends ConfigManager {
      * @param fileName file name, may contain sub directory part of the full path.
      * @param encoding file encoding.
      * @return text content.
-     * @throws IOException
+     * @throws IOException Exception when read file failed.
      */
     public String readAppTextFile(String fileName, String encoding) throws IOException {
         File file = new File(getDataDir() + "/" + fileName);
@@ -43,7 +43,7 @@ public class AppConfigManager extends ConfigManager {
      * Load file from APP_DATA or class loader directory if file not existing in APP_DATA directory.
      * @param fileName file name, may contain sub directory part of the full path.
      * @return text content, text encoding will be auto detected.
-     * @throws IOException
+     * @throws IOException Exception when read file failed.
      */
     public String readAppTextFile(String fileName) throws IOException {
         File file = new File(getDataDir() + "/" + fileName);

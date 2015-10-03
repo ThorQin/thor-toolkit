@@ -13,13 +13,13 @@ import java.lang.annotation.Target;
 public @interface Service {
     /**
      * Service name must provide a valid and unique name
-     * @return
+     * @return Service name
      */
     String value();
 
     /**
      * Service class type
-     * @return
+     * @return Service class type
      */
     Class<?> type() default Object.class;
 

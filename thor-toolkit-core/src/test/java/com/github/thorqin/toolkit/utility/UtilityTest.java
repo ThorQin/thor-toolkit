@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.utility;
 
+import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.service.TaskService;
 import org.junit.Test;
 
@@ -15,7 +16,30 @@ import java.math.BigDecimal;
 /**
  * Created by nuo.qin on 12/12/2014.
  */
-public class UtilityTest {
+public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManager.ChangeListener {
+
+    @Override
+    public void onFileChange(File file, FileMonitor.ChangeType changeType, Object param) {
+        System.out.println(file + " -> " + changeType.toString());
+    }
+
+    @Override
+    public void onConfigChanged(ConfigManager configManager) {
+        System.out.println(configManager.getJson("/", true));
+    }
+
+    @Test
+    public void testFileMonitor() throws IOException, InterruptedException {
+        FileMonitor.Monitor monitor1 = FileMonitor.watch("D:\\test\\1.txt", this);
+        FileMonitor.Monitor monitor2 = FileMonitor.watch("D:\\test\\abc\\2.txt", this);
+        FileMonitor.Monitor monitor3 = FileMonitor.watch("D:\\test\\abc\\def\\3.txt", this);
+        Thread.sleep(20000);
+        monitor1.close();
+        monitor2.close();
+        System.out.println("step 1 finished.");
+        System.in.read();
+        monitor3.close();
+    }
 
     @Test
     public void test() throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
@@ -33,9 +57,16 @@ public class UtilityTest {
 
     @Test
     public void testConfigManager() throws IOException {
-        ConfigManager configManager = new ConfigManager();
-        configManager.load("/home/thor/Workspace/AppData", "config.json");
+        Application application = new Application("junit-test#service");
+        ConfigManager configManager = application.getConfigManager();
         System.out.println(configManager.getJson("/", true));
+        configManager.addChangeListener(this);
+        System.out.println(application.getDataDir("\\abc"));
+        System.out.println(application.getDataDir("\\abc/def"));
+        System.out.println(application.getDataDir("abc/def\\"));
+        System.out.println(application.getDataDir("/abc"));
+        System.out.println(new File("c:/test\\abc/def\\").toString());
+                System.in.read();
     }
 
     @Test
@@ -59,11 +90,6 @@ public class UtilityTest {
         Thread.sleep(1500);
         System.out.println(taskService.getOfferCount());
         taskService.shutdown();
-    }
-
-    class A {
-        public String abc = "s";
-        public int def;
     }
 
     @Test

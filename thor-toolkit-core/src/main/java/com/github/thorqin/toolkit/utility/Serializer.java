@@ -526,7 +526,7 @@ public final class Serializer {
      * but any file without BOM will be regarded as UTF-8 encoding.
      * @param resourceName Resource to load
      * @return Text content
-     * @throws IOException
+     * @throws IOException Throw when read file failed.
      */
 	public static String readTextResource(String resourceName) throws IOException {
 		String charset;
@@ -549,7 +549,7 @@ public final class Serializer {
      * @param file File to load
      * @param charset Specifed charset
      * @return Text content
-     * @throws IOException
+     * @throws IOException Throw when read file failed.
      */
     public static String readTextFile(File file, String charset) throws IOException {
         try (FileInputStream in = new FileInputStream(file)) {
@@ -562,7 +562,7 @@ public final class Serializer {
      * default charset use JVM file.encoding property
      * @param file File to load
      * @return Text content
-     * @throws IOException
+     * @throws IOException Throw when read file failed.
      */
     public static String readTextFile(File file) throws IOException {
         String charset = detectCharset(file, null);
@@ -620,7 +620,7 @@ public final class Serializer {
 	 * @param inputStream Input stream which to be detected.
 	 * @param defaultCharset Default charset if can not detected from stream.
 	 * @return Text charset
-	 * @throws IOException
+	 * @throws IOException Throw when read file failed.
 	 */
     public static String detectCharset(InputStream inputStream, String defaultCharset) throws IOException {
 		PushbackInputStream pIn = new PushbackInputStream(inputStream, 3);

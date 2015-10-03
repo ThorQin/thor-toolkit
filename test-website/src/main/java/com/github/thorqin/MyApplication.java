@@ -10,7 +10,7 @@ import com.github.thorqin.toolkit.web.annotation.WebRouter;
                 // Uncomment following line to enable database router
                 // , @WebRouter(value = "/db/*", type = MyApplication.MyDBRouter.class)
         }
-        // , service = @WebAppService(name = "db", type = DBService.class)
+        // , services = @WebAppService(name = "db", type = DBService.class)
 )
 public class MyApplication extends WebApplication {
     /* Uncomment following lines to enable database router

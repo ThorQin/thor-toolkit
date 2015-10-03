@@ -31,7 +31,7 @@ import java.util.logging.SimpleFormatter;
 /**
  * Created by thor on 9/23/15.
  */
-public abstract class Application extends TraceService implements ConfigManager.ChangeListener {
+public class Application extends TraceService implements ConfigManager.ChangeListener {
     protected static Map<String, Application> applicationMap = new HashMap<>();
     protected Logger logger;
     protected String applicationName;
@@ -41,45 +41,36 @@ public abstract class Application extends TraceService implements ConfigManager.
     protected final Map<String, Object> serviceMapping = new HashMap<>();
     protected ClassLoader appClassLoader = null;
 
-    protected static final String NO_APP_NAME_MESSAGE = "Web application name is null or empty, use @WebApp annotation or explicitly call super constructor by pass application name!";
-    protected static final String APP_NAME_DUP_MESSAGE = "Web application name duplicated!";
+    protected static final String NO_APP_NAME_MESSAGE = "Application name is null or empty, use annotation or explicitly call super constructor by pass application name!";
+    protected static final String APP_NAME_DUP_MESSAGE = "Application name duplicated!";
+    protected static final String INVALID_APP_NAME_MESSAGE = "Application name should be a valid file name and cannot start with '#'";
     protected static final String INVALID_SERVICE_NAME = "Invalid service name!";
     protected static final String SERVICE_NAME_DUPLICATED = "Service name already in used.";
     protected static final String SERVICE_NAME_NOT_REGISTERED = "Service name not registered.";
     protected static final String NEED_APPLICATION_NAME = "Must provide application name when more than one instance exiting.";
 
     public Application(String name) {
-        if (name == null || name.isEmpty())
-            throw new RuntimeException(NO_APP_NAME_MESSAGE);
-        if (applicationMap.containsKey(name))
-            throw new RuntimeException(APP_NAME_DUP_MESSAGE);
-        applicationMap.put(name, this);
-        applicationName = name;
-        logger = Logger.getLogger(applicationName);
+        setName(name);
         init();
     }
 
     public Application(String name, String appDataEnv) {
-        if (name == null || name.isEmpty())
-            throw new RuntimeException(NO_APP_NAME_MESSAGE);
-        if (applicationMap.containsKey(name))
-            throw new RuntimeException(APP_NAME_DUP_MESSAGE);
-        applicationMap.put(name, this);
-        applicationName = name;
-        logger = Logger.getLogger(applicationName);
+        setName(name);
         this.appDataEnv = appDataEnv;
         init();
     }
 
     public Application(String name, String appDataEnv, Service[] services) {
-        if (name == null || name.isEmpty())
-            throw new RuntimeException(NO_APP_NAME_MESSAGE);
-        if (applicationMap.containsKey(name))
-            throw new RuntimeException(APP_NAME_DUP_MESSAGE);
-        applicationMap.put(name, this);
-        applicationName = name;
-        logger = Logger.getLogger(applicationName);
+        setName(name);
         this.appDataEnv = appDataEnv;
+        setServices(services);
+        init();
+    }
+
+    protected Application() {
+    }
+
+    protected void setServices(Service[] services) {
         for (Service service: services) {
             String serviceName = service.value();
             if (Strings.isNullOrEmpty(serviceName)) {
@@ -87,10 +78,18 @@ public abstract class Application extends TraceService implements ConfigManager.
             }
             serviceTypes.put(serviceName, service.type());
         }
-        init();
     }
 
-    protected Application() {
+    protected void setName(String name) {
+        if (name == null || name.trim().isEmpty())
+            throw new RuntimeException(NO_APP_NAME_MESSAGE);
+        if (!name.matches("[^#/\\\\\\?\\*:\\|\"<>][^/\\\\\\?\\*:\\|\"<>]*"))
+            throw new RuntimeException(INVALID_APP_NAME_MESSAGE);
+        if (applicationMap.containsKey(name.trim()))
+            throw new RuntimeException(APP_NAME_DUP_MESSAGE);
+        applicationMap.put(name.trim(), this);
+        applicationName = name.trim();
+        logger = Logger.getLogger(applicationName);
     }
 
     public void destory() {
@@ -145,6 +144,14 @@ public abstract class Application extends TraceService implements ConfigManager.
         }
     }
 
+    public String getGroupName() {
+        int pos = applicationName.indexOf("#");
+        if (pos > 0) {
+            return applicationName.substring(0, pos);
+        } else
+            return applicationName;
+    }
+
     private static void scanClasses(File path, Map<String, Class<?>> serviceTypes, String applicationName) throws Exception {
         if (path == null) {
             return;
@@ -194,15 +201,11 @@ public abstract class Application extends TraceService implements ConfigManager.
     }
 
     protected final void init() {
-        final String dataDir = getAppDataDir(appDataEnv, applicationName);
+        final String dataDir = getDataDir();
         appClassLoader = createAppClassLoader(Application.class.getClassLoader(), getDataDir("lib"));
         if (dataDir != null) {
             try {
-                String logFile = dataDir;
-                if (logFile.endsWith("/") || logFile.endsWith("\\"))
-                    logFile += "log";
-                else
-                    logFile += "/log";
+                String logFile = getDataDir("log");
                 Files.createDirectories(new File(logFile).toPath());
                 logFile += "/ " + applicationName + ".log";
                 try {
@@ -224,12 +227,7 @@ public abstract class Application extends TraceService implements ConfigManager.
             throw new RuntimeException(e);
         }
         configManager.addChangeListener(this);
-        try {
-            configManager.load(dataDir, "config.json");
-            configManager.setMonitorFileChange(true);
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Configuration file not exists!");
-        }
+        configManager.startWatch();
         for (String key: serviceTypes.keySet()) {
             System.out.println("Register Service: " + key + " -> " + serviceTypes.get(key).getName());
         }
@@ -265,22 +263,13 @@ public abstract class Application extends TraceService implements ConfigManager.
     }
 
     public final String getDataDir() {
-        return getAppDataDir(appDataEnv, applicationName);
+        return getAppDataDir(appDataEnv, getGroupName());
     }
 
     public final String getDataDir(String subDir) {
-        String baseDir = getDataDir();
-        if (subDir.startsWith("/") || subDir.startsWith("\\")) {
-            if (baseDir.endsWith("/") || baseDir.endsWith("\\"))
-                return baseDir + subDir.substring(1);
-            else
-                return baseDir + subDir;
-        } else {
-            if (baseDir.endsWith("/") || baseDir.endsWith("\\"))
-                return baseDir + subDir;
-            else
-                return baseDir + "/" + subDir;
-        }
+        while (subDir.startsWith("/") || subDir.startsWith("\\"))
+            subDir = subDir.substring(1);
+        return new File(getDataDir()).toPath().resolve(subDir).toString();
     }
 
     public final AppConfigManager getConfigManager() {
@@ -314,10 +303,10 @@ public abstract class Application extends TraceService implements ConfigManager.
 
     public final synchronized void registerService(String name, Class<?> type) {
         if (Strings.isNullOrEmpty(name)) {
-            throw new RuntimeException(SERVICE_NAME_DUPLICATED);
-        }
-        if (serviceTypes.containsKey(name))
             throw new RuntimeException(INVALID_SERVICE_NAME);
+        }
+        if (serviceTypes.containsKey(name) || name.equals("config") || name.equals("logger"))
+            throw new RuntimeException(SERVICE_NAME_DUPLICATED);
         serviceTypes.put(name, type);
         System.out.println("Register Service: " + name + " -> " + type.getName());
         createServiceInstance(name);
@@ -326,6 +315,10 @@ public abstract class Application extends TraceService implements ConfigManager.
 
     @SuppressWarnings("unchecked")
     public final synchronized <T> T getService(String name) {
+        if (name.equals("config"))
+            return (T)configManager;
+        if (name.equals("logger"))
+            return (T)logger;
         if (serviceMapping.containsKey(name)) {
             return (T)serviceMapping.get(name);
         } else {
@@ -423,20 +416,20 @@ public abstract class Application extends TraceService implements ConfigManager.
                 dataDir = System.getProperty("user.home") + "/.appdata";
             }
         }
+        if (dataDir == null) {
+            dataDir = System.getProperty("java.io.tmpdir");
+        }
 
         if (dataDir != null) {
+            File dir = new File(dataDir);
             if (appName == null) {
-                return dataDir;
+                return dir.toString();
             }
             while (appName.startsWith("/") || appName.startsWith("\\"))
                 appName = appName.substring(1);
-            if (dataDir.endsWith("/") || dataDir.endsWith("\\"))
-                dataDir += appName;
-            else
-                dataDir += ("/" + appName);
-            return dataDir;
+            return dir.toPath().resolve(appName).toString();
         } else
-            return null;
+            throw new RuntimeException("Cannot obtain application's data directory!");
     }
 
 
