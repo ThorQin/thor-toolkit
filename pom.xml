@@ -42,6 +42,7 @@
 		<module>thor-toolkit-core</module>
 		<module>thor-toolkit-web</module>
         <module>thor-toolkit-amq</module>
+		<module>thor-toolkit-redis</module>
 		<module>thor-toolkit-archetype</module>
 	</modules>
 	<dependencies>
