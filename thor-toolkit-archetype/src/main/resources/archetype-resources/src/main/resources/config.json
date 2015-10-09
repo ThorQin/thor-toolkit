@@ -12,6 +12,15 @@
 	"partitionCount": 1,
 	"trace": false
   },
+  /*
+  "redis": {
+	"servers": ["redis://[user:password]@<IP_ADDRESS>:6379/0"],
+	"maxTotal": 8,
+	"maxIdle": 8,
+	"minIdle": 0,
+	"connectionTimeout": 2000
+  },
+  */
   "defaultAllow": true,
   "accessRules": []
 }
