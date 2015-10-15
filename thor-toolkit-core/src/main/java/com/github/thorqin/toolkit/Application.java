@@ -6,9 +6,7 @@ import com.github.thorqin.toolkit.service.IStartable;
 import com.github.thorqin.toolkit.service.IStoppable;
 import com.github.thorqin.toolkit.trace.TraceService;
 import com.github.thorqin.toolkit.trace.Tracer;
-import com.github.thorqin.toolkit.utility.AppClassLoader;
-import com.github.thorqin.toolkit.utility.AppConfigManager;
-import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.utility.*;
 import com.google.common.base.Strings;
 import javassist.bytecode.AnnotationsAttribute;
 import javassist.bytecode.ClassFile;
@@ -20,6 +18,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -305,7 +304,7 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         if (Strings.isNullOrEmpty(name)) {
             throw new RuntimeException(INVALID_SERVICE_NAME);
         }
-        if (serviceTypes.containsKey(name) || name.equals("config") || name.equals("logger"))
+        if (serviceTypes.containsKey(name) || name.equals("config") || name.equals("logger") || name.equals("application"))
             throw new RuntimeException(SERVICE_NAME_DUPLICATED);
         serviceTypes.put(name, type);
         System.out.println("Register Service: " + name + " -> " + type.getName());
@@ -319,6 +318,8 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             return (T)configManager;
         if (name.equals("logger"))
             return (T)logger;
+        if (name.equals("application"))
+            return (T)this;
         if (serviceMapping.containsKey(name)) {
             return (T)serviceMapping.get(name);
         } else {
@@ -451,4 +452,158 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
     public static String getAppDataDir() {
         return getAppDataDir(null, null);
     }
+
+
+    private static class CacheFile {
+        public FileMonitor.Monitor monitor;
+        public String content;
+    }
+    final private Map<Path, CacheFile> textFileCache = new HashMap<>();
+    final private FileMonitor.FileChangeListener changeListener = new FileMonitor.FileChangeListener() {
+        @Override
+        public void onFileChange(File file, FileMonitor.ChangeType changeType, Object param) {
+            Path key = file.getAbsoluteFile().toPath();
+            CacheFile cacheFile;
+            synchronized (textFileCache) {
+                cacheFile = textFileCache.get(key);
+                if (cacheFile == null)
+                    return;
+            }
+            try {
+                if (param != null) {
+                    cacheFile.content = readAppTextFile(key.toString(), (String) param);
+                } else {
+                    cacheFile.content = readAppTextFile(key.toString());
+                }
+            } catch (IOException ex) {
+                logger.log(Level.WARNING, "Reload cached file failed!", ex);
+            }
+        }
+    };
+
+
+    /**
+     * Load file from APP_DATA or class loader directory if file not existing in APP_DATA directory.
+     * @param fileName file name, may contain sub directory part of the full path.
+     * @param encoding file encoding.
+     * @return text content.
+     * @throws IOException Exception when read file failed.
+     */
+    public String readAppTextFile(String fileName, String encoding) throws IOException {
+        return readAppTextFile(fileName, encoding, false);
+    }
+
+    /**
+     * Load file from APP_DATA or class loader directory if file not existing in APP_DATA directory.
+     * @param fileName file name, may contain sub directory part of the full path.
+     * @param encoding file encoding.
+     * @param cached Whether or not cache the file content, if file changed cache will be refresh automatically.
+     * @return text content.
+     * @throws IOException Exception when read file failed.
+     */
+    public String readAppTextFile(String fileName, String encoding, boolean cached) throws IOException {
+        File file = new File(getDataDir() + "/" + fileName);
+        Path key = file.getAbsoluteFile().toPath();
+        if (cached) {
+            synchronized (textFileCache) {
+                if (textFileCache.containsKey(key))
+                    return textFileCache.get(key).content;
+            }
+        }
+        String content;
+        if (file.exists()) {
+            content = Serializer.readTextFile(file, encoding);
+        } else {
+            content = Serializer.readTextResource(fileName, encoding);
+        }
+        if (cached) {
+            synchronized (textFileCache) {
+                CacheFile cacheFile = new CacheFile();
+                cacheFile.monitor = FileMonitor.watch(key.toString(), changeListener, encoding);
+                cacheFile.content = content;
+                textFileCache.put(key, cacheFile);
+            }
+        }
+        return content;
+    }
+
+    /**
+     * Load file from APP_DATA or class loader directory if file not existing in APP_DATA directory.
+     * @param fileName file name, may contain sub directory part of the full path.
+     * @return text content, text encoding will be auto detected.
+     * @throws IOException Exception when read file failed.
+     */
+    public String readAppTextFile(String fileName) throws IOException {
+        return readAppTextFile(fileName, false);
+    }
+
+    /**
+     * Load file from APP_DATA or class loader directory if file not existing in APP_DATA directory.
+     * @param fileName file name, may contain sub directory part of the full path.
+     * @param cached Whether or not cache the file content, if file changed cache will be refresh automatically.
+     * @return text content, text encoding will be auto detected.
+     * @throws IOException Exception when read file failed.
+     */
+    public String readAppTextFile(String fileName, boolean cached) throws IOException {
+        File file = new File(getDataDir() + "/" + fileName);
+        Path key = file.getAbsoluteFile().toPath();
+        if (cached) {
+            synchronized (textFileCache) {
+                if (textFileCache.containsKey(key))
+                    return textFileCache.get(key).content;
+            }
+        }
+        String content;
+        if (file.exists()) {
+            content = Serializer.readTextFile(file);
+        } else {
+            content = Serializer.readTextResource(fileName);
+        }
+        if (cached) {
+            synchronized (textFileCache) {
+                CacheFile cacheFile = new CacheFile();
+                cacheFile.monitor = FileMonitor.watch(key.toString(), changeListener);
+                cacheFile.content = content;
+                textFileCache.put(key, cacheFile);
+            }
+        }
+        return content;
+    }
+
+    public byte[] readAppFile(String fileName) throws IOException {
+        File file = new File(getDataDir() + "/" + fileName);
+        if (file.exists()) {
+            return Serializer.readFile(file);
+        } else {
+            return Serializer.readResource(fileName);
+        }
+    }
+
+
+    public String readScript(String fileName) throws IOException {
+        return readAppTextFile(fileName, true);
+    }
+
+    public void removeCache(String fileName) {
+        File file = new File(getDataDir() + "/" + fileName);
+        Path key = file.getAbsoluteFile().toPath();
+        synchronized (textFileCache) {
+            CacheFile cacheFile = textFileCache.get(key);
+            if (cacheFile != null) {
+                cacheFile.monitor.close();
+            }
+            textFileCache.remove(key);
+        }
+    }
+
+    public void removeAllCaches() {
+        synchronized (textFileCache) {
+            for (Path path : textFileCache.keySet()) {
+                CacheFile cacheFile = textFileCache.get(path);
+                cacheFile.monitor.close();
+            }
+            textFileCache.clear();
+        }
+    }
+
 }

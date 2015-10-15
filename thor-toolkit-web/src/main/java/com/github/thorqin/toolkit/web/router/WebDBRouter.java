@@ -7,6 +7,7 @@ import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
+import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.DBRouter;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
@@ -37,7 +38,12 @@ public abstract class WebDBRouter extends WebRouterBase {
 
     public static class MappingInfo {
         public String procedure;
-        public String[] parameters;
+        public ParameterInfo[] parameters;
+    }
+
+    public static class ParameterInfo {
+        public String name;
+        public String validateClassName = null;
     }
 
     private SessionFactory sessionFactory = new SessionFactory();
@@ -155,25 +161,33 @@ public abstract class WebDBRouter extends WebRouterBase {
                 info.procedure = spName;
                 List<String> parameters = procedures.get(key);
                 Set<String> paramSet = new HashSet<>();
-                for (String parameter: parameters) {
-                    if (!parameter.matches("^(?i)query_string|request_body|request_header|" +
-                            "session|status|response_header|response_content_type|response_body$")) {
-                        logger.log(Level.WARNING, "Invalid procedure web entry define: "
-                                + key + ": invalid parameter: " + parameter);
-                        continue ANALYSE_PROCEDURE;
+                if (parameters != null) {
+                    info.parameters = new ParameterInfo[parameters.size()];
+                    for (int i = 0; i < parameters.size(); i++) {
+                        String parameter = parameters.get(i);
+                        if (!parameter.matches("^(?i)((query_string|request_body|request_header|" +
+                                "session)(:[0-9a-zA-Z_\\.\\$]+)?|status|" +
+                                "response_header|response_content_type|response_body)$")) {
+                            logger.log(Level.WARNING, "Invalid procedure web entry define: "
+                                    + key + ": invalid parameter: " + parameter);
+                            continue ANALYSE_PROCEDURE;
+                        }
+                        String[] paramDef = parameter.split(":");
+                        ParameterInfo parameterInfo = new ParameterInfo();
+                        parameterInfo.name = paramDef[0].toLowerCase();
+                        if (paramDef.length >= 2) {
+                            parameterInfo.validateClassName = paramDef[1];
+                        }
+                        if (paramSet.contains(parameterInfo.name)) {
+                            logger.log(Level.WARNING, "Invalid procedure web entry define: "
+                                    + key + ": duplicated parameter: " + parameterInfo.name);
+                            continue ANALYSE_PROCEDURE;
+                        }
+                        paramSet.add(parameterInfo.name);
+                        info.parameters[i] = parameterInfo;
                     }
-                    if (paramSet.contains(parameter.toLowerCase())) {
-                        logger.log(Level.WARNING, "Invalid procedure web entry define: "
-                                + key + ": duplicated parameter: " + parameter);
-                        continue ANALYSE_PROCEDURE;
-                    }
-                    paramSet.add(parameter.toLowerCase());
-                }
-                if (parameters == null)
-                    info.parameters = new String[]{};
-                else {
-                    info.parameters = parameters.toArray(new String[parameters.size()]);
-                }
+                } else
+                    info.parameters = new ParameterInfo[0];
                 String[] methods = method.split("\\|");
                 if (methods.length < 1) {
                     logger.log(Level.WARNING, "Invalid procedure web entry define: "
@@ -226,6 +240,20 @@ public abstract class WebDBRouter extends WebRouterBase {
     }
 
     private final static Pattern errorPattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
+
+    private void validateParameter(String jsonValue, String validateClassName) throws ValidateException {
+        if (validateClassName == null) {
+            return;
+        }
+        try {
+            Class<?> clazz = Class.forName(validateClassName);
+            Object object = Serializer.fromJson(jsonValue, clazz);
+            Validator validator = new Validator();
+            validator.validateObject(object, clazz, true);
+        } catch (ClassNotFoundException ex) {
+            throw new ValidateException("Invalid validation class: " + validateClassName);
+        }
+    }
 
     private boolean dispatch(HttpServletRequest request, HttpServletResponse response) {
         long beginTime = System.currentTimeMillis();
@@ -280,22 +308,27 @@ public abstract class WebDBRouter extends WebRouterBase {
             DBService.DBOutString outResponseContentType = null;
             DBService.DBOutInteger outStatus = null;
             List<Object> parameters = new ArrayList<>(mappingInfo.parameters.length);
-            for (String paramName : mappingInfo.parameters) {
-                if (paramName.equalsIgnoreCase("request_body")) {
+            for (ParameterInfo paramInfo : mappingInfo.parameters) {
+                if (paramInfo.name.equalsIgnoreCase("request_body")) {
+                    String jsonValue = null;
                     if (postType == RequestPostType.JSON) {
-                        parameters.add(httpBody);
+                        jsonValue = httpBody;
                     } else if (postType == RequestPostType.HTTP_FORM) {
-                        parameters.add(Serializer.toJsonString(Serializer.fromUrlEncoding(httpBody)));
-                    } else
-                        parameters.add(null);
-                } else if (paramName.equalsIgnoreCase("query_string")) {
-                    String queryString = request.getQueryString();
-                    if (queryString == null || queryString.isEmpty())
-                        parameters.add(null);
-                    else {
-                        parameters.add(Serializer.toJsonString(Serializer.fromUrlEncoding(queryString)));
+                        jsonValue = Serializer.toJsonString(Serializer.fromUrlEncoding(httpBody));
                     }
-                } else if (paramName.equalsIgnoreCase("request_header")) {
+                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    parameters.add(jsonValue);
+                } else if (paramInfo.name.equalsIgnoreCase("query_string")) {
+                    String queryString = request.getQueryString();
+                    String jsonValue;
+                    if (queryString == null || queryString.isEmpty())
+                        jsonValue = null;
+                    else {
+                        jsonValue = Serializer.toJsonString(Serializer.fromUrlEncoding(queryString));
+                    }
+                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    parameters.add(jsonValue);
+                } else if (paramInfo.name.equalsIgnoreCase("request_header")) {
                     if (headers == null) {
                         headers = new HashMap<>();
                         List<String> names = Collections.list(request.getHeaderNames());
@@ -303,24 +336,28 @@ public abstract class WebDBRouter extends WebRouterBase {
                             headers.put(name, request.getHeader(name));
                         }
                     }
-                    parameters.add(Serializer.toJsonString(headers));
-                } else if (paramName.equalsIgnoreCase("response_header")) {
+                    String jsonValue = Serializer.toJsonString(headers);
+                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    parameters.add(jsonValue);
+                } else if (paramInfo.name.equalsIgnoreCase("response_header")) {
                     outResponseHeader = new DBService.DBOutString();
                     parameters.add(outResponseHeader);
-                } else if (paramName.equalsIgnoreCase("response_body")) {
+                } else if (paramInfo.name.equalsIgnoreCase("response_body")) {
                     outResponse = new DBService.DBOutString();
                     parameters.add(outResponse);
-                } else if (paramName.equalsIgnoreCase("status")) {
+                } else if (paramInfo.name.equalsIgnoreCase("status")) {
                     outStatus = new DBService.DBOutInteger();
                     parameters.add(outStatus);
-                } else if (paramName.equalsIgnoreCase("response_content_type")) {
+                } else if (paramInfo.name.equalsIgnoreCase("response_content_type")) {
                     outResponseContentType = new DBService.DBOutString();
                     parameters.add(outResponseContentType);
-                } else if (paramName.equalsIgnoreCase("session")) {
-                    refSession = new DBService.DBRefString(Serializer.toJsonString(session.getMap()));
+                } else if (paramInfo.name.equalsIgnoreCase("session")) {
+                    String jsonValue = Serializer.toJsonString(session.getMap());
+                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    refSession = new DBService.DBRefString(jsonValue);
                     parameters.add(refSession);
                 } else {
-                    throw new InvalidParameterException("Invalid DB entry parameter: " + paramName);
+                    throw new InvalidParameterException("Invalid DB entry parameter: " + paramInfo);
                 }
             }
             // Call database stored procedure
@@ -393,11 +430,16 @@ public abstract class WebDBRouter extends WebRouterBase {
                 ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
                 logger.log(Level.SEVERE, ex.getMessage(), ex);
             }
+        } catch (ValidateException ex) {
+            if (session != null && !session.isSaved() && !session.isNew())
+                session.save();
+            ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
+            logger.log(Level.SEVERE, "'" + ServletUtils.getURL(request) + "' verify parameters failed: " + ex.getMessage());
         } catch (Exception ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
             ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
-            logger.log(Level.SEVERE, "Error processing!!", ex);
+            logger.log(Level.SEVERE, "'" + ServletUtils.getURL(request) + "' process failed!!", ex);
         } finally {
             if (application != null && application.getSetting().traceRouter) {
                 Tracer.Info traceInfo = new Tracer.Info();

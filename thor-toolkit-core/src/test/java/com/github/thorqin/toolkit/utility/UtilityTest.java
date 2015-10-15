@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.math.BigDecimal;
 
 
 /**
@@ -30,16 +29,17 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
 
     @Test
     public void testFileMonitor() throws IOException, InterruptedException {
-        FileMonitor.Monitor monitor1 = FileMonitor.watch("D:\\test\\1.txt", this);
-        FileMonitor.Monitor monitor2 = FileMonitor.watch("D:\\test\\abc\\2.txt", this);
-        FileMonitor.Monitor monitor3 = FileMonitor.watch("D:\\test\\abc\\def\\3.txt", this);
-        Thread.sleep(20000);
+        FileMonitor.Monitor monitor1 = FileMonitor.watch("/home/thor/Documents/Test/1.txt", this);
+        FileMonitor.Monitor monitor2 = FileMonitor.watch("/home/thor/Documents/Test/abc/2.txt", this);
+        FileMonitor.Monitor monitor3 = FileMonitor.watch("/home/thor/Documents/Test/abc/def/3.txt", this);
+        Thread.sleep(40000);
         monitor1.close();
         monitor2.close();
         System.out.println("step 1 finished.");
         System.in.read();
         monitor3.close();
     }
+
 
     @Test
     public void test() throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {

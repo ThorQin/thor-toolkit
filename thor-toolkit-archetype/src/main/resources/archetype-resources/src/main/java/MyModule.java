@@ -14,7 +14,17 @@ public class MyModule {
 	/*
     @Service("db")
     DBService db;
+
+	@Service("application")
+	Application app;
+
+	@Service("logger")
+	Logger logger;
+
+	@Service("config")
+	AppConfigManager config;
 	*/
+
 
     @WebEntry(method = HttpMethod.POST)
     public WebContent getServerInfo(HttpServletRequest request) {

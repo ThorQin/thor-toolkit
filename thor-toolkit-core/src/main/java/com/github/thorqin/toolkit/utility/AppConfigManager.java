@@ -31,12 +31,7 @@ public class AppConfigManager extends ConfigManager {
      * @throws IOException Exception when read file failed.
      */
     public String readAppTextFile(String fileName, String encoding) throws IOException {
-        File file = new File(getDataDir() + "/" + fileName);
-        if (file.exists()) {
-            return Serializer.readTextFile(file, encoding);
-        } else {
-            return Serializer.readTextResource(fileName, encoding);
-        }
+        return application.readAppTextFile(fileName, encoding);
     }
 
     /**
@@ -46,20 +41,10 @@ public class AppConfigManager extends ConfigManager {
      * @throws IOException Exception when read file failed.
      */
     public String readAppTextFile(String fileName) throws IOException {
-        File file = new File(getDataDir() + "/" + fileName);
-        if (file.exists()) {
-            return Serializer.readTextFile(file);
-        } else {
-            return Serializer.readTextResource(fileName);
-        }
+        return application.readAppTextFile(fileName);
     }
 
     public byte[] readAppFile(String fileName) throws IOException {
-        File file = new File(getDataDir() + "/" + fileName);
-        if (file.exists()) {
-            return Serializer.readFile(file);
-        } else {
-            return Serializer.readResource(fileName);
-        }
+        return application.readAppFile(fileName);
     }
 }

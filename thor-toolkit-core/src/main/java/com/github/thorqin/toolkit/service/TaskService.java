@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class TaskService<T> {
 
-    public static interface TaskHandler<T> {
+    public interface TaskHandler<T> {
         void process(T task);
     }
 

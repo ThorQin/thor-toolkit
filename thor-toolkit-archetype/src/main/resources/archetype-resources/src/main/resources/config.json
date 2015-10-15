@@ -2,6 +2,8 @@
   "traceRouter": false,
   "traceAccess": false,
   "sessionTimeout": 900,
+  "maxUploadSize": 10, // (MB)
+  /*
   "db": {
 	"driver": "org.postgresql.Driver",
 	"uri": "jdbc:postgresql://<IP_ADDRESS>:5432/<DB_NAME>",
@@ -12,7 +14,6 @@
 	"partitionCount": 1,
 	"trace": false
   },
-  /*
   "redis": {
 	"servers": ["redis://[user:password]@<IP_ADDRESS>:6379/0"],
 	"maxTotal": 8,
@@ -20,7 +21,20 @@
 	"minIdle": 0,
 	"connectionTimeout": 2000
   },
+  "dbRouter": {
+    "post:_web_routine_name": [
+      "request_header:com.accenture.group.project.MyEntity",
+      "request_body", "session", "response_header", "response_body"],
+    ......
+  },
+  "schedule": [{
+      "cron": "* * * 1",
+      "exec": "serviceName.method"
+    },
+    ......
+  ],
   */
+
   "defaultAllow": true,
   "accessRules": []
 }

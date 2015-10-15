@@ -545,6 +545,19 @@ public final class Serializer {
 	}
 
 	/**
+	 * Load text data and auto detect charset encoding, if data contained BOM sign then remove it when return,
+	 * default charset use JVM file.encoding property
+	 * @param data Binary data to read
+	 * @return Text content
+	 * @throws IOException Throw when read data failed.
+	 */
+	public static String readTextData(final byte[] data) throws IOException {
+		try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data)) {
+			return readTextStream(byteArrayInputStream);
+		}
+	}
+
+	/**
      * Load text file in specifed charset encoding.
      * @param file File to load
      * @param charset Specifed charset

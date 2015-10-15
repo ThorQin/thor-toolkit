@@ -1110,15 +1110,18 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 			logger.log(Level.SEVERE, "Shutdown boneCP failed!", ex);
 		}
 	}
+
+	private final ThreadLocal<Stack<Connection>> threadLocal = new ThreadLocal<>();
 	
-	public final static class DBSession implements AutoCloseable {
-		private final Connection conn;
-		final private Tracer tracer;
+	public static class DBSession implements AutoCloseable {
+		final protected Connection conn;
+		final protected Tracer tracer;
 		public DBSession(Connection conn) throws SQLException {
 			this(conn, null);
 		}
 		public DBSession(Connection conn, Tracer tracer) throws SQLException {
 			this.conn = conn;
+
 			this.conn.setAutoCommit(true);
 			this.tracer = tracer;
 		}
@@ -1143,21 +1146,31 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 			conn.rollback();
 		}
 		@Override
-		public void close() throws SQLException	{
-            if (!conn.getAutoCommit()) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
-			conn.close();
+		public void close()	{
+			try {
+				if (!conn.getAutoCommit()) {
+					try {
+						conn.rollback();
+					} catch (SQLException ex) {
+						ex.printStackTrace();
+					}
+				}
+				conn.close();
+			} catch (SQLException ex) {
+				ex.printStackTrace();
+			}
 		}
+
+		@Deprecated
+		public Connection getConnection() {
+			return conn;
+		}
+
 		@Override
 		protected void finalize() throws Throwable {
 			try {
 				close();
-			} catch (SQLException ex) {
+			} catch (Exception ex) {
 			}
 			super.finalize();
 		}
@@ -1453,6 +1466,49 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		}
 	}
 
+	public class DBRootSession extends DBSession {
+		public DBRootSession(Connection conn) throws SQLException {
+			super(conn, setting.trace ? DBService.this.tracer : null);
+		}
+		@Override
+		public void close()	{
+			super.close();
+			Stack<Connection> connections = threadLocal.get();
+			if (connections != null) {
+				connections.remove(conn);
+			}
+		}
+	}
+
+	public class DBWeakSession extends DBRootSession {
+		protected final boolean previousAutoCommit;
+		public DBWeakSession(Connection conn) throws SQLException {
+			super(conn);
+			this.previousAutoCommit = conn.getAutoCommit();
+		}
+		@Override
+		public void commit() throws SQLException {
+		}
+		@Override
+		public void rollback() throws SQLException {
+			conn.rollback();
+		}
+		@Override
+		public void close()	{
+			try {
+				if (!conn.getAutoCommit()) {
+					try {
+						conn.rollback();
+					} catch (SQLException ex) {
+						ex.printStackTrace();
+					}
+				}
+			} catch (SQLException ex) {
+				ex.printStackTrace();
+			}
+		}
+	}
+
 	public void doWork(DBWork work) throws Exception {
 		if (work != null) {
 			try (DBSession session = getSession()) {
@@ -1461,16 +1517,73 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		}
 	}
 
+	/**
+	 * Obtain a DB session, if there has existing session opened in same thread then get it reference.
+	 * @return  DB session
+	 * @throws SQLException Raise exception when cannot obtain a DB connection.
+	 */
     public DBSession getSession() throws SQLException {
         return getSession(true);
     }
 
+	/**
+	 * Obtain a DB session, if there has existing session opened in same thread then get it reference.
+	 * @param autoCommit Whether or not commit the transaction after statement execute.
+	 * @return DB session
+	 * @throws SQLException Raise exception when cannot obtain a DB connection.
+	 */
 	public DBSession getSession(boolean autoCommit) throws SQLException {
-        DBSession dbSession = new DBSession(getConnection(), setting.trace ? tracer : null);
-        dbSession.setAutoCommit(autoCommit);
-        return dbSession;
+		Stack<Connection> connections = threadLocal.get();
+		if (connections == null) {
+			connections = new Stack<>();
+			threadLocal.set(connections);
+		}
+		if (connections.empty()) {
+			Connection connection = getDBConnection();
+			connections.push(connection);
+			DBSession dbSession = new DBRootSession(connection);
+			dbSession.setAutoCommit(autoCommit);
+			return dbSession;
+		} else {
+			Connection connection = connections.peek();
+			DBSession dbSession = new DBWeakSession(connection);
+			dbSession.setAutoCommit(autoCommit);
+			return dbSession;
+		}
 	}
+
+	/**
+	 * Allocate a new DB session, regardless of whether the current thread has existing session opened.
+	 * @param autoCommit Whether or not commit the transaction after statement execute.
+	 * @return DB session
+	 * @throws SQLException Raise exception when cannot obtain a DB connection.
+	 */
+	public DBSession getNewSession(boolean autoCommit) throws SQLException {
+		Stack<Connection> connections = threadLocal.get();
+		if (connections == null) {
+			connections = new Stack<>();
+			threadLocal.set(connections);
+		}
+		Connection connection = getDBConnection();
+		connections.push(connection);
+		DBSession dbSession = new DBSession(connection, setting.trace ? tracer : null);
+		dbSession.setAutoCommit(autoCommit);
+		return dbSession;
+	}
+
+	/**
+	 * Allocate a new DB connection from the pool,
+	 * use raw connection will lost the advanced feature which the DBService provided.<br>
+	 * WARNING: should not use this method except you know what you do.
+	 * @return DB connection
+	 * @throws SQLException Raise exception when cannot obtain a DB connection.
+	 */
+	@Deprecated
 	public Connection getConnection() throws SQLException {
+		return getDBConnection();
+	}
+
+	private Connection getDBConnection() throws SQLException {
 		if (boneCP == null) {
 			synchronized (this) {
 				if (boneCP == null) {
