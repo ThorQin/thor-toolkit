@@ -6,14 +6,19 @@ package ${package};
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.WebApp;
 import com.github.thorqin.toolkit.web.annotation.WebRouter;
+import com.github.thorqin.toolkit.annotation.Service;
+import com.github.thorqin.toolkit.schedule.ScheduleService;
 
 @WebApp(name = "${artifactId}",
         routers = {
                 @WebRouter("*.do")
                 // Uncomment following line to enable database router
                 // , @WebRouter(value = "/db/*", type = MyApplication.MyDBRouter.class)
+        },
+        services = {
+                @Service(value = "scheduler", type = ScheduleService.class)
+                // , @Service(value = "db", type = DBService.class)
         }
-        // , services = @Service(value = "db", type = DBService.class)
 )
 public class MyApplication extends WebApplication {
     /* Uncomment following lines to enable database router

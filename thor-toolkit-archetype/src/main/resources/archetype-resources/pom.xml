@@ -49,6 +49,11 @@
 			<artifactId>thor-toolkit-web</artifactId>
 			<version>1.2-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>com.github.thorqin.thor-toolkit</groupId>
+			<artifactId>thor-toolkit-schedule</artifactId>
+			<version>1.2-SNAPSHOT</version>
+		</dependency>
 		<!--
 		<dependency>
 			<groupId>com.github.thorqin.thor-toolkit</groupId>

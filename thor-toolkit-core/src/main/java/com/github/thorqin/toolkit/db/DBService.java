@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.db;
 
+import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.service.ISettingComparable;
 import com.github.thorqin.toolkit.trace.*;
 import com.github.thorqin.toolkit.utility.ConfigManager;
@@ -53,7 +54,9 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		public boolean lazyInit = true;
 		public boolean trace = false;
 	}
-	private static final Logger logger =
+
+	@Service("logger")
+	private Logger logger =
 			Logger.getLogger(DBService.class.getName());
 	private static final Map<Class<?>, Integer> typeMapping;
 	// This type very depends on which database are you using.
@@ -1116,13 +1119,14 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	public static class DBSession implements AutoCloseable {
 		final protected Connection conn;
 		final protected Tracer tracer;
-		public DBSession(Connection conn) throws SQLException {
-			this(conn, null);
+		final Logger logger;
+		public DBSession(Connection conn, Logger logger) throws SQLException {
+			this(conn, null, logger);
 		}
-		public DBSession(Connection conn, Tracer tracer) throws SQLException {
+		public DBSession(Connection conn, Tracer tracer, Logger logger) throws SQLException {
 			this.conn = conn;
-
 			this.conn.setAutoCommit(true);
+			this.logger = logger;
 			this.tracer = tracer;
 		}
 		private void trace(Tracer.Info info) {
@@ -1468,7 +1472,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 
 	public class DBRootSession extends DBSession {
 		public DBRootSession(Connection conn) throws SQLException {
-			super(conn, setting.trace ? DBService.this.tracer : null);
+			super(conn, setting.trace ? DBService.this.tracer : null, DBService.this.logger);
 		}
 		@Override
 		public void close()	{
@@ -1566,7 +1570,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		}
 		Connection connection = getDBConnection();
 		connections.push(connection);
-		DBSession dbSession = new DBSession(connection, setting.trace ? tracer : null);
+		DBSession dbSession = new DBRootSession(connection);
 		dbSession.setAutoCommit(autoCommit);
 		return dbSession;
 	}

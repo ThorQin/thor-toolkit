@@ -19,9 +19,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -124,22 +122,24 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
 
     @Override
     public void onConfigChanged(ConfigManager configManager) {
-        loadConfig();
+        reloadConfig();
     }
 
-    private synchronized void loadConfig() {
+    private synchronized void reloadConfig() {
+        List<Object> restartService = new LinkedList<>();
         for (String key: serviceTypes.keySet()) {
             if (serviceMapping.containsKey(key)) {
                 Object service = serviceMapping.get(key);
                 if (isServiceSettingChanged(service, configManager, key)) {
                     callServiceStop(service);
-                    createServiceInstance(key);
+                    restartService.add(createServiceInstance(key));
                 }
             } else
-                createServiceInstance(key);
+                restartService.add(createServiceInstance(key));
         }
-        for (String key : serviceTypes.keySet()) {
-            bindingField(key);
+        inject();
+        for (Object obj : restartService) {
+            callServiceStart(obj);
         }
     }
 
@@ -151,7 +151,7 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             return applicationName;
     }
 
-    private static void scanClasses(File path, Map<String, Class<?>> serviceTypes, String applicationName) throws Exception {
+    private static void scanClasses(File path, Map<String, Class<?>> serviceTypes, String applicationName, ClassLoader classLoader) throws Exception {
         if (path == null) {
             return;
         }
@@ -159,7 +159,7 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             File[] files = path.listFiles();
             if (files != null) {
                 for (File item : files) {
-                    scanClasses(item, serviceTypes, applicationName);
+                    scanClasses(item, serviceTypes, applicationName, classLoader);
                 }
             }
             return;
@@ -179,7 +179,8 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
                 if (!ann.getTypeName().equals(Service.class.getName())) {
                     continue;
                 }
-                Class<?> clazz = Class.forName(className);
+                //Class<?> clazz = Class.forName(className);
+                Class<?> clazz = classLoader.loadClass(className);
                 if (clazz == null) {
                     continue;
                 }
@@ -196,6 +197,26 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
                 }
                 serviceTypes.put(serviceName, clazz);
             }
+        }
+    }
+
+    protected final void createAllServiceInstance() {
+        for (String name : serviceTypes.keySet()) {
+            if (!serviceMapping.containsKey(name))
+                createServiceInstance(name);
+        }
+    }
+
+    protected final void startAllService() {
+        for (String name : serviceMapping.keySet()) {
+            Object service = serviceMapping.get(name);
+            callServiceStart(service);
+        }
+    }
+
+    protected final void inject() {
+        for (String key : serviceTypes.keySet()) {
+            bindingField(key);
         }
     }
 
@@ -227,19 +248,21 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         }
         configManager.addChangeListener(this);
         configManager.startWatch();
-        for (String key: serviceTypes.keySet()) {
-            System.out.println("Register Service: " + key + " -> " + serviceTypes.get(key).getName());
-        }
-        loadConfig();
 
         try {
             File file = new File(Application.class.getResource("/").toURI());
-            scanClasses(file, serviceTypes, applicationName);
+            scanClasses(file, serviceTypes, applicationName, appClassLoader);
             File fileExtend = new File(getDataDir("lib"));
-            scanClasses(fileExtend, serviceTypes, applicationName);
+            scanClasses(fileExtend, serviceTypes, applicationName, appClassLoader);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
+        createAllServiceInstance();
+        inject();
+        for (String key: serviceMapping.keySet()) {
+            System.out.println("Register Service: " + key + " -> " + serviceMapping.get(key).getClass().getName());
+        }
+        startAllService();
     }
 
     public static Application get(String appName) {
@@ -277,27 +300,33 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
 
     private void bindingField(String key) {
         Class<?> clazz = serviceTypes.get(key);
+        if (clazz == null)
+            return;
         Object service = serviceMapping.get(key);
         for (Field field : clazz.getDeclaredFields()) {
             try {
                 Service annotation = field.getAnnotation(Service.class);
                 if (annotation != null) {
                     field.setAccessible(true);
-                    Object fieldValue = serviceMapping.get(annotation.value());
+                    Object fieldValue = getService(annotation.value());
                     if (fieldValue == null) {
-                        throw new RuntimeException("Service not registered: " + annotation.value());
+                        logger.log(Level.WARNING, "Service not registered: " + annotation.value());
                     }
                     field.set(service, fieldValue);
                 }
             } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Service binding field failed: " + clazz.getName() + ": " + field.getName(), ex);
+                logger.log(Level.SEVERE, "Service binding failed: <" +
+                        clazz.getName() + "::" + field.getName() + ">: " + ex.getMessage());
             }
         }
     }
 
     public final synchronized void unregisterService(String name) {
+        Object service = serviceMapping.remove(name);
+        if (service != null)
+            callServiceStop(service);
         serviceTypes.remove(name);
-        serviceMapping.remove(name);
+        inject();
     }
 
     public final synchronized void registerService(String name, Class<?> type) {
@@ -307,9 +336,10 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         if (serviceTypes.containsKey(name) || name.equals("config") || name.equals("logger") || name.equals("application"))
             throw new RuntimeException(SERVICE_NAME_DUPLICATED);
         serviceTypes.put(name, type);
+        Object service = createServiceInstance(name);
         System.out.println("Register Service: " + name + " -> " + type.getName());
-        createServiceInstance(name);
-        bindingField(name);
+        inject();
+        callServiceStart(service);
     }
 
     @SuppressWarnings("unchecked")
@@ -328,7 +358,11 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         }
     }
 
-    private void createServiceInstance(String name) {
+    public final synchronized Set<String> getServiceKeys() {
+        return serviceTypes.keySet();
+    }
+
+    private Object createServiceInstance(String name) {
         Class<?> type = serviceTypes.get(name);
         if (type == null)
             throw new RuntimeException(SERVICE_NAME_NOT_REGISTERED);
@@ -349,7 +383,7 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             throw new RuntimeException(ex);
         }
         serviceMapping.put(name, obj);
-        callServiceStart(obj);
+        return obj;
     }
 
     private void callServiceStart(Object serviceInstance) {

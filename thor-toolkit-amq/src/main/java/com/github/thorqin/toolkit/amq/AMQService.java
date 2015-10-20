@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.amq;
 
+import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.service.ISettingComparable;
 import com.github.thorqin.toolkit.service.IStartable;
 import com.github.thorqin.toolkit.service.IStoppable;
@@ -90,7 +91,8 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
         public boolean trace = false;
     }
 
-    private static final Logger logger =
+	@Service("logger")
+    private Logger logger =
             Logger.getLogger(AMQService.class.getName());
     private ActiveMQConnectionFactory connectionFactory;
 	private AMQSetting setting;

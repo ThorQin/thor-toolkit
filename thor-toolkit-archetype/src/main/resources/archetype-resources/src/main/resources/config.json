@@ -26,14 +26,18 @@
       "request_header:com.accenture.group.project.MyEntity",
       "request_body", "session", "response_header", "response_body"],
     ......
-  },
-  "schedule": [{
-      "cron": "* * * 1",
-      "exec": "serviceName.method"
+  },*/
+  "scheduler": {
+    "workers": 1, // Thread count
+    "jobs": {
+      "job1" : {
+        "action": "myService::doJob",
+        "schedule": ["0/2 * * ? * * *"], // Override annotation setting
+        "enable": true
+      }
     },
-    ......
-  ],
-  */
+    "trace": false
+  },
 
   "defaultAllow": true,
   "accessRules": []

@@ -30,6 +30,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.service.ISettingComparable;
 import com.github.thorqin.toolkit.service.IStartable;
 import com.github.thorqin.toolkit.service.IStoppable;
@@ -77,8 +78,9 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
 			attachments.clear();
 		}
 	}
-	
-	private static final Logger logger = Logger.getLogger(MailService.class.getName());
+
+    @Service("logger")
+	private Logger logger = Logger.getLogger(MailService.class.getName());
     private TaskService<Mail> taskService = null;
 	private final MailSetting setting;
     private Tracer tracer = null;
