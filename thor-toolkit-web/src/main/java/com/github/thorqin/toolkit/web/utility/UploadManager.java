@@ -36,22 +36,28 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
  * @author nuo.qin
  */
 public final class UploadManager {
-	private final static int MAX_SIZE = 1024 * 1024 * 5;
+	public final static int DEFAULT_MAX_SIZE = 1024 * 1024 * 10;
 	private final String uploadDir;
 //	private final Map<String, String> mime = new HashMap<>();
 //    private boolean restrictMime = true;
     private Pattern pattern;
     private boolean storeDetail;
+	private int maxUploadSize;
 
 	public UploadManager(File baseDir) {
-        this(baseDir, true);
+        this(baseDir, true, DEFAULT_MAX_SIZE);
 	}
 
-    public UploadManager(File baseDir, boolean storeDetail) {
+	public UploadManager(File baseDir, int maxUploadSize) {
+		this(baseDir, true, maxUploadSize);
+	}
+
+    public UploadManager(File baseDir, boolean storeDetail, int maxUploadSize) {
         this.uploadDir = baseDir.getAbsolutePath();
         this.storeDetail = storeDetail;
+		this.maxUploadSize = maxUploadSize;
         // By default, only allow upload images
-        setFileSuffix("jpg|jpeg|png|gif");
+		setFileSuffix("jpg|jpeg|png|gif");
     }
 
     /**
@@ -334,7 +340,7 @@ public final class UploadManager {
 	}
 	
 	public List<FileInfo> saveUploadFiles(HttpServletRequest request) throws ServletException, IOException, FileUploadException {
-		return this.saveUploadFiles(request, MAX_SIZE);
+		return this.saveUploadFiles(request, maxUploadSize);
 	}
 
 	/**

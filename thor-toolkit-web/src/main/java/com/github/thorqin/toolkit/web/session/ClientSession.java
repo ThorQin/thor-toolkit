@@ -1,8 +1,6 @@
 package com.github.thorqin.toolkit.web.session;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -13,6 +11,8 @@ import java.util.logging.Logger;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.utility.Encryptor;
 import com.github.thorqin.toolkit.web.WebApplication;
 import org.apache.commons.codec.binary.Base64;
@@ -27,9 +27,7 @@ public class ClientSession extends WebSession {
 
 	private final static String sessionName = "_Thor_Session";
 	private final static String keyCode = "kyj1JEkLQ/5To0AF81vlmA==";
-	private final static Logger logger = Logger.getLogger(ClientSession.class.getName());
 	private final static ThreadLocal<Encryptor> encryptorLocalStore = new ThreadLocal<>();
-
 	private boolean isSaved = false;
     private boolean isNew = true;
 
@@ -42,21 +40,28 @@ public class ClientSession extends WebSession {
 	}
 	private Data value;
 	
-	private static Encryptor getEncryptor() throws Exception {
+	private static Encryptor getEncryptor(Application application) throws Exception {
 		Encryptor obj = encryptorLocalStore.get();
 		if (obj == null) {
-			obj = Encryptor.createByEncodedKey("aes", Base64.decodeBase64(importKey()));
+			obj = Encryptor.createByEncodedKey("aes", Base64.decodeBase64(importKey(application)));
 			encryptorLocalStore.set(obj);
 		}
 		return obj;
 	}
 	
-	private static String importKey() {
-		String path = ClientSession.class.getClassLoader().getResource("/").getFile();
-		path += "server.key";
+	private static String importKey(Application application) {
 		try {
-			return new String(Files.readAllBytes(new File(path).toPath()));
+			if (application != null) {
+				return application.readAppTextFile("server.key");
+			} else {
+				return Serializer.readTextResource("server.key", "utf-8");
+			}
 		} catch (IOException ex) {
+			Logger logger;
+			if (application != null)
+				logger = application.getLogger();
+			else
+				logger = Logger.getLogger(ClientSession.class.getName());
 			logger.log(Level.WARNING, "server.key does not exists in classes folder, use default key instead.");
 			return keyCode;
 		}
@@ -79,7 +84,7 @@ public class ClientSession extends WebSession {
 	}
 
 	private void fromCookie(Cookie cookie) throws Exception {
-		Encryptor enc = getEncryptor();
+		Encryptor enc = getEncryptor(application);
 		value = Serializer.fromKryo(enc.decrypt(
 				Base64.decodeBase64(cookie.getValue())));
         if (isExpired()) {
@@ -165,7 +170,7 @@ public class ClientSession extends WebSession {
     @Override
 	public String toString() {
 		try {
-			Encryptor enc = getEncryptor();
+			Encryptor enc = getEncryptor(application);
 			return Base64.encodeBase64String(enc.encrypt(Serializer.toKryo(value)));
 		} catch (Exception ex) {
 			logger.log(Level.SEVERE, "Export session failed", ex);

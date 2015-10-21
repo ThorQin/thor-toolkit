@@ -59,7 +59,7 @@ public abstract class WebDBRouter extends WebRouterBase {
         @Override
         public void onConfigChanged(ConfigManager configManager) {
             db = application.getService(dbServiceName);
-            enableGzip = configManager.getBoolean("enableGZip", enableGzip);
+            enableGzip = configManager.getBoolean("web/gzip", enableGzip);
             makeMapping();
         }
     };
@@ -76,7 +76,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (application == null)
                 throw new InstantiationError("Parameter 'application' is null. " +
                         "Must use this router under web application environment.");
-            enableGzip = application.getConfigManager().getBoolean("enableGZip", enableGzip);
+            enableGzip = application.getConfigManager().getBoolean("web/gzip", enableGzip);
             if (dbRouter == null)
                 throw new InstantiationError("Must either provide @DBRouter annotation or use 5 parameters constructor.");
             dbServiceName = dbRouter.value();
@@ -450,7 +450,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                 traceInfo.put("clientIP", request.getRemoteAddr());
                 traceInfo.put("startTime", beginTime);
                 traceInfo.put("runningTime", System.currentTimeMillis() - beginTime);
-                application.trace(traceInfo);
+                application.getTracer().trace(traceInfo);
             }
         }
         return true;

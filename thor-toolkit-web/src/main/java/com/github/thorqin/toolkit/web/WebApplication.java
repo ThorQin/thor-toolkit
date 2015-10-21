@@ -25,7 +25,6 @@
 package com.github.thorqin.toolkit.web;
 
 import com.github.thorqin.toolkit.Application;
-import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.web.annotation.*;
 import com.github.thorqin.toolkit.web.filter.WebFilterBase;
@@ -35,7 +34,6 @@ import com.github.thorqin.toolkit.web.router.WebRouterBase;
 import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.UploadManager;
-import com.google.common.base.Strings;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -56,6 +54,7 @@ public abstract class WebApplication extends Application
         public boolean traceRouter = false;
         public boolean traceAccess = false;
         public int sessionTimeout = 900;
+        public int maxUploadSize = UploadManager.DEFAULT_MAX_SIZE;
     }
 
     public static class RouterInfo {
@@ -103,9 +102,8 @@ public abstract class WebApplication extends Application
     }
 
     @Override
-    public void onConfigChanged(ConfigManager configManager) {
-        super.onConfigChanged(configManager);
-        setting = configManager.get("/", Setting.class, new Setting());
+    protected void onConfigChanged() {
+        setting = configManager.get("/web", Setting.class, new Setting());
     }
 
     /**
@@ -130,7 +128,7 @@ public abstract class WebApplication extends Application
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        super.destory();
+        super.destroy();
     }
 
     public final ServletContext getServletContext() {
@@ -147,7 +145,7 @@ public abstract class WebApplication extends Application
 
     public final UploadManager createUploadManager(String uploadFolderName, boolean storeDetail) {
         File filePath = new File(getDataDir(uploadFolderName));
-        return new UploadManager(filePath, storeDetail);
+        return new UploadManager(filePath, storeDetail, setting.maxUploadSize);
     }
 
     public final UploadManager createUploadManager(String uploadFolderName) {

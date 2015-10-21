@@ -1,8 +1,26 @@
 {
-  "traceRouter": false,
-  "traceAccess": false,
-  "sessionTimeout": 900,
-  "maxUploadSize": 10, // (MB)
+  "web": {
+    "traceRouter": false,   // if not specified, default is false
+    "traceAccess": false,   // if not specified, default is false
+    "sessionTimeout": 900,  // if not specified, default is 900
+    "maxUploadSize": 10485760, // if not specified, default is 10MB
+    "gzip": true,           // if not specified, default is true
+    "defaultAllow": true,   // if not specified, default is true
+    "accessRules": []       // if not specified, default is empty
+  },
+
+  "scheduler": {
+    "trace": false,         // if not specified, default is false
+    "workers": 1,           // Thread count, if not specified, default is 1
+    "jobs": {
+      "job1" : {
+        "action": "myService::doJob",
+        "schedule": ["0/5 * * ? * * *"], // Override annotation setting
+        "enable": true      // if not specified, default is true
+      }
+    }
+  }
+
   /*
   "db": {
 	"driver": "org.postgresql.Driver",
@@ -14,6 +32,19 @@
 	"partitionCount": 1,
 	"trace": false
   },
+
+  "mail": {
+    "trace": false,         // if not specified, default is false
+    "debug": false,         // if not specified, default is false
+    "auth": true,           // if not specified, default is true
+    "host": "xxx.xxx.xxx.xxx",  // should provide it
+    "port": 25,             // if not specified, default is 25
+    "user": "USER_NAME",    // REQUIRED, except 'auth' is false
+    "password": "PASSWORD", // REQUIRED, except 'auth' is false
+    "secure": "no",         // if not specified, default is 'no', allow value is starttls, ssl, no
+    "from": "someone@somewhere.com" // if not specified, default is null
+  },
+
   "redis": {
 	"servers": ["redis://[user:password]@<IP_ADDRESS>:6379/0"],
 	"maxTotal": 8,
@@ -21,24 +52,13 @@
 	"minIdle": 0,
 	"connectionTimeout": 2000
   },
+
   "dbRouter": {
     "post:_web_routine_name": [
       "request_header:com.accenture.group.project.MyEntity",
-      "request_body", "session", "response_header", "response_body"],
+      "request_body", "session", "response_header", "response_body"
+    ],
     ......
-  },*/
-  "scheduler": {
-    "workers": 1, // Thread count
-    "jobs": {
-      "job1" : {
-        "action": "myService::doJob",
-        "schedule": ["0/2 * * ? * * *"], // Override annotation setting
-        "enable": true
-      }
-    },
-    "trace": false
-  },
-
-  "defaultAllow": true,
-  "accessRules": []
+  }
+  */
 }

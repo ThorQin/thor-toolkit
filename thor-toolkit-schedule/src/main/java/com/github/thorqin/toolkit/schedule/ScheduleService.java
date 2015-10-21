@@ -181,7 +181,7 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
                     info.put("success", result);
                     info.catalog = "schedule service";
                     info.name = "Job: " + context.getJobDetail().getKey().getName();
-                    application.trace(info);
+                    application.getTracer().trace(info);
                 }
             }
         }

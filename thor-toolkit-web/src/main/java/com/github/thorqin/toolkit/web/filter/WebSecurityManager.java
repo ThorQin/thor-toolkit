@@ -114,13 +114,13 @@ public class WebSecurityManager extends WebFilterBase {
 	public void init(FilterConfig config) throws ServletException {
 		String sessionTypeName = config.getInitParameter("sessionClass");
 		sessionFactory.setSessionType(sessionTypeName);
-        setting = application.getConfigManager().get("/", SecuritySetting.class, null);
+        setting = application.getConfigManager().get("/web", SecuritySetting.class, null);
         buildSetting();
 	}
 
     @Override
     public synchronized void onConfigChanged(ConfigManager configManager) {
-        setting = application.getConfigManager().get("/", SecuritySetting.class);
+        setting = application.getConfigManager().get("/web", SecuritySetting.class);
         buildSetting();
     }
 
@@ -255,7 +255,7 @@ public class WebSecurityManager extends WebFilterBase {
                 traceInfo.put("allowed", allow);
                 traceInfo.put("startTime", beginTime);
                 traceInfo.put("runningTime", System.currentTimeMillis() - beginTime);
-                application.trace(traceInfo);
+                application.getTracer().trace(traceInfo);
             }
         }
 	}

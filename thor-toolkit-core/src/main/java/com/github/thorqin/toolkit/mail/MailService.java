@@ -70,6 +70,10 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
 		public String subject = null;
 		public String htmlBody;
 		public String textBody;
+        /**
+         * Must be serializable.
+         */
+        public Object extraParam = null;
 		private final List<String> attachments = new LinkedList<>();
 		public void addAttachment(String filePath) {
 			attachments.add(filePath);
@@ -111,43 +115,46 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
 	
 	private void sendMail(Mail mail) {
 		long beginTime = System.currentTimeMillis();
-		Properties props = new Properties();
-		final Session session;
-		props.put("mail.smtp.auth", String.valueOf(setting.auth));
-		// If want to display SMTP protocol detail then uncomment following statement
-		// props.put("mail.debug", "true");
-        props.put("mail.smtp.host", setting.host);
-		props.put("mail.smtp.port", setting.port);
-		if (setting.secure.equals(SECURE_STARTTLS)) {
-			props.put("mail.smtp.starttls.enable", "true");
+        String mailFrom = "";
+        boolean success = false;
+        try {
+            Properties props = new Properties();
+            final Session session;
+            props.put("mail.smtp.auth", String.valueOf(setting.auth));
+            // If want to display SMTP protocol detail then uncomment following statement
+            // props.put("mail.debug", "true");
+            props.put("mail.smtp.host", setting.host);
+            props.put("mail.smtp.port", setting.port);
+            if (setting.secure.equals(SECURE_STARTTLS)) {
+                props.put("mail.smtp.starttls.enable", "true");
 
-		} else if (setting.secure.equals(SECURE_SSL)) {
-			props.put("mail.smtp.socketFactory.port", setting.port);
-			props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-			props.put("mail.smtp.socketFactory.fallback", "false");
-		}
-        if (!setting.auth)
-            session = Session.getInstance(props);
-        else
-            session = Session.getInstance(props,
-                    new javax.mail.Authenticator() {
-                        @Override
-                        protected PasswordAuthentication getPasswordAuthentication() {
-                            return new PasswordAuthentication(setting.user, setting.password);
-                        }
-                    });
+            } else if (setting.secure.equals(SECURE_SSL)) {
+                props.put("mail.smtp.socketFactory.port", setting.port);
+                props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+                props.put("mail.smtp.socketFactory.fallback", "false");
+            }
+            if (!setting.auth)
+                session = Session.getInstance(props);
+            else
+                session = Session.getInstance(props,
+                        new javax.mail.Authenticator() {
+                            @Override
+                            protected PasswordAuthentication getPasswordAuthentication() {
+                                return new PasswordAuthentication(setting.user, setting.password);
+                            }
+                        });
 
-        if (setting.debug)
-		    session.setDebug(true);
+            if (setting.debug)
+                session.setDebug(true);
 
-		MimeMessage message = new MimeMessage(session);
-		StringBuilder mailTo = new StringBuilder();
-		try {
+            MimeMessage message = new MimeMessage(session);
+            StringBuilder mailTo = new StringBuilder();
 			if (mail.from != null)
 				message.setFrom(new InternetAddress(mail.from));
 			else if (setting.from != null)
 				message.setFrom(new InternetAddress(setting.from));
-			if (mail.to != null) {
+            mailFrom = StringUtils.join(message.getFrom());
+            if (mail.to != null) {
 				for (String to : mail.to) {
 					if (mailTo.length() > 0)
 						mailTo.append(",");
@@ -191,23 +198,27 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
 				
 			transport.sendMessage(message, message.getAllRecipients());
 			transport.close();
-			if (setting.trace && tracer != null) {
+            success = true;
+		} catch (Exception ex) {
+			logger.log(Level.SEVERE, "Send mail failed!", ex);
+		} finally {
+            if (setting.trace && tracer != null) {
                 Tracer.Info info = new Tracer.Info();
                 info.catalog = "mail";
                 info.name = "send";
-                info.put("sender", StringUtils.join(message.getFrom()));
+                info.put("success", success);
+                info.put("sender", mailFrom);
                 info.put("recipients", mail.to);
                 info.put("SMTPServer", setting.host);
                 info.put("SMTPAccount", setting.user);
                 info.put("subject", mail.subject);
                 info.put("startTime", beginTime);
                 info.put("runningTime", System.currentTimeMillis() - beginTime);
+                info.put("extraParam", mail.extraParam);
                 tracer.trace(info);
-			}
-		} catch (Exception ex) {
-			logger.log(Level.SEVERE, "Send mail failed!", ex);
-		}
-	}
+            }
+        }
+    }
 
     @Override
 	public synchronized void start() {
@@ -243,15 +254,19 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
             tracer.trace(info);
         }
 	}
-	
-	public synchronized void postMail(Mail mail) {
+
+    /**
+     * Post mail item into send queue
+     * @param mail
+     */
+	public synchronized void post(Mail mail) {
         if (taskService != null)
             taskService.offer(mail);
 	}
 
-    public static Mail createMailByTemplateStream(InputStream in, Map<String,String> replaced) throws IOException {
+    public static Mail createMail(InputStream templateStream, Map<String,String> replaced) throws IOException {
         Mail mail = new Mail();
-        InputStreamReader reader = new InputStreamReader(in, "utf-8");
+        InputStreamReader reader = new InputStreamReader(templateStream, "utf-8");
         char[] buffer = new char[1024];
         StringBuilder builder = new StringBuilder();
         while (reader.read(buffer) != -1)
@@ -259,7 +274,7 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
         String mailBody = builder.toString();
         builder.setLength(0);
         Pattern pattern = Pattern.compile(
-                "<%\\s*(.+?)\\s*%>",
+                "\\$\\{\\s*(.+?)\\s*\\}",
                 Pattern.MULTILINE);
         Matcher matcher = pattern.matcher(mailBody);
         int scanPos = 0;
@@ -285,21 +300,17 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
         return mail;
     }
 
-    public static Mail createMailByTemplateResource(String resourceName, Map<String,String> replaced) throws IOException {
-        try (InputStream in = MailService.class.getClassLoader().getResourceAsStream(resourceName)) {
-            return createMailByTemplateStream(in, replaced);
-        }
-    }
-	
-	public static Mail createMailByTemplateFile(File templateFile, Map<String,String> replaced) throws IOException {
-        try (InputStream in = new FileInputStream(templateFile)) {
-            return createMailByTemplateStream(in, replaced);
-        }
-	}
-
-    public static Mail createMailByTemplate(String templateContent, Map<String,String> replaced) throws IOException {
-        try (InputStream in = new ByteArrayInputStream(templateContent.getBytes("utf-8"))) {
-            return createMailByTemplateStream(in, replaced);
+    /**
+     * Create file from template content
+     * @param template Mail template content, for convenient you can use Application.readScript() method
+     *                 to easily load content from file or resource.
+     * @param replaced Placeholder and value map.
+     * @return Newly created mail item instance.
+     * @throws IOException Throw on failed.
+     */
+    public static Mail createMail(String template, Map<String,String> replaced) throws IOException {
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(template.getBytes("utf-8"))) {
+            return createMail(inputStream, replaced);
         }
     }
 }

@@ -82,7 +82,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		super(application);
         if (application != null) {
             logger = application.getLogger();
-            enableGzip = application.getConfigManager().getBoolean("enableGZip", enableGzip);
+            enableGzip = application.getConfigManager().getBoolean("web/gzip", enableGzip);
         } else
             logger = Logger.getLogger(WebBasicRouter.class.getName());
 	}
@@ -691,7 +691,7 @@ public final class WebBasicRouter extends WebRouterBase {
                 traceInfo.put("clientIP", request.getRemoteAddr());
 				traceInfo.put("startTime", beginTime);
 				traceInfo.put("runningTime", System.currentTimeMillis() - beginTime);
-				application.trace(traceInfo);
+				application.getTracer().trace(traceInfo);
 			}
 		}
         return true;

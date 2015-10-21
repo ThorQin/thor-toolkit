@@ -12,13 +12,23 @@ import java.util.concurrent.LinkedBlockingQueue;
  *
  * @author nuo.qin
  */
-public abstract class TraceService implements Tracer {
+public class TraceService implements Tracer {
 	private boolean alive = false;
 	private Thread thread = null;
 	private final LinkedBlockingQueue<Info> queue = new LinkedBlockingQueue<>();
 	private static final Info STOP_SIGNAL = new Info();
 
-	protected abstract void onTraceInfo(Info info);
+	protected TraceRecorder recorder = null;
+
+	public TraceService() {}
+
+	public TraceService(TraceRecorder recorder) {
+		this.recorder = recorder;
+	}
+
+	public void setRecorder(TraceRecorder recorder) {
+		this.recorder = recorder;
+	}
 
 	public final synchronized void start() {
 		if (alive)
@@ -30,9 +40,10 @@ public abstract class TraceService implements Tracer {
 				while (alive || !queue.isEmpty()) {
 					try {
 						Info info = queue.take();
-						if (info != STOP_SIGNAL)
-							onTraceInfo(info);
-						else
+						if (info != STOP_SIGNAL) {
+							if (recorder != null)
+								recorder.onTrace(info);
+						} else
 							alive = false;
 					} catch (Exception ex) {
 						ex.printStackTrace();

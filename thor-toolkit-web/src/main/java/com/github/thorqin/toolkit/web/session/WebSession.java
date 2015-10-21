@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Created by nuo.qin on 1/28/2015.
@@ -15,11 +16,14 @@ public abstract class WebSession {
     protected HttpServletRequest request;
     protected HttpServletResponse response;
     protected WebApplication application;
+    protected Logger logger = Logger.getLogger(WebSession.class.getName());
 
     public WebSession(WebApplication application, HttpServletRequest request, HttpServletResponse response) {
         this.request = request;
         this.response = response;
         this.application = application;
+        if (application != null)
+            this.logger = application.getLogger();
     }
     public abstract Enumeration<String> getKeys();
     public abstract Map<String, Object> getMap();

@@ -4,6 +4,7 @@ import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.service.ISettingComparable;
 import com.github.thorqin.toolkit.service.IStartable;
 import com.github.thorqin.toolkit.service.IStoppable;
+import com.github.thorqin.toolkit.trace.TraceRecorder;
 import com.github.thorqin.toolkit.trace.TraceService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.*;
@@ -28,7 +29,7 @@ import java.util.logging.SimpleFormatter;
 /**
  * Created by thor on 9/23/15.
  */
-public class Application extends TraceService implements ConfigManager.ChangeListener {
+public class Application {
     protected static Map<String, Application> applicationMap = new HashMap<>();
     protected Logger logger;
     protected String applicationName;
@@ -37,6 +38,21 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
     protected final Map<String, Class<?>> serviceTypes = new HashMap<>();
     protected final Map<String, Object> serviceMapping = new HashMap<>();
     protected ClassLoader appClassLoader = null;
+    protected ConfigManager.ChangeListener configChangeListener = new ConfigManager.ChangeListener() {
+        @Override
+        public void onConfigChanged(ConfigManager configManager) {
+            reloadConfig();
+            Application.this.onConfigChanged();
+        }
+    };
+
+    protected TraceService traceService = new TraceService(new TraceRecorder() {
+        @Override
+        public void onTrace(Tracer.Info info) {
+            if (logger != null)
+                logger.log(Level.INFO, info.toString());
+        }
+    });
 
     protected static final String NO_APP_NAME_MESSAGE = "Application name is null or empty, use annotation or explicitly call super constructor by pass application name!";
     protected static final String APP_NAME_DUP_MESSAGE = "Application name duplicated!";
@@ -64,15 +80,19 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         init();
     }
 
+    public void setTraceRecorder(TraceRecorder recorder) {
+        traceService.setRecorder(recorder);
+    }
+
     protected Application() {
     }
 
-    protected void setServices(Service[] services) {
+    protected void onConfigChanged() {}
+
+    protected synchronized void setServices(Service[] services) {
         for (Service service: services) {
             String serviceName = service.value();
-            if (Strings.isNullOrEmpty(serviceName)) {
-                throw new RuntimeException(INVALID_SERVICE_NAME);
-            }
+            checkServiceName(serviceName);
             serviceTypes.put(serviceName, service.type());
         }
     }
@@ -89,12 +109,12 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         logger = Logger.getLogger(applicationName);
     }
 
-    public void destory() {
+    protected void destroy() {
         for (String name : serviceMapping.keySet()) {
             Object service = serviceMapping.get(name);
             callServiceStop(service);
         }
-        this.stop();
+        traceService.stop();
         applicationMap.remove(applicationName);
     }
 
@@ -120,9 +140,8 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         return logger;
     }
 
-    @Override
-    public void onConfigChanged(ConfigManager configManager) {
-        reloadConfig();
+    public final Tracer getTracer() {
+        return traceService;
     }
 
     private synchronized void reloadConfig() {
@@ -151,7 +170,7 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             return applicationName;
     }
 
-    private static void scanClasses(File path, Map<String, Class<?>> serviceTypes, String applicationName, ClassLoader classLoader) throws Exception {
+    private void scanClasses(File path) throws Exception {
         if (path == null) {
             return;
         }
@@ -159,7 +178,7 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             File[] files = path.listFiles();
             if (files != null) {
                 for (File item : files) {
-                    scanClasses(item, serviceTypes, applicationName, classLoader);
+                    scanClasses(item);
                 }
             }
             return;
@@ -179,8 +198,8 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
                 if (!ann.getTypeName().equals(Service.class.getName())) {
                     continue;
                 }
-                //Class<?> clazz = Class.forName(className);
-                Class<?> clazz = classLoader.loadClass(className);
+                // Class<?> clazz = Class.forName(className);
+                Class<?> clazz = appClassLoader.loadClass(className);
                 if (clazz == null) {
                     continue;
                 }
@@ -192,10 +211,10 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
                     continue;
                 }
                 String serviceName = service.value();
-                if (Strings.isNullOrEmpty(serviceName)) {
-                    throw new RuntimeException(INVALID_SERVICE_NAME);
+                synchronized (this) {
+                    checkServiceName(serviceName);
+                    serviceTypes.put(serviceName, clazz);
                 }
-                serviceTypes.put(serviceName, clazz);
             }
         }
     }
@@ -240,20 +259,20 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
                 ex.printStackTrace();
             }
         }
-        this.start(); // Start trace service
+        traceService.start(); // Start trace service
         try {
             this.configManager = new AppConfigManager(this, "config.json");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        configManager.addChangeListener(this);
+        configManager.addChangeListener(configChangeListener);
         configManager.startWatch();
 
         try {
             File file = new File(Application.class.getResource("/").toURI());
-            scanClasses(file, serviceTypes, applicationName, appClassLoader);
+            scanClasses(file);
             File fileExtend = new File(getDataDir("lib"));
-            scanClasses(fileExtend, serviceTypes, applicationName, appClassLoader);
+            scanClasses(fileExtend);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -330,16 +349,20 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
     }
 
     public final synchronized void registerService(String name, Class<?> type) {
-        if (Strings.isNullOrEmpty(name)) {
-            throw new RuntimeException(INVALID_SERVICE_NAME);
-        }
-        if (serviceTypes.containsKey(name) || name.equals("config") || name.equals("logger") || name.equals("application"))
-            throw new RuntimeException(SERVICE_NAME_DUPLICATED);
+        checkServiceName(name);
         serviceTypes.put(name, type);
         Object service = createServiceInstance(name);
         System.out.println("Register Service: " + name + " -> " + type.getName());
         inject();
         callServiceStart(service);
+    }
+
+    private final void checkServiceName(String name) {
+        if (Strings.isNullOrEmpty(name))
+            throw new RuntimeException(INVALID_SERVICE_NAME);
+        if (serviceTypes.containsKey(name)
+                || name.matches("config|logger|application|tracer"))
+            throw new RuntimeException(SERVICE_NAME_DUPLICATED);
     }
 
     @SuppressWarnings("unchecked")
@@ -348,12 +371,13 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             return (T)configManager;
         if (name.equals("logger"))
             return (T)logger;
+        if (name.equals("tracer"))
+            return (T)traceService;
         if (name.equals("application"))
             return (T)this;
         if (serviceMapping.containsKey(name)) {
             return (T)serviceMapping.get(name);
         } else {
-            logger.log(Level.WARNING, "Service not registered: " + name);
             return null;
         }
     }
@@ -370,7 +394,7 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
         try {
             Constructor<?> constructor = type.getConstructor(ConfigManager.class, String.class, Tracer.class);
             constructor.setAccessible(true);
-            obj = constructor.newInstance(configManager, name, this);
+            obj = constructor.newInstance(configManager, name, traceService);
         } catch (NoSuchMethodException ex) {
             try {
                 Constructor<?> constructor = type.getConstructor();
@@ -415,12 +439,6 @@ public class Application extends TraceService implements ConfigManager.ChangeLis
             return true;
     }
 
-
-    @Override
-    protected void onTraceInfo(Info info) {
-        if (logger != null)
-            logger.log(Level.INFO, info.toString());
-    }
     /**
      * Get application data directory path, it's combined by Java system property name or
      * OS environment variable name(by default var name is 'APP_DATA_DIR') and plus application name.
