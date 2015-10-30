@@ -571,6 +571,21 @@ public final class DBService implements AutoCloseable, ISettingComparable {
             } else
                 throw new InvalidParameterException("Column '" + column + "' doesn't exist!");
         }
+
+		public List<Map<String, Object>> toList() {
+			List<Map<String, Object>> list = new ArrayList<>(data.size());
+			for (Object[] row: data) {
+				Map<String, Object> obj = new HashMap<>();
+				for (int i = 0; i < head.length; i++) {
+					if (i < row.length)
+						obj.put(head[i], row[i]);
+					else
+						obj.put(head[i], null);
+				}
+				list.add(obj);
+			}
+			return list;
+		}
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
@@ -941,6 +956,17 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 			return list;
 		}
 
+		public List<Map<String, Object>> getList() throws SQLException {
+			List<Map<String, Object>> list = new LinkedList<>();
+			if (resultSet == null)
+				return list;
+			while (resultSet.next()) {
+				Map<String, Object> obj = get();
+				list.add(obj);
+			}
+			return list;
+		}
+
         public <T> T get(Class<T> type) throws IllegalAccessException, InstantiationException, SQLException {
             return get(type, null, null);
         }
@@ -978,6 +1004,16 @@ public final class DBService implements AutoCloseable, ISettingComparable {
             }
             return obj;
         }
+
+		public Map<String, Object> get() throws SQLException {
+			if (resultSet == null)
+				return null;
+			Map<String, Object> obj = new HashMap<>();
+			for (int i = 0; i < columns.length; i++) {
+				obj.put(columns[i], getValue(i));
+			}
+			return obj;
+		}
 
 		public DBTable getTable() throws SQLException {
 			return getTable(null, null);
@@ -1031,8 +1067,8 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	}
 	
 
-	public static interface DBWork {
-		public void doWork(DBSession session) throws Exception;
+	public interface DBWork {
+		void doWork(DBSession session) throws Exception;
 	}
 
 	/* Private properties. */
@@ -1388,12 +1424,27 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 				return cursor.getList(type, null, null);
 			}
 		}
+		public List<Map<String, Object>> queryList(String queryString,
+									 Object... args) throws SQLException {
+			try (DBCursor cursor = query(queryString, args)) {
+				return cursor.getList();
+			}
+		}
 		public <T> T queryFirst(String queryString,
 								Class<T> type,
 								Object... args) throws SQLException, InstantiationException, IllegalAccessException {
 			try (DBCursor cursor = query(queryString, args)) {
 				if (cursor.next()) {
 					return cursor.get(type);
+				} else
+					return null;
+			}
+		}
+
+		public Map<String, Object> queryFirst(String queryString, Object... args) throws SQLException {
+			try (DBCursor cursor = query(queryString, args)) {
+				if (cursor.next()) {
+					return cursor.get();
 				} else
 					return null;
 			}
@@ -1628,9 +1679,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
                          Map<String, Class<?>> udtMapping,
                          Object... args) throws SQLException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                return cursor.getTable(adjuster, udtMapping);
-            }
+			return session.queryTable(queryString, adjuster, udtMapping, args);
         }
     }
 
@@ -1638,18 +1687,14 @@ public final class DBService implements AutoCloseable, ISettingComparable {
                          TableAdjuster adjuster,
                          Object... args) throws SQLException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                return cursor.getTable(adjuster, null);
-            }
+			return session.queryTable(queryString, adjuster, args);
         }
     }
 
     public DBTable queryTable(String queryString,
                          Object... args) throws SQLException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                return cursor.getTable(null, null);
-            }
+			return session.queryTable(queryString, args);
         }
     }
 
@@ -1659,9 +1704,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
                              Map<String, Class<?>> udtMapping,
                              Object... args) throws SQLException, InstantiationException, IllegalAccessException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                return cursor.getList(type, adapter, udtMapping);
-            }
+			return session.queryList(queryString, type, adapter, udtMapping, args);
         }
     }
 
@@ -1670,9 +1713,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
                              RowTypeAdapter<T> adapter,
                              Object... args) throws SQLException, InstantiationException, IllegalAccessException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                return cursor.getList(type, adapter, null);
-            }
+			return session.queryList(queryString, type, adapter, args);
         }
     }
 
@@ -1680,21 +1721,29 @@ public final class DBService implements AutoCloseable, ISettingComparable {
                              Class<T> type,
                              Object... args) throws SQLException, InstantiationException, IllegalAccessException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                return cursor.getList(type, null, null);
-            }
+			return session.queryList(queryString, type, args);
         }
     }
+
+	public List<Map<String, Object>> queryList(String queryString,
+								 Object... args) throws SQLException {
+		try (DBSession session = getSession()) {
+			return session.queryList(queryString, args);
+		}
+	}
+
 	public <T> T queryFirst(String queryString,
 							 Class<T> type,
 							 Object... args) throws SQLException, InstantiationException, IllegalAccessException {
 		try (DBSession session = getSession()) {
-			try (DBCursor cursor = session.query(queryString, args)) {
-				if (cursor.next()) {
-					return cursor.get(type);
-				} else
-					return null;
-			}
+			return session.queryFirst(queryString, type, args);
+		}
+	}
+
+	public Map<String, Object> queryFirst(String queryString,
+							Object... args) throws SQLException {
+		try (DBSession session = getSession()) {
+			return session.queryFirst(queryString, args);
 		}
 	}
 
