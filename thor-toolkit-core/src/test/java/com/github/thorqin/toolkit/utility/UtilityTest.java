@@ -1,6 +1,7 @@
 package com.github.thorqin.toolkit.utility;
 
 import com.github.thorqin.toolkit.Application;
+import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.service.TaskService;
 import org.junit.Test;
 
@@ -10,6 +11,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -93,8 +98,18 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
     }
 
     @Test
-    public void someTest() throws Exception {
-        System.out.println(Serializer.detectCharset(new File("/home/thor/Documents/XuQiu/创建工程.txt.txt"), "GBK"));
+    public void testPrepareSql() throws Exception {
+        List<String> l = new LinkedList<String>() {
+            {
+                add("ab'c");
+                add("def");
+            }
+        };
+        String sql = "select * from tb where age in (?)";
+        Object[] args = {l};
+        DBService.PreparedInfo info = DBService.prepareSql(sql, args);
+        System.out.println(info.sql);
+        System.out.println(StringUtils.join(info.args));
     }
 }
 

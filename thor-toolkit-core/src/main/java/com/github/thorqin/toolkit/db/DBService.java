@@ -5,6 +5,7 @@ import com.github.thorqin.toolkit.service.ISettingComparable;
 import com.github.thorqin.toolkit.trace.*;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.validation.annotation.ValidateNumber;
@@ -22,6 +23,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.security.InvalidParameterException;
 import java.sql.*;
 import java.util.*;
@@ -507,6 +509,61 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	protected void finalize() throws Throwable {
 		close();
 		super.finalize();
+	}
+
+	public static class DBArrayParameter {
+		public Object value;
+		public <T> DBArrayParameter(Iterable<T> array) {
+			value = array;
+		}
+		public DBArrayParameter(Object[] array) {
+			value = array;
+		}
+		public DBArrayParameter(String[] array) {
+			value = array;
+		}
+		public DBArrayParameter(int[] array) {
+			value = array;
+		}
+		public DBArrayParameter(Integer[] array) {
+			value = array;
+		}
+		public DBArrayParameter(long[] array) {
+			value = array;
+		}
+		public DBArrayParameter(Long[] array) {
+			value = array;
+		}
+		public DBArrayParameter(short[] array) {
+			value = array;
+		}
+		public DBArrayParameter(Short[] array) {
+			value = array;
+		}
+		public DBArrayParameter(byte[] array) {
+			value = array;
+		}
+		public DBArrayParameter(Byte[] array) {
+			value = array;
+		}
+		public DBArrayParameter(float[] array) {
+			value = array;
+		}
+		public DBArrayParameter(Float[] array) {
+			value = array;
+		}
+		public DBArrayParameter(double[] array) {
+			value = array;
+		}
+		public DBArrayParameter(Double[] array) {
+			value = array;
+		}
+		public DBArrayParameter(BigDecimal[] array) {
+			value = array;
+		}
+		public DBArrayParameter(BigInteger[] array) {
+			value = array;
+		}
 	}
 	
 	public static class DBTable {
@@ -1151,6 +1208,168 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	}
 
 	private final ThreadLocal<Stack<Connection>> threadLocal = new ThreadLocal<>();
+
+	public static class PreparedInfo {
+		public String sql;
+		public Object[] args;
+	}
+
+	private static List<String> scanSQL(String sql) {
+		char[] array =  sql.toCharArray();
+		int quote = 0;
+		List<String> result = new LinkedList<>();
+		StringBuilder sb = new StringBuilder();
+		for (char c: array) {
+			if (quote == 0) {
+				if (c == '\'') {
+					quote = 1;
+				} else if (c == '"') {
+					quote = 2;
+				} else if (c == '?') {
+					result.add(sb.toString());
+					result.add("?");
+					sb = new StringBuilder();
+					continue;
+				}
+			} else if (quote == 1) {
+				if (c == '\'') {
+					quote = 0;
+				}
+			} else if (quote == 2) {
+				if (c == '"') {
+					quote = 0;
+				}
+			}
+			sb.append(c);
+		}
+		if (sb.length() > 0)
+			result.add(sb.toString());
+		return result;
+	}
+
+	private static String arrayToString(Object obj) {
+		if (obj.getClass().equals(DBArrayParameter.class)) {
+			return arrayToString(((DBArrayParameter)obj).value);
+		} else if (Iterable.class.isInstance(obj)) {
+			StringBuilder sb = new StringBuilder();
+			Iterator<?> it = ((Iterable<?>)obj).iterator();
+			boolean isFirst = true;
+			while (it.hasNext()) {
+				if (!isFirst)
+					sb.append(",");
+				Object value = it.next();
+				Class<?> valueType = value.getClass();
+				if (valueType.isPrimitive()
+						|| valueType.equals(Integer.class)
+						|| valueType.equals(Long.class)
+						|| valueType.equals(Float.class)
+						|| valueType.equals(Double.class)
+						|| valueType.equals(Short.class)
+						|| valueType.equals(Byte.class)) {
+					sb.append(value);
+				} else {
+					sb.append("'");
+					sb.append(value.toString().replaceAll("'", "''"));
+					sb.append("'");
+				}
+				isFirst = false;
+			}
+			return sb.toString();
+		} else { // must be an Array
+			StringBuilder sb = new StringBuilder();
+			boolean isFirst = true;
+			if (obj.getClass().equals(byte[].class)) {
+				for (byte value: (byte[])obj) {
+					if (!isFirst)
+						sb.append(",");
+					sb.append(value);
+					isFirst = false;
+				}
+			} else if (obj.getClass().equals(short[].class)) {
+				for (short value: (short[])obj) {
+					if (!isFirst)
+						sb.append(",");
+					sb.append(value);
+					isFirst = false;
+				}
+			} else if (obj.getClass().equals(int[].class)) {
+				for (int value: (int[])obj) {
+					if (!isFirst)
+						sb.append(",");
+					sb.append(value);
+					isFirst = false;
+				}
+			} else if (obj.getClass().equals(long[].class)) {
+				for (long value: (long[])obj) {
+					if (!isFirst)
+						sb.append(",");
+					sb.append(value);
+					isFirst = false;
+				}
+			} else if (obj.getClass().equals(float[].class)) {
+				for (float value: (float[])obj) {
+					if (!isFirst)
+						sb.append(",");
+					sb.append(value);
+					isFirst = false;
+				}
+			} else if (obj.getClass().equals(double[].class)) {
+				for (double value: (double[])obj) {
+					if (!isFirst)
+						sb.append(",");
+					sb.append(value);
+					isFirst = false;
+				}
+			} else {
+				for (Object value: (Object[])obj) {
+					if (!isFirst)
+						sb.append(",");
+					Class<?> valueType = value.getClass();
+					if (valueType.equals(Integer.class)
+							|| valueType.equals(Long.class)
+							|| valueType.equals(Float.class)
+							|| valueType.equals(Double.class)
+							|| valueType.equals(Short.class)
+							|| valueType.equals(Byte.class)) {
+						sb.append(value);
+					} else {
+						sb.append("'");
+						sb.append(value.toString().replaceAll("'", "''"));
+						sb.append("'");
+					}
+					isFirst = false;
+				}
+			}
+			return sb.toString();
+		}
+	}
+
+	public static PreparedInfo prepareSql(String sql, Object[] args) {
+		PreparedInfo info = new PreparedInfo();
+		List<String> placeholders = null;
+		List<Object> newArgs = new ArrayList<>(args.length);
+		for (int i = 0; i < args.length; i++) {
+			Object arg = args[i];
+			if (arg != null && (arg.getClass().isArray() ||
+					Iterable.class.isInstance(arg) ||
+					arg.getClass().equals(DBArrayParameter.class))) {
+				if (placeholders == null)
+					placeholders = scanSQL(sql);
+				if (i * 2 + 1 < placeholders.size()) {
+					placeholders.set(i * 2 + 1, arrayToString(arg));
+				} else
+					throw new RuntimeException("SQL parameters count does not match placeholders count.");
+			} else {
+				newArgs.add(arg);
+			}
+		}
+		if (placeholders == null)
+			info.sql = sql;
+		else
+			info.sql = StringUtils.join(placeholders, "");
+		info.args = newArgs.toArray();
+		return info;
+	}
 	
 	public static class DBSession implements AutoCloseable {
 		final protected Connection conn;
@@ -1224,6 +1443,8 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 			return (T)instance;
 		}
 
+
+
 		@SuppressWarnings("rawtypes")
 		private void bindParameter(PreparedStatement stmt, Object[] args, int offset) throws SQLException {
 			if (args == null)
@@ -1268,8 +1489,9 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		public int execute(String queryString, Object... args) throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;
-			try (PreparedStatement stmt = conn.prepareStatement(queryString)){
-				bindParameter(stmt, args, 1);
+			PreparedInfo preparedInfo = prepareSql(queryString, args);
+			try (PreparedStatement stmt = conn.prepareStatement(preparedInfo.sql)){
+				bindParameter(stmt, preparedInfo.args, 1);
 				return stmt.executeUpdate();
 			} catch (Exception ex) {
 				success = false;
@@ -1315,10 +1537,11 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 				Object... args) throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;
-			PreparedStatement stmt = conn.prepareStatement(queryString);
+			PreparedInfo preparedInfo = prepareSql(queryString, args);
+			PreparedStatement stmt = conn.prepareStatement(preparedInfo.sql);
 			ResultSet rs = null;
 			try {
-				bindParameter(stmt, args, 1);
+				bindParameter(stmt, preparedInfo.args, 1);
 				rs = stmt.executeQuery();
 				return new DBCursor(rs, stmt);
 			} catch (Exception ex) {
@@ -1350,9 +1573,10 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 
 		public void query(String queryString, DBResultHanlder handler, Object... args) throws Exception {
 			long beginTime = System.currentTimeMillis();
-			boolean success = true;			
-			try (PreparedStatement stmt = conn.prepareStatement(queryString)) {
-				bindParameter(stmt, args, 1);
+			boolean success = true;
+			PreparedInfo preparedInfo = prepareSql(queryString, args);
+			try (PreparedStatement stmt = conn.prepareStatement(preparedInfo.sql)) {
+				bindParameter(stmt, preparedInfo.args, 1);
 				try (ResultSet rs = stmt.executeQuery()) {
 					if (handler != null)
 						handler.handle(rs);
