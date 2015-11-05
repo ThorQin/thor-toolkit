@@ -3,7 +3,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<tt:env/><tt:loc bundle="message"/>
+	<tt:env bundle="message"/>
+	<tt:service service="myService"/>
     <title>${loc.get("title")}</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -16,12 +17,21 @@
     <tt:script>
         $(function(){
             tui.ctrl.button("btnTest").on("click", function(){
-                tui.infobox("<span id='serverInfo' style='display:inline-block;text-align:left;vertical-align:middle;width:180px;height:40px'></span>");
                 var form = tui.ctrl.form();
                 form.action("getServerInfo.do");
-                form.target("serverInfo");
-                form.field("*");
-                form.targetProperty("innerHTML");
+                form.on("receive", function(data){
+                    tui.errbox(data);
+                });
+                form.submit();
+            });
+
+            tui.ctrl.button("btnTest1").on("click", function(){
+                var form = tui.ctrl.form();
+                form.immediateValue({"name":"Thor", "age": 40});
+                form.action("echo.do");
+                form.on("receive", function(data){
+                    tui.infobox(JSON.stringify(data));
+                });
                 form.submit();
             });
         });
@@ -31,8 +41,11 @@
 <h1>${loc.get("title")}</h1>
 <br>
 <a id="btnTest" class="tui-button tui-primary">Show server info ...</a>
+<a id="btnTest1" class="tui-button tui-success">Post some data to server ...</a>
 <br>
-session:${session.get("uid")}
+${myService.getServerTime()}
+<br>
+session:${session.get("lang")}
 </body>
 </html>
 

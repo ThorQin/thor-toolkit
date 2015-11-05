@@ -53,13 +53,11 @@ public abstract class WebDBRouter extends WebRouterBase {
     protected final String localeBundle;
     protected final String configName;
     protected Map<String, MappingInfo> mapping = new HashMap<>();
-    private boolean enableGzip = true;
     protected String dbServiceName = null;
     private ConfigManager.ChangeListener changeListener = new ConfigManager.ChangeListener() {
         @Override
         public void onConfigChanged(ConfigManager configManager) {
             db = application.getService(dbServiceName);
-            enableGzip = configManager.getBoolean("web/gzip", enableGzip);
             makeMapping();
         }
     };
@@ -76,7 +74,6 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (application == null)
                 throw new InstantiationError("Parameter 'application' is null. " +
                         "Must use this router under web application environment.");
-            enableGzip = application.getConfigManager().getBoolean("web/gzip", enableGzip);
             if (dbRouter == null)
                 throw new InstantiationError("Must either provide @DBRouter annotation or use 5 parameters constructor.");
             dbServiceName = dbRouter.value();
@@ -396,7 +393,8 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (outResponse != null && outResponse.getValue() != null) {
                 responseString = outResponse.getValue();
                 boolean supportGzip = ServletUtils.supportGZipCompression(request);
-                supportGzip = (enableGzip && supportGzip);
+                boolean useGzip = application != null ? application.getSetting().gzip : true;
+                supportGzip = (useGzip && supportGzip);
                 ServletUtils.sendText(response, status, responseString, contentType, supportGzip);
             } else {
                 ServletUtils.send(response, status);

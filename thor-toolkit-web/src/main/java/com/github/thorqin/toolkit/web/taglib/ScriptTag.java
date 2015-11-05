@@ -3,6 +3,7 @@ package com.github.thorqin.toolkit.web.taglib;
 import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.web.WebApplication;
+import com.google.common.base.*;
 import com.google.javascript.jscomp.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.jsp.JspException;
@@ -121,14 +122,20 @@ public class ScriptTag extends SimpleTagSupport {
     }
 
     public void setId(String id) {
+        if (Strings.isNullOrEmpty(id))
+            id = null;
         this.id = id;
     }
 
     public void setAppName(String appName) {
+        if (Strings.isNullOrEmpty(appName))
+            appName = null;
         this.appName = appName;
     }
 
     public void setSrc(String src) {
+        if (Strings.isNullOrEmpty(src))
+            src = null;
         this.src = src;
     }
 

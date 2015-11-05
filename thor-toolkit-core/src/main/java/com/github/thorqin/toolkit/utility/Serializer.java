@@ -20,10 +20,15 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
 public final class Serializer {
+
+    public final static Type COMMON_MAP = new TypeToken<Map<String, Object>>(){}.getType();
+    public final static Type COMMON_LIST = new TypeToken<List<Object>>(){}.getType();
+
 	public static class DateTimeAdapter extends TypeAdapter<DateTime>
 			implements InstanceCreator<DateTime>,
 			JsonSerializer<DateTime>, JsonDeserializer<DateTime> {

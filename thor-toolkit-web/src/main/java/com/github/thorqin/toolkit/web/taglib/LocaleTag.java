@@ -69,6 +69,8 @@ public class LocaleTag extends SimpleTagSupport {
     }
 
     public void setAppName(String appName) {
+        if (Strings.isNullOrEmpty(appName))
+            appName = null;
         this.appName = appName;
     }
 }

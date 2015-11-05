@@ -1,6 +1,8 @@
 ﻿/// <reference path="../tui.core.ts" />
 (function () {
     var dict = {
+    	"Accept": "接受",
+    	"All": "全部",
         "Day": "天",
         "Days": "天",
         "Hour": "小时",
@@ -35,7 +37,19 @@
         "Today": "今天",
         "Invalid input.": "输入内容无效。",
         "Previous": "上一页",
-        "Next": "下一页"
+        "Next": "下一页",
+        "January": "一月",
+		"February": "二月",
+		"March": "三月",
+		"April": "四月",
+		"May": "五月",
+		"June": "六月",
+		"July": "七月",
+		"August": "八月",
+		"September": "九月",
+		"October": "十月",
+		"November": "十一月",
+		"December": "十二月"
     };
 
     // Register this dictionary.

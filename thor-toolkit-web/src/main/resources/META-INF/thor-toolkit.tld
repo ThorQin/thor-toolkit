@@ -15,6 +15,18 @@
             <rtexprvalue>true</rtexprvalue>
             <elexprvalue>true</elexprvalue>
         </attribute>
+        <attribute>
+            <name>bundle</name>
+            <required>false</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+            <name>locale</name>
+            <required>false</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
+        </attribute>
     </tag>
     <tag>
         <name>script</name>
@@ -56,6 +68,29 @@
         </attribute>
         <attribute>
             <name>locale</name>
+            <required>false</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <body-content>empty</body-content>
+    </tag>
+    <tag>
+        <name>service</name>
+        <tag-class>com.github.thorqin.toolkit.web.taglib.ServiceTag</tag-class>
+        <attribute>
+            <name>appName</name>
+            <required>false</required>
+            <rtexprvalue>true</rtexprvalue>
+            <elexprvalue>true</elexprvalue>
+        </attribute>
+        <attribute>
+            <name>service</name>
+            <required>true</required>
+            <elexprvalue>true</elexprvalue>
+            <rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+            <name>name</name>
             <required>false</required>
             <elexprvalue>true</elexprvalue>
             <rtexprvalue>true</rtexprvalue>

@@ -1,17 +1,20 @@
 {
-  "traceRouter": false,
-  "traceAccess": false,
-  "sessionTimeout": 900,
-  "db": {
-	"driver": "org.postgresql.Driver",
-	"uri": "jdbc:postgresql://<IP_ADDRESS>:5432/<DB_NAME>",
-	"user": "postgres",
-	"password": "<PASSWORD>",
-	"minConnectionsPerPartition": 5,
-	"maxConnectionsPerPartition": 20,
-	"partitionCount": 1,
-	"trace": false
+  "web": {
+    "compressJs": false,
+    "traceRouter": false,
+    "traceAccess": false,
+    "sessionTimeout": 900,
+    "defaultAllow": true,
+    "accessRules": []
   },
-  "defaultAllow": true,
-  "accessRules": []
+  "db": {
+    "driver": "org.postgresql.Driver",
+    "uri": "jdbc:postgresql://<IP_ADDRESS>:5432/<DB_NAME>",
+    "user": "postgres",
+    "password": "<PASSWORD>",
+    "minConnectionsPerPartition": 5,
+    "maxConnectionsPerPartition": 20,
+    "partitionCount": 1,
+    "trace": false
+  }
 }

@@ -50,6 +50,7 @@ public abstract class WebApplication extends Application
 
 
     public static class Setting {
+        public boolean gzip = true;
         public boolean compressJs = true;
         public boolean traceRouter = false;
         public boolean traceAccess = false;
@@ -94,7 +95,7 @@ public abstract class WebApplication extends Application
         setServices(appAnno.services());
         sessionType = appAnno.sessionType();
         init();
-        setting = configManager.get("/", Setting.class, new Setting());
+        setting = configManager.get("/web", Setting.class, new Setting());
     }
 
     public final Class<? extends WebSession> getSessionType() {
