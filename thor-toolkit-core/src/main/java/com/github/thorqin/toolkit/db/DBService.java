@@ -1067,7 +1067,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 				return null;
 			Map<String, Object> obj = new HashMap<>();
 			for (int i = 0; i < columns.length; i++) {
-				obj.put(columns[i], getValue(i));
+				obj.put(columns[i], getValue(i + 1));
 			}
 			return obj;
 		}
