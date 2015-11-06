@@ -18,13 +18,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
+import java.util.logging.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by thor on 9/23/15.
@@ -38,6 +36,8 @@ public class Application {
     protected final Map<String, Class<?>> serviceTypes = new HashMap<>();
     protected final Map<String, Object> serviceMapping = new HashMap<>();
     protected ClassLoader appClassLoader = null;
+    protected LogSetting setting = null;
+    protected LogHandler logHandler = null;
     protected ConfigManager.ChangeListener configChangeListener = new ConfigManager.ChangeListener() {
         @Override
         public void onConfigChanged(ConfigManager configManager) {
@@ -61,6 +61,12 @@ public class Application {
     protected static final String SERVICE_NAME_DUPLICATED = "Service name already in used.";
     protected static final String SERVICE_NAME_NOT_REGISTERED = "Service name not registered.";
     protected static final String NEED_APPLICATION_NAME = "Must provide application name when more than one instance exiting.";
+
+    private static class LogSetting {
+        public boolean async = true;
+        public String level = "INFO";
+        public String filter = null;
+    }
 
     public Application(String name) {
         setName(name);
@@ -106,7 +112,47 @@ public class Application {
             throw new RuntimeException(APP_NAME_DUP_MESSAGE);
         applicationMap.put(name.trim(), this);
         applicationName = name.trim();
-        logger = Logger.getLogger(applicationName);
+    }
+
+    protected void initLogger() {
+        if (logger == null)
+            logger = Logger.getLogger(applicationName);
+        Handler[] handlers = logger.getHandlers();
+        for (Handler handler: handlers) {
+            logger.removeHandler(handler);
+        }
+        setting = configManager.get("/log", LogSetting.class, new LogSetting());
+        if (logHandler != null)
+            logHandler.close();
+        logHandler = new LogHandler(getDataDir("log"), applicationName, setting.async);
+        logger.addHandler(logHandler);
+        logger.setUseParentHandlers(false);
+        Level level;
+        try {
+            level = Level.parse(setting.level);
+        } catch (IllegalArgumentException e) {
+            level = Level.INFO;
+        }
+        logger.setLevel(level);
+        if (setting.filter != null && !setting.filter.isEmpty()) {
+            try {
+                final Pattern pattern = Pattern.compile(setting.filter);
+                logger.setFilter(new Filter() {
+                    @Override
+                    public boolean isLoggable(LogRecord record) {
+                        Matcher matcher = pattern.matcher(record.getMessage());
+                        if (matcher != null && matcher.find())
+                            return false;
+                        else
+                            return true;
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("Log filter is not a valid regex expression: " + e.getMessage());
+            }
+        } else {
+            logger.setFilter(null);
+        }
     }
 
     protected void destroy() {
@@ -116,6 +162,9 @@ public class Application {
         }
         traceService.stop();
         applicationMap.remove(applicationName);
+        logger.log(Level.INFO, "Application stopped!");
+        if (logHandler != null)
+            logHandler.close();
     }
 
     public static ClassLoader createAppClassLoader(ClassLoader parent, String searchPath) {
@@ -145,6 +194,10 @@ public class Application {
     }
 
     private synchronized void reloadConfig() {
+        LogSetting newSetting = configManager.get("/log", LogSetting.class);
+        if (!Serializer.equals(setting, newSetting)) {
+            initLogger();
+        }
         List<Object> restartService = new LinkedList<>();
         for (String key: serviceTypes.keySet()) {
             if (serviceMapping.containsKey(key)) {
@@ -240,26 +293,8 @@ public class Application {
     }
 
     protected final void init() {
-        final String dataDir = getDataDir();
         appClassLoader = createAppClassLoader(Application.class.getClassLoader(), getDataDir("lib"));
-        if (dataDir != null) {
-            try {
-                String logFile = getDataDir("log");
-                Files.createDirectories(new File(logFile).toPath());
-                logFile += "/ " + applicationName + ".log";
-                try {
-                    FileHandler fileHandler = new FileHandler(logFile, 1024 * 1024, 3, true);
-                    fileHandler.setEncoding("utf-8");
-                    fileHandler.setFormatter(new SimpleFormatter());
-                    logger.addHandler(fileHandler);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
-        traceService.start(); // Start trace service
+        // 1. Init config manager
         try {
             this.configManager = new AppConfigManager(this, "config.json");
         } catch (IOException e) {
@@ -267,7 +302,11 @@ public class Application {
         }
         configManager.addChangeListener(configChangeListener);
         configManager.startWatch();
-
+        // 2. Init logger
+        initLogger();
+        // 3. Start trace service
+        traceService.start();
+        // 4. Find and inject services
         try {
             File file = new File(Application.class.getResource("/").toURI());
             scanClasses(file);
@@ -279,9 +318,11 @@ public class Application {
         createAllServiceInstance();
         inject();
         for (String key: serviceMapping.keySet()) {
-            System.out.println("Register Service: " + key + " -> " + serviceMapping.get(key).getClass().getName());
+            logger.log(Level.FINE, "Register Service: " + key + " -> " + serviceMapping.get(key).getClass().getName());
         }
+        // 5. Start all services which need be started.
         startAllService();
+        logger.log(Level.INFO, "Application started!");
     }
 
     public static Application get(String appName) {
@@ -345,6 +386,7 @@ public class Application {
         if (service != null)
             callServiceStop(service);
         serviceTypes.remove(name);
+        logger.log(Level.FINE, "Un-Register Service: " + name);
         inject();
     }
 
@@ -352,7 +394,7 @@ public class Application {
         checkServiceName(name);
         serviceTypes.put(name, type);
         Object service = createServiceInstance(name);
-        System.out.println("Register Service: " + name + " -> " + type.getName());
+        logger.log(Level.FINE, "Register Service: " + name + " -> " + type.getName());
         inject();
         callServiceStart(service);
     }

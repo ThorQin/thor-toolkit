@@ -7,6 +7,8 @@ import com.github.thorqin.toolkit.web.router.WebContent;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @WebModule
 public class MyModule {
@@ -14,6 +16,9 @@ public class MyModule {
     @Service("db")
     DBService db;
 	*/
+
+    @Service("logger")
+    Logger logger;
 
     @Service("myService")
     MyService myService;
@@ -27,6 +32,7 @@ public class MyModule {
 
     @WebEntry(method = HttpMethod.POST)
     public Map<String, Object> echo(@Entity @ValidateMap(type = Object.class) Map<String, Object> body) {
+        logger.log(Level.FINE, "Access echo");
         return body;
     }
 
