@@ -19,6 +19,21 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 public @interface ValidateDate {
 	boolean allowNull() default false;
+
+    /**
+     * Use ISO8601 Format
+     * @return Minimum date time value
+     */
 	String min() default "1970-1-1";
+
+    /**
+     * Use ISO8601 Format (e.g.: '1970-01-01T23:00:00Z', '1970-01-01T23:00:00+08')
+     * @return Maximum date time value
+     */
 	String max() default "";
+    /**
+     * Will be used in error message if provided.
+     * @return Field or object's name or similar text.
+     */
+    String name() default "";
 }

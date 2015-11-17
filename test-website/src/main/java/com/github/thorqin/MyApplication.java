@@ -4,7 +4,7 @@ import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.WebApp;
 import com.github.thorqin.toolkit.web.annotation.WebRouter;
 
-@WebApp(name = "testtag",
+@WebApp(name = "test-website",
         routers = {
                 @WebRouter("*.do")
                 // Uncomment following line to enable database router

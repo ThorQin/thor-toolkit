@@ -29,31 +29,61 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Stack;
+import java.text.MessageFormat;
+import java.util.*;
+import com.github.thorqin.toolkit.utility.Localization;
 import javassist.Modifier;
 import com.github.thorqin.toolkit.validation.annotation.*;
+import org.joda.time.DateTime;
 
 /**
  *
  * @author nuo.qin
  */
 public final class Validator {
-	private static interface DoubleConvert {
-		public Double convert(Object val); 
+	private interface DoubleConvert {
+		Double convert(Object val);
 	}
 	private final Stack<String> pathStack = new Stack<>();
 	private final static Map<Class<?>, DoubleConvert> numberClass = new HashMap<>();
-	
+    private final Localization loc;
+
+    private enum MessageConstant {
+        VERIFY_FAILED("message.verify.failed", "Verify failed: "),
+        CANNOT_BE_NULL("message.cannot.be.null", "value must be provided"),
+        CANNOT_BE_EMPTY("message.cannot.be.empty", "value cannot be empty"),
+        INVALID_TYPE("message.invalid.type", "type is invalid, expect ''{0}'' but found ''{0}''"),
+        INVALID_VALUE("message.invalid.value", "value is invalid"),
+        INVALID_FORMAT("message.invalid.format", "format is invalid"),
+        INVALID_CHECK_TIME_FORMAT("message.invalid.check.time.format", "specified min/max date time format is invalid"),
+        VALUE_SHOULD_LESS_THAN("message.value.should.less.than", "value should be less than {0}"),
+        VALUE_SHOULD_GREAT_THAN("message.value.should.great.than", "value should be greater than {0}"),
+        VALUE_SHOULD_BETWEEN("message.value.should.between", "value should between {0} and {1}"),
+        COUNT_SHOULD_LESS_THAN("message.count.should.less.than", "item count should be less than {0}"),
+        COUNT_SHOULD_GREAT_THAN("message.count.should.great.than", "item count should be greater than {0}"),
+        COUNT_SHOULD_BETWEEN("message.count.should.between", "item count should between {0} and {1}"),
+        TIME_SHOULD_LESS_THAN("message.time.should.less.than", "time should be earlier than {0}"),
+        TIME_SHOULD_GREAT_THAN("message.time.should.great.than", "time should be later than {0}"),
+        TIME_SHOULD_BETWEEN("message.time.should.between", "time should between {0} and {1}"),
+        LENGTH_SHOULD_LESS_THAN("message.length.should.less.than", "length should be less than {0}"),
+        LENGTH_SHOULD_GREAT_THAN("message.length.should.great.than", "length should be greater than {0}"),
+        LENGTH_SHOULD_BETWEEN("message.length.should.between", "length should between {0} and {1}");
+        private String key;
+        private String message;
+        MessageConstant(String key, String message) {
+            this.key = key;
+            this.message = message;
+        }
+        public String getMessage(Localization loc, Object... params) {
+            String msg;
+            if (loc != null) {
+                msg = loc.get(key, message);
+            } else
+                msg = message;
+            return MessageFormat.format(msg, params);
+        }
+    }
+
 	static {
 		numberClass.put(byte.class, new DoubleConvert(){
 			@Override
@@ -152,84 +182,118 @@ public final class Validator {
 			}
 		});
 	}
-	
-	private void validateNumber(Double value, ValidateNumber anno) throws ValidateException {
+
+    public Validator(Localization loc) {
+        this.loc = loc;
+    }
+
+	private void validateNumber(Double value, String name, ValidateNumber anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
 		if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("value cannot be null!");
+				throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
-			if (value < anno.min() || value > anno.max())
-				throw new ValidateException("value range should between " + anno.min() + " and " + anno.max() + "!");
+            if (anno.min() != Double.MIN_VALUE && anno.max() != Double.MAX_VALUE) {
+                if (value < anno.min() || value > anno.max())
+                    throw new ValidateException(MessageConstant.VALUE_SHOULD_BETWEEN.getMessage(loc, anno.min(), anno.max()));
+            } else if (anno.min() != Double.MIN_VALUE) {
+                if (value < anno.min())
+                    throw new ValidateException(MessageConstant.VALUE_SHOULD_GREAT_THAN.getMessage(loc, anno.min()));
+            } else if (anno.max() != Double.MAX_VALUE) {
+                if (value > anno.max())
+                    throw new ValidateException(MessageConstant.VALUE_SHOULD_LESS_THAN.getMessage(loc, anno.max()));
+            }
 			if (anno.value().length > 0) {
 				for (double v : anno.value()) {
-					if (Objects.equals(value, v))
-						return;
+					if (Objects.equals(value, v)) {
+                        pathStack.pop();
+                        return;
+                    }
 				}
-				throw new ValidateException("value isn't in allow list!");
+                throw new ValidateException(MessageConstant.INVALID_VALUE.getMessage(loc));
 			}
 		}
+        pathStack.pop();
 	}
-	private void validateBoolean(Boolean value, ValidateBoolean anno) throws ValidateException {
-		if (value == null) {
+	private void validateBoolean(Boolean value, String name, ValidateBoolean anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
+        if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("value cannot be null!");
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
 			if (anno.value().length > 0) {
 				for (boolean v : anno.value()) {
-					if (Objects.equals(value, v))
-						return;
+					if (Objects.equals(value, v)) {
+                        pathStack.pop();
+                        return;
+                    }
 				}
-				throw new ValidateException("value isn't in allow list!");
+                throw new ValidateException(MessageConstant.INVALID_VALUE.getMessage(loc));
 			}
 		}
+        pathStack.pop();
 	}
-	private void validateString(String value, ValidateString anno) throws ValidateException {
-		if (value == null) {
+	private void validateString(String value, String name, ValidateString anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
+        if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("String cannot be null!");
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
 			if (value.isEmpty()) {
-				if (anno.allowEmpty())
-					return;
-				else
-					throw new ValidateException("String cannot be empty!");
+				if (anno.allowEmpty()) {
+                    pathStack.pop();
+                    return;
+                } else
+                    throw new ValidateException(MessageConstant.CANNOT_BE_EMPTY.getMessage(loc));
 			}
-			if (value.length() < anno.minLength()|| value.length() > anno.maxLength())
-				throw new ValidateException("String length should between " + anno.minLength() + " and " + anno.maxLength() + "!");
+            if (anno.minLength() != Integer.MIN_VALUE && anno.maxLength() != Integer.MAX_VALUE) {
+                if (value.length() < anno.minLength() || value.length() > anno.maxLength())
+                    throw new ValidateException(MessageConstant.LENGTH_SHOULD_BETWEEN.getMessage(loc, anno.minLength(), anno.maxLength()));
+            } else if (anno.minLength() != Integer.MIN_VALUE) {
+                if (value.length() < anno.minLength())
+                    throw new ValidateException(MessageConstant.LENGTH_SHOULD_GREAT_THAN.getMessage(loc, anno.minLength()));
+            } else if (anno.maxLength() != Integer.MAX_VALUE) {
+                if (value.length() > anno.maxLength())
+                    throw new ValidateException(MessageConstant.LENGTH_SHOULD_LESS_THAN.getMessage(loc, anno.maxLength()));
+            }
 			if (!anno.value().trim().isEmpty()) {
 				boolean matches = value.matches(anno.value().trim());
 				if (!matches) {
-					throw new ValidateException("String does not match the given pattern!");
+                    throw new ValidateException(MessageConstant.INVALID_FORMAT.getMessage(loc));
 				}
 			}
 		}
+        pathStack.pop();
 	}
-	
-	private Date parseDate(String dateStr) throws ParseException {
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date result;
-		try {
-			result = formatter.parse(dateStr);
-		} catch (ParseException ex) {
-			formatter = new SimpleDateFormat("yyyy-MM-dd");
-			result = formatter.parse(dateStr);
-		}
-		return result;
-	}
-	
-	private void validateDate(Date value, ValidateDate anno) throws ValidateException {
-		if (value == null) {
+
+	private void validateDate(DateTime value, String name, ValidateDate anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
+        if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("Date cannot be null!");
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
-			try {
-			if ((!anno.min().isEmpty() && value.getTime() < parseDate(anno.min()).getTime()) || 
-					(!anno.max().isEmpty() && value.getTime() > parseDate(anno.max()).getTime()))
-				throw new ValidateException("Date value range should between " + anno.min() + " and " + anno.max() + "!");
-			} catch (ParseException ex) {
-				throw new ValidateException("Specify invalid date value for min/max value", ex);
-			}
-		}
+            try {
+                DateTime minDate = null, maxDate = null;
+                if (!anno.min().isEmpty())
+                    minDate = DateTime.parse(anno.min());
+                if (!anno.max().isEmpty())
+                    maxDate = DateTime.parse(anno.max());
+                if (minDate != null && maxDate != null) {
+                    if (value.getMillis() < minDate.getMillis() ||
+                            value.getMillis() > maxDate.getMillis())
+                        throw new ValidateException(MessageConstant.TIME_SHOULD_BETWEEN.getMessage(loc, anno.min(), anno.max()));
+                } else if (minDate != null) {
+                    if (value.getMillis() < minDate.getMillis())
+                        throw new ValidateException(MessageConstant.TIME_SHOULD_GREAT_THAN.getMessage(loc, anno.min()));
+                } else if (maxDate != null) {
+                    if (value.getMillis() > maxDate.getMillis())
+                        throw new ValidateException(MessageConstant.TIME_SHOULD_LESS_THAN.getMessage(loc, anno.max()));
+                }
+            } catch (IllegalArgumentException ex) {
+                throw new ValidateException(MessageConstant.INVALID_CHECK_TIME_FORMAT.getMessage(loc));
+            }
+        }
+        pathStack.pop();
 	}
 	
 	private void validateObject(Object value, Class<?> type) throws ValidateException {
@@ -241,15 +305,12 @@ public final class Validator {
 				if (Modifier.isStatic(field.getModifiers()))
 					continue;
 				String fieldName = field.getName();
-				pathStack.push("Validate field: " + fieldName);
 				field.setAccessible(true);
 				try {
-					validateInternal(field.get(value), field.getType(), field.getAnnotations());
+					validateInternal(field.get(value), field.getType(), fieldName, field.getAnnotations());
 				} catch (IllegalArgumentException | IllegalAccessException ex) {
 					throw new ValidateException("Cannot access field!", ex);
 				}
-				if (!pathStack.empty())
-					pathStack.pop();
 			}
 			if (Verifiable.class.isAssignableFrom(type)) {
 				Verifiable verifiable = (Verifiable)value;
@@ -258,83 +319,98 @@ public final class Validator {
 		}
 	}
 	
-	private void validateObject(Object value, Validate anno) throws ValidateException {
+	private void validateObject(Object value, String name, Validate anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
 		if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("Object cannot be null!");
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
 			Class<?> type = value.getClass();
 			validateObject(value, type);
 		}
+        pathStack.pop();
 	}
 	
-	private void validateCollectionItem(Object item, ValidateCollection anno) throws ValidateException {
+	private void validateCollectionItem(Object item, String name, ValidateCollection anno) throws ValidateException {
 		if (item == null) {
-			if (!anno.allowNullItem())
-				throw new ValidateException("Item cannot be null!");
+			if (!anno.allowNullItem()) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
+            }
 		} else {
 			Class<?> itemType = anno.itemType();
-			if (itemType.isAnnotationPresent(CollectionItemAgent.class)) {
-				try {
-					Field field = itemType.getField("item");
-					itemType = field.getType();
-					if (!itemType.isInstance(item))
-						throw new ValidateException("Unexpected item type, need: '" + itemType.getName()
-						+ "' but found: '" + item.getClass().getName() + "'");
-					validateInternal(item, itemType, field.getAnnotations());
-				} catch (NoSuchFieldException ex) {
-					throw new ValidateException("Unspecified item type in class '" +
-							itemType.getName() + "', must provider 'item' field to specify item type and provide annotations.");
-				}
+			if (itemType.isAnnotationPresent(CollectionItem.class)) {
+                CollectionItem collectionItem = itemType.getAnnotation(CollectionItem.class);
+                Annotation[] annotations = itemType.getAnnotations();
+                itemType = collectionItem.itemType();
+                validateInternal(item, itemType, name, annotations);
 			} else {
+                pathStack.push(name);
 				if (!itemType.isInstance(item))
-					throw new ValidateException("Unexpected item type, need: '" + itemType.getName()
-						+ "' but found: '" + item.getClass().getName() + "'");
+                    throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                            loc, itemType.getName(), item.getClass().getName()));
 				validateObject(item, itemType);
+                pathStack.pop();
 			}
 		}
 	}
 	
-	private void validateCollection(Collection<?> value, ValidateCollection anno) throws ValidateException {
-		if (value == null) {
+	private void validateCollection(Collection<?> value, String name, ValidateCollection anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
+        if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("Object cannot be null!");
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
-			if (value.size() < anno.minSize() || value.size() > anno.maxSize())
-				throw new ValidateException("Items count should between " + anno.minSize() + " and " + anno.maxSize() + "!");
+            int len = value.size();
+            if (anno.minSize() != Integer.MIN_VALUE && anno.maxSize() != Integer.MAX_VALUE) {
+                if (len < anno.minSize() || len > anno.maxSize())
+                    throw new ValidateException(MessageConstant.COUNT_SHOULD_BETWEEN.getMessage(loc, anno.minSize(), anno.maxSize()));
+            } else if (anno.minSize() != Integer.MIN_VALUE) {
+                if (len < anno.minSize())
+                    throw new ValidateException(MessageConstant.COUNT_SHOULD_GREAT_THAN.getMessage(loc, anno.minSize()));
+            } else if (anno.maxSize() != Integer.MAX_VALUE) {
+                if (len > anno.maxSize())
+                    throw new ValidateException(MessageConstant.COUNT_SHOULD_LESS_THAN.getMessage(loc, anno.maxSize()));
+            }
 			int i = 0;
 			for (Object item : value) {
-				pathStack.push("Collection Item: " + i);
-				validateCollectionItem(item, anno);
-				if (!pathStack.empty())
-					pathStack.pop();
+				validateCollectionItem(item, MessageFormat.format("[{0}]",i), anno);
 				i++;
 			}
 		}
+        pathStack.pop();
 	}
 	
-	private void validateArray(Object value, ValidateCollection anno) throws ValidateException {
+	private void validateArray(Object value, String name, ValidateCollection anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
 		if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("Object cannot be null!");
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
-			int len = Array.getLength(value);
-			if (len < anno.minSize() || len > anno.maxSize())
-				throw new ValidateException("Items count should between " + anno.minSize() + " and " + anno.maxSize() + "!");
+            int len = Array.getLength(value);
+            if (anno.minSize() != Integer.MIN_VALUE && anno.maxSize() != Integer.MAX_VALUE) {
+                if (len < anno.minSize() || len > anno.maxSize())
+                    throw new ValidateException(MessageConstant.COUNT_SHOULD_BETWEEN.getMessage(loc, anno.minSize(), anno.maxSize()));
+            } else if (anno.minSize() != Integer.MIN_VALUE) {
+                if (len < anno.minSize())
+                    throw new ValidateException(MessageConstant.COUNT_SHOULD_GREAT_THAN.getMessage(loc, anno.minSize()));
+            } else if (anno.maxSize() != Integer.MAX_VALUE) {
+                if (len > anno.maxSize())
+                    throw new ValidateException(MessageConstant.COUNT_SHOULD_LESS_THAN.getMessage(loc, anno.maxSize()));
+            }
 			for (int i = 0; i < len; i++) {
-				pathStack.push("Array Item: " + i);
 				Object item = Array.get(value, i);
-				validateCollectionItem(item, anno);
-				if (!pathStack.empty())
-					pathStack.pop();
+				validateCollectionItem(item, MessageFormat.format("[{0}]",i), anno);
 			}
 		}
+        pathStack.pop();
 	}
 	
-	private void validateMap(Map<?,?> value, ValidateMap anno) throws ValidateException {
-		if (value == null) {
+	private void validateMap(Map<?,?> value, String name, ValidateMap anno) throws ValidateException {
+        pathStack.push(anno.name().isEmpty() ? name: anno.name());
+        if (value == null) {
 			if (!anno.allowNull())
-				throw new ValidateException("Object cannot be null!");
+                throw new ValidateException(MessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
 			Class<?> type = anno.type();
 			Set<Field> fieldsToCheck = new HashSet<>();
@@ -344,20 +420,18 @@ public final class Validator {
 				if (Modifier.isStatic(field.getModifiers()))
 					continue;
 				String key = field.getName();
-				pathStack.push("Validate field: " + key);
 				Object obj = value.get(key);
-				validateInternal(obj, field.getType(), field.getAnnotations());
-				if (!pathStack.empty())
-					pathStack.pop();
+				validateInternal(obj, field.getType(), key, field.getAnnotations());
 			}
 		}
+        pathStack.pop();
 	}
-	
-	private static Double toDouble(Object obj, Class<?> type) {
-		if (obj == null)
-			return null;
-		return numberClass.get(type).convert(obj);
-	}
+
+    private static Double toDouble(Object obj) {
+        if (obj == null)
+            return null;
+        return numberClass.get(obj.getClass()).convert(obj);
+    }
 	private static Boolean toBoolean(Object obj) {
 		if (obj == null)
 			return null;
@@ -368,9 +442,19 @@ public final class Validator {
 		else
 			return null;
 	}
+    private static DateTime toDateTime(Object obj) {
+        if (obj == null)
+            return null;
+        else if (obj.getClass().equals(Date.class))
+            return new DateTime(((Date)obj).getTime());
+        else if (obj.getClass().equals(DateTime.class))
+            return (DateTime)obj;
+        else
+            return null;
+    }
 	
 	private static boolean isDate(Class<?> type) {
-		return type.equals(Date.class);
+		return type.equals(Date.class) || type.equals(DateTime.class);
 	}
 	private static boolean isBoolean(Class<?> type) {
 		return type.equals(boolean.class) || type.equals(Boolean.class);
@@ -454,95 +538,127 @@ public final class Validator {
 			throw new ValidateException("Unexpected validation rule, given rule cannot match the object type!");
 	}
 	
-	private void validateInternal(Object object, Class<?> type, Annotation[] annotations) throws ValidateException {
+	private void validateInternal(Object object, Class<?> type, String name, Annotation[] annotations) throws ValidateException {
 		if (isString(type)) {
-			if (!isStringOrNull(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-					"', but found: '" + object.getClass().getName() + "'.");
+			if (!isStringOrNull(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			ValidateString anno = getAnnotation(annotations, ValidateString.class);
 			if (anno != null)
-				validateString((String)object, anno);
+				validateString((String)object, name, anno);
 		} else if (isNumber(type)) {
-			if (!isNumberOrNull(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-					"', but found: '" + object.getClass().getName() + "'.");
+			if (!isNumberOrNull(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			ValidateNumber anno = getAnnotation(annotations, ValidateNumber.class);
 			if (anno != null)
-				validateNumber(toDouble(object, type), anno);
+				validateNumber(toDouble(object), name, anno);
 		} else if (isBoolean(type)) {
-			if (!isBooleanOrNull(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-					"', but found: '" + object.getClass().getName() + "'.");
+			if (!isBooleanOrNull(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			ValidateBoolean anno = getAnnotation(annotations, ValidateBoolean.class);
 			if (anno != null)
-				validateBoolean(toBoolean(object), anno);
+				validateBoolean(toBoolean(object), name, anno);
 		} else if (isDate(type)) {
-			if (!isDateOrNull(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-					"', but found: '" + object.getClass().getName() + "'.");
+			if (!isDateOrNull(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			ValidateDate anno = getAnnotation(annotations, ValidateDate.class);
 			if (anno != null)
-				validateDate((Date)object, anno);
+				validateDate(toDateTime(object), name, anno);
 		} else if (isCollection(type)) {
-			if (!isCollectionOrNull(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-					"', but found: '" + object.getClass().getName() + "'.");
+			if (!isCollectionOrNull(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			ValidateCollection anno = getAnnotation(annotations, ValidateCollection.class);
 			if (anno != null)
-				validateCollection((Collection<?>)object, anno);
+				validateCollection((Collection<?>)object, name, anno);
 		} else if (isArray(type)) {
-			if (!isArrayOrNull(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-					"', but found: '" + object.getClass().getName() + "'.");
+			if (!isArrayOrNull(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			ValidateCollection anno = getAnnotation(annotations, ValidateCollection.class);
 			if (anno != null)
-				validateArray(object, anno);
+				validateArray(object, name, anno);
 		} else if (isMap(type)) {
-			if (!isMapOrNull(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-					"', but found: '" + object.getClass().getName() + "'.");
+			if (!isMapOrNull(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			ValidateMap anno = getAnnotation(annotations, ValidateMap.class);
 			if (anno != null)
-				validateMap((Map<?,?>)object, anno);
+				validateMap((Map<?,?>)object, name, anno);
 		} else {
-			if (object != null && !type.isInstance(object))
-				throw new ValidateException("Invalid object type, need: '" + type.getName() + 
-						"', but found: '" + object.getClass().getName() + "'.");
+			if (object != null && !type.isInstance(object)) {
+                pathStack.push(name);
+                throw new ValidateException(MessageConstant.INVALID_TYPE.getMessage(
+                        loc, type.getName(), object.getClass().getName()));
+            }
 			Validate anno = getAnnotation(annotations, Validate.class);
 			if (anno != null)
-				validateObject(object, anno);
+				validateObject(object, name, anno);
 		}
 	}
+
+    public void validateObject(Object object, Class<?> type, final boolean allowNull) throws ValidateException {
+        validate(object, type, new Annotation[]{
+                new Validate() {
+                    @Override
+                    public boolean allowNull() {
+                        return allowNull;
+                    }
+
+                    @Override
+                    public String name() {
+                        return "";
+                    }
+
+                    @Override
+                    public Class<? extends Annotation> annotationType() {
+                        return Validate.class;
+                    }
+                }
+        });
+    }
 	
 	public void validate(Object object, Class<?> type, Annotation[] annotations) throws ValidateException {
 		try {
 			pathStack.clear();
-			validateInternal(object, type, annotations);
+			validateInternal(object, type, null, annotations);
 		} catch (Exception ex) {
 			StringBuilder sb = new StringBuilder();
-			sb.append("ERROR: Validate failed!!! Cause by: ");
+            sb.append(MessageConstant.VERIFY_FAILED.getMessage(loc));
+            boolean isEmpty = true;
+            for (int i = 0; i < pathStack.size(); i++) {
+                String name = pathStack.get(i);
+                if (name != null && !name.isEmpty()) {
+                    if (!isEmpty)
+                        sb.append("::");
+                    if (loc == null)
+                        sb.append(name);
+                    else
+                        sb.append(loc.get(name));
+                    isEmpty = false;
+                }
+            }
+			sb.append(": ");
 			sb.append(ex.getMessage());
-			while (!pathStack.empty()) {
-				sb.append("\n\tat * ");
-				sb.append(pathStack.pop());
-			}
 			throw new ValidateException(sb.toString());
 		}
-	}
-	
-	public void validateObject(Object object, Class<?> type, final boolean allowNull) throws ValidateException {
-		validate(object, type, new Annotation[]{
-			new Validate() {
-				@Override
-				public boolean allowNull() {
-					return allowNull;
-				}
+    }
 
-				@Override
-				public Class<? extends Annotation> annotationType() {
-					return Validate.class;
-				}
-			}
-		});
-	}
 }

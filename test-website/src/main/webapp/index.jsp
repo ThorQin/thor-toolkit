@@ -27,7 +27,7 @@
 
             tui.ctrl.button("btnTest1").on("click", function(){
                 var form = tui.ctrl.form();
-                form.immediateValue({"name":"Thor", "age": 40});
+                form.immediateValue({"name":"Thor", "age": 5});
                 form.action("echo.do");
                 form.on("receive", function(data){
                     tui.infobox(JSON.stringify(data));
@@ -46,6 +46,7 @@
 ${myService.getServerTime()}
 <br>
 session:${session.get("lang")}
+
 </body>
 </html>
 

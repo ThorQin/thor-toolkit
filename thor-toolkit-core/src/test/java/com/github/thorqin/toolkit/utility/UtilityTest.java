@@ -3,6 +3,7 @@ package com.github.thorqin.toolkit.utility;
 import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.service.TaskService;
+import org.joda.time.DateTime;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -11,10 +12,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -110,6 +111,12 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
         DBService.PreparedInfo info = DBService.prepareSql(sql, args);
         System.out.println(info.sql);
         System.out.println(StringUtils.join(info.args));
+    }
+
+    @Test
+    public void testStringFormatAndLog() {
+
+        System.out.println(DateTime.parse("1970-01-02T23:23:"));
     }
 }
 

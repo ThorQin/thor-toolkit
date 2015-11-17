@@ -4,6 +4,7 @@ import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.service.ISettingComparable;
 import com.github.thorqin.toolkit.trace.*;
 import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
@@ -263,9 +264,9 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 
 	@SuppressWarnings("unchecked")
 	private static <T> T stmtGet(Object stmt,
-											Class<T> valueType,
-											int offset,
-											Map<String, Class<?>> udtMapping)
+                                 Class<T> valueType,
+                                 int offset,
+                                 Map<String, Class<?>> udtMapping)
 			throws SQLException {
 		Class<?> cls = stmt.getClass();
 		try {
@@ -509,61 +510,6 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	protected void finalize() throws Throwable {
 		close();
 		super.finalize();
-	}
-
-	public static class DBArrayParameter {
-		public Object value;
-		public <T> DBArrayParameter(Iterable<T> array) {
-			value = array;
-		}
-		public DBArrayParameter(Object[] array) {
-			value = array;
-		}
-		public DBArrayParameter(String[] array) {
-			value = array;
-		}
-		public DBArrayParameter(int[] array) {
-			value = array;
-		}
-		public DBArrayParameter(Integer[] array) {
-			value = array;
-		}
-		public DBArrayParameter(long[] array) {
-			value = array;
-		}
-		public DBArrayParameter(Long[] array) {
-			value = array;
-		}
-		public DBArrayParameter(short[] array) {
-			value = array;
-		}
-		public DBArrayParameter(Short[] array) {
-			value = array;
-		}
-		public DBArrayParameter(byte[] array) {
-			value = array;
-		}
-		public DBArrayParameter(Byte[] array) {
-			value = array;
-		}
-		public DBArrayParameter(float[] array) {
-			value = array;
-		}
-		public DBArrayParameter(Float[] array) {
-			value = array;
-		}
-		public DBArrayParameter(double[] array) {
-			value = array;
-		}
-		public DBArrayParameter(Double[] array) {
-			value = array;
-		}
-		public DBArrayParameter(BigDecimal[] array) {
-			value = array;
-		}
-		public DBArrayParameter(BigInteger[] array) {
-			value = array;
-		}
 	}
 	
 	public static class DBTable {
@@ -1161,7 +1107,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	}
 	public DBService(DBSetting dbSetting, Tracer tracer) throws ValidateException {
 		this.tracer = tracer;
-		Validator validator = new Validator();
+		Validator validator = new Validator(Localization.getInstance());
 		validator.validateObject(dbSetting, DBSetting.class, false);
 		this.setting = dbSetting;
 		try {
@@ -1248,9 +1194,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	}
 
 	private static String arrayToString(Object obj) {
-		if (obj.getClass().equals(DBArrayParameter.class)) {
-			return arrayToString(((DBArrayParameter)obj).value);
-		} else if (Iterable.class.isInstance(obj)) {
+		if (Iterable.class.isInstance(obj)) {
 			StringBuilder sb = new StringBuilder();
 			Iterator<?> it = ((Iterable<?>)obj).iterator();
 			boolean isFirst = true;
@@ -1351,8 +1295,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		for (int i = 0; i < args.length; i++) {
 			Object arg = args[i];
 			if (arg != null && (arg.getClass().isArray() ||
-					Iterable.class.isInstance(arg) ||
-					arg.getClass().equals(DBArrayParameter.class))) {
+					Iterable.class.isInstance(arg))) {
 				if (placeholders == null)
 					placeholders = scanSQL(sql);
 				if (i * 2 + 1 < placeholders.size()) {

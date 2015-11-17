@@ -41,6 +41,11 @@ public @interface ValidateCollection {
 	int minSize() default 0;
 	int maxSize() default Integer.MAX_VALUE;
 	Class<?> itemType() default Object.class;
+    /**
+     * Will be used in error message if provided.
+     * @return Field or object's name or similar text.
+     */
+    String name() default "";
 }
 
 

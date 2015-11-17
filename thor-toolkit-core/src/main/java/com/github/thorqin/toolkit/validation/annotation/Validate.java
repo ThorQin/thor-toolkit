@@ -37,4 +37,9 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER})
 public @interface Validate {
 	boolean allowNull() default false;
+    /**
+     * Will be used in error message if provided.
+     * @return Field or object's name or similar text.
+     */
+    String name() default "";
 }

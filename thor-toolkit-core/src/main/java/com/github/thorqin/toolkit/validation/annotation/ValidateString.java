@@ -65,4 +65,10 @@ public @interface ValidateString {
 	String value() default "";
 	int minLength() default 0;
 	int maxLength() default Integer.MAX_VALUE;
+
+    /**
+     * Will be used in error message if provided.
+     * @return Field or object's name or similar text.
+     */
+    String name() default "";
 }

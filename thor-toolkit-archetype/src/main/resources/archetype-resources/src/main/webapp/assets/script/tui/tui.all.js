@@ -41,7 +41,10 @@ if (!JSON) {
         }) + '"' : '"' + string + '"';
     }
     function str(key, holder) {
-        var i, k, v, length, mind = gap, partial, value = holder[key];
+        var i, // The loop counter.
+        k, // The member key.
+        v, // The member value.
+        length, mind = gap, partial, value = holder[key];
         if (value && typeof value === 'object' &&
             typeof value.toJSON === 'function') {
             value = value.toJSON(key);
@@ -1666,11 +1669,10 @@ var tui;
     }
     tui.formatDate = formatDate;
 })(tui || (tui = {}));
-var __extends = this.__extends || function (d, b) {
+var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 /// <reference path="tui.core.ts" />
 var tui;
@@ -10876,11 +10878,11 @@ var tui;
                 if (button.checked()) {
                     $(tabId).removeClass("tui-hidden");
                     tui.ctrl.initCtrls($(tabId)[0]);
+                    this.fire("active", { index: this._buttons.indexOf(button), text: button.text() });
                 }
                 else {
                     $(tabId).addClass("tui-hidden");
                 }
-                this.fire("active", { index: this._buttons.indexOf(button), text: button.text() });
             };
             Tab.prototype.at = function (index) {
                 if (index >= 0 && index < this._buttons.length)

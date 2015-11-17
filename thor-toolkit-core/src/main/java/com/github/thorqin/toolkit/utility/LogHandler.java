@@ -10,6 +10,7 @@ import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.text.MessageFormat;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -99,7 +100,7 @@ public class LogHandler extends Handler {
             printWriter.println();
             printWriter.append(record.getLevel().toString());
             printWriter.append(": ");
-            printWriter.append(record.getMessage());
+            printWriter.append(MessageFormat.format(record.getMessage(), record.getParameters()));
             printWriter.println();
             if (record.getThrown() != null) {
                 record.getThrown().printStackTrace(printWriter);
@@ -110,9 +111,11 @@ public class LogHandler extends Handler {
                 channel.force(false);
             }
             if (record.getLevel().intValue() >= Level.WARNING.intValue()) {
-                System.err.println(writer.toString());
+                System.err.print(writer.toString());
+                System.err.flush();
             } else if (record.getLevel().intValue() >= Level.CONFIG.intValue()) {
-                System.out.println(writer.toString());
+                System.out.print(writer.toString());
+                System.out.flush();
             }
         } catch (Exception e) {
             System.err.println("Write log failed: " + e.toString());

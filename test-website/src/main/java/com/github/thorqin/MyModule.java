@@ -2,6 +2,7 @@ package com.github.thorqin;
 
 import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.validation.annotation.ValidateMap;
+import com.github.thorqin.toolkit.validation.annotation.ValidateNumber;
 import com.github.thorqin.toolkit.web.annotation.*;
 import com.github.thorqin.toolkit.web.router.WebContent;
 import com.github.thorqin.toolkit.web.session.WebSession;
@@ -30,8 +31,14 @@ public class MyModule {
         return WebContent.json(serverName + " " + myService.getServerTime());
     }
 
+    public static class User {
+        public String name;
+        @ValidateNumber(min = 10)
+        public int age;
+    }
+
     @WebEntry(method = HttpMethod.POST)
-    public Map<String, Object> echo(@Entity @ValidateMap(type = Object.class) Map<String, Object> body) {
+    public Map<String, Object> echo(@Entity @ValidateMap(type = User.class) Map<String, Object> body) {
         logger.log(Level.FINE, "Access echo");
         return body;
     }

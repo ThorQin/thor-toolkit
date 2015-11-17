@@ -230,7 +230,7 @@ public abstract class WebDBRouter extends WebRouterBase {
         super.destroy();
     }
 
-    private static enum RequestPostType {
+    private enum RequestPostType {
         JSON,
         HTTP_FORM,
         UNKNOWN
@@ -238,14 +238,14 @@ public abstract class WebDBRouter extends WebRouterBase {
 
     private final static Pattern errorPattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
 
-    private void validateParameter(String jsonValue, String validateClassName) throws ValidateException {
+    private void validateParameter(String jsonValue, String validateClassName, Localization loc) throws ValidateException {
         if (validateClassName == null) {
             return;
         }
         try {
             Class<?> clazz = Class.forName(validateClassName);
             Object object = Serializer.fromJson(jsonValue, clazz);
-            Validator validator = new Validator();
+            Validator validator = new Validator(loc);
             validator.validateObject(object, clazz, true);
         } catch (ClassNotFoundException ex) {
             throw new ValidateException("Invalid validation class: " + validateClassName);
@@ -271,10 +271,11 @@ public abstract class WebDBRouter extends WebRouterBase {
 
         String key = httpMethod + ":" + requestPath;
         MappingInfo mappingInfo = mapping.get(key);
-        if (mappingInfo == null)
+        if (mappingInfo == null || mappingInfo.procedure == null)
             return false;
 
         WebSession session = null;
+        Localization loc = Localization.getInstance();
         try {
             RequestPostType postType;
             String httpBody = null;
@@ -298,6 +299,14 @@ public abstract class WebDBRouter extends WebRouterBase {
             if (session != null && !session.isNew()) {
                 session.touch();
             }
+            // Build loc object
+            Object lang = session.get("lang");
+            String language;
+            if (lang != null && lang.getClass().equals(String.class)) {
+                language = (String)lang;
+            } else
+                language = request.getHeader("Accept-Language");
+            loc = Localization.getInstance(localeBundle, language);
 
             DBService.DBRefString refSession = null;
             DBService.DBOutString outResponseHeader = null;
@@ -313,7 +322,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                     } else if (postType == RequestPostType.HTTP_FORM) {
                         jsonValue = Serializer.toJsonString(Serializer.fromUrlEncoding(httpBody));
                     }
-                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    validateParameter(jsonValue, paramInfo.validateClassName, loc);
                     parameters.add(jsonValue);
                 } else if (paramInfo.name.equalsIgnoreCase("query_string")) {
                     String queryString = request.getQueryString();
@@ -323,7 +332,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                     else {
                         jsonValue = Serializer.toJsonString(Serializer.fromUrlEncoding(queryString));
                     }
-                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    validateParameter(jsonValue, paramInfo.validateClassName, loc);
                     parameters.add(jsonValue);
                 } else if (paramInfo.name.equalsIgnoreCase("request_header")) {
                     if (headers == null) {
@@ -334,7 +343,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                         }
                     }
                     String jsonValue = Serializer.toJsonString(headers);
-                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    validateParameter(jsonValue, paramInfo.validateClassName, loc);
                     parameters.add(jsonValue);
                 } else if (paramInfo.name.equalsIgnoreCase("response_header")) {
                     outResponseHeader = new DBService.DBOutString();
@@ -350,7 +359,7 @@ public abstract class WebDBRouter extends WebRouterBase {
                     parameters.add(outResponseContentType);
                 } else if (paramInfo.name.equalsIgnoreCase("session")) {
                     String jsonValue = Serializer.toJsonString(session.getMap());
-                    validateParameter(jsonValue, paramInfo.validateClassName);
+                    validateParameter(jsonValue, paramInfo.validateClassName, loc);
                     refSession = new DBService.DBRefString(jsonValue);
                     parameters.add(refSession);
                 } else {
@@ -409,34 +418,30 @@ public abstract class WebDBRouter extends WebRouterBase {
                     String msg = matcher.group(2);
                     if (msg == null)
                         ServletUtils.send(response, status);
-                    else {
-                        Object lang = session.get("lang");
-                        String language;
-                        if (lang != null && lang.getClass().equals(String.class)) {
-                            language = (String)lang;
-                        } else
-                            language = request.getHeader("Accept-Language");
-                        ServletUtils.sendText(response, status,
-                                Localization.get(localeBundle, language, msg));
-                    }
-                    logger.log(Level.WARNING, "Return HTTP error: " + ex.getMessage());
+                    else
+                        ServletUtils.sendText(response, status, loc.get(msg));
+                    logger.log(Level.WARNING, mappingInfo.procedure + " return HTTP error: " + ex.getMessage());
                 } else {
-                    ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
+                    String message = loc.get("message.server.error", "Server error!");
+                    ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
                     logger.log(Level.SEVERE, ex.getMessage(), ex);
                 }
             } else {
-                ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
+                String message = loc.get("message.server.error", "Server error!");
+                ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
                 logger.log(Level.SEVERE, ex.getMessage(), ex);
             }
         } catch (ValidateException ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
             ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
-            logger.log(Level.SEVERE, "'" + ServletUtils.getURL(request) + "' verify parameters failed: " + ex.getMessage());
+            logger.log(Level.SEVERE, "'" + ServletUtils.getURL(request)
+                    + "' verify parameters failed: " + ex.getMessage());
         } catch (Exception ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
-            ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
+            String message = loc.get("message.server.error", "Server error!");
+            ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
             logger.log(Level.SEVERE, "'" + ServletUtils.getURL(request) + "' process failed!!", ex);
         } finally {
             if (application != null && application.getSetting().traceRouter) {

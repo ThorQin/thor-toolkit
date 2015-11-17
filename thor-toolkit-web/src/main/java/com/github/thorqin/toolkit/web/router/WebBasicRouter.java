@@ -447,13 +447,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		} else if (paramType.equals(WebSession.class)) {
 			return mInfo.session;
 		} else if (paramType.equals(Localization.class)) {
-            Object lang = mInfo.session.get("lang");
-            String language;
-            if (lang != null && lang.getClass().equals(String.class)) {
-                language = (String)lang;
-            } else
-                language = mInfo.request.getHeader("Accept-Language");
-            return Localization.getInstance(mInfo.localeMessage, language);
+            return mInfo.loc;
         } else {
 			for (Annotation ann : annos) {
 				if (ann instanceof Part) {
@@ -464,7 +458,7 @@ public final class WebBasicRouter extends WebRouterBase {
                         String val = mInfo.urlParams.get(paramName);
                         obj = convertParam(val, paramType, paramName);
                     }
-                    Validator validator = new Validator();
+                    Validator validator = new Validator(mInfo.loc);
                     validator.validate(obj, paramType, annos);
                     return obj;
                 } else if (ann instanceof Param) {
@@ -488,7 +482,7 @@ public final class WebBasicRouter extends WebRouterBase {
                             obj = convertParam(val, paramType, paramName);
                         }
                     }
-                    Validator validator = new Validator();
+                    Validator validator = new Validator(mInfo.loc);
                     validator.validate(obj, paramType, annos);
                     return obj;
 				} else if (ann instanceof Entity) {
@@ -503,7 +497,7 @@ public final class WebBasicRouter extends WebRouterBase {
 						if (param == null)
 							param = parseFromQueryString(paramType, mInfo);
 					}
-					Validator validator = new Validator();
+					Validator validator = new Validator(mInfo.loc);
 					validator.validate(param, paramType, annos);
 					return param;
 				}
@@ -524,7 +518,8 @@ public final class WebBasicRouter extends WebRouterBase {
 		public HttpServletRequest request;
 		public HttpServletResponse response;
 		public WebSession session = null;
-        public String localeMessage;
+        //public String localeMessage;
+        public Localization loc;
         public Map<String, String> queryParams = null;
         public Map<String, String> formParams = null;
 		public Map<String, String> urlParams = new HashMap<>();
@@ -546,8 +541,9 @@ public final class WebBasicRouter extends WebRouterBase {
 			return false;
 		}
 		// Handler has been found then route the input request to appropriate routine to do a further processing.
-		try {
-			MethodRuntimeInfo mInfo = new MethodRuntimeInfo();
+        Localization loc = Localization.getInstance();
+        try {
+            MethodRuntimeInfo mInfo = new MethodRuntimeInfo();
 			mInfo.request = request;
 			mInfo.response = response;
             // Obtain session object
@@ -558,6 +554,16 @@ public final class WebBasicRouter extends WebRouterBase {
 			// Extract URL's parameters which like '/{user}/{id}' form into a hash map.
 			mInfo.urlParams = matchResult.parameters;
 
+            // Build loc object
+            MappingInfo info = matchResult.info;
+            Object lang = mInfo.session.get("lang");
+            String language;
+            if (lang != null && lang.getClass().equals(String.class)) {
+                language = (String)lang;
+            } else
+                language = request.getHeader("Accept-Language");
+            mInfo.loc = Localization.getInstance(info.localeMessage, language);
+            loc = mInfo.loc;
 			boolean postJson = (request.getContentType() != null &&
 					request.getContentType().split(";")[0].equalsIgnoreCase("application/json") ||
 					request.getContentType() == null &&
@@ -573,8 +579,6 @@ public final class WebBasicRouter extends WebRouterBase {
 			if (mInfo.postType != RequestPostType.UNKNOWN)
                 mInfo.httpBody = ServletUtils.readHttpBody(request);
 
-            MappingInfo info = matchResult.info;
-            mInfo.localeMessage = info.localeMessage;
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
             if (entryAnno != null && entryAnno.crossSite()) {
                 ServletUtils.setCrossSiteHeaders(response);
@@ -616,14 +620,22 @@ public final class WebBasicRouter extends WebRouterBase {
                     ServletUtils.sendJsonObject(response, result, supportGzip);
                 }
             }
-		} catch (JsonSyntaxException | ValidateException ex) {
-			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, "Bad request: invalid parameters!");
+		} catch (JsonSyntaxException ex) {
+            String message = loc.get("message.invalid.parameter", "Bad request: invalid parameters!");
+			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, message);
 			logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
-                    "Bad request for {0}::{1}: {2}",
+                    "Bad request for {0}",
                     ex.getMessage());
-		} catch (HttpException ex) {
+		} catch (ValidateException ex) {
+            ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getLocalizedMessage());
+            logger.logp(Level.WARNING,
+                    matchResult.info.method.getDeclaringClass().getName(),
+                    matchResult.info.method.getName(),
+                    "Bad request for {0}",
+                    ex.getMessage());
+        } catch (HttpException ex) {
 			if (ex.getMessage() != null) {
 				if (ex.getJsonObject() != null)
 					ServletUtils.sendJsonObject(response, ex.getHttpStatus(), ex.getJsonObject());
@@ -633,16 +645,11 @@ public final class WebBasicRouter extends WebRouterBase {
 					ServletUtils.sendText(response, ex.getHttpStatus(), ex.getMessage());
 			} else
 				ServletUtils.send(response, ex.getHttpStatus());
-			if (ex.getCause() != null)
-				logger.logp(Level.WARNING,
-                        matchResult.info.method.getDeclaringClass().getName(),
-                        matchResult.info.method.getName(),
-                        ex.getMessage(), ex.getCause());
-            else
-                logger.logp(Level.WARNING,
-                        matchResult.info.method.getDeclaringClass().getName(),
-                        matchResult.info.method.getName(),
-                        ex.getMessage());
+            logger.logp(Level.WARNING,
+                    matchResult.info.method.getDeclaringClass().getName(),
+                    matchResult.info.method.getName(),
+                    ex.getMessage(),
+                    ex.getCause());
 		} catch (InvocationTargetException ex) {
 			Throwable realEx = ex.getTargetException();
 			if (HttpException.class.isInstance(realEx)) {
@@ -656,26 +663,22 @@ public final class WebBasicRouter extends WebRouterBase {
 						ServletUtils.sendText(response, httpEx.getHttpStatus(), httpEx.getMessage());
 				} else
 					ServletUtils.send(response, httpEx.getHttpStatus());
-				if (httpEx.getCause() != null)
-					logger.logp(Level.WARNING,
-                            matchResult.info.method.getDeclaringClass().getName(),
-                            matchResult.info.method.getName(),
-                            httpEx.getMessage(),
-                            httpEx.getCause());
-				else
-					logger.logp(Level.WARNING,
-                            matchResult.info.method.getDeclaringClass().getName(),
-                            matchResult.info.method.getName(),
-                            httpEx.getMessage());
+                logger.logp(Level.WARNING,
+                        matchResult.info.method.getDeclaringClass().getName(),
+                        matchResult.info.method.getName(),
+                        httpEx.getMessage(),
+                        httpEx.getCause());
 			} else {
-				ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
+                String message = loc.get("message.server.error", "Server error!");
+				ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
 				logger.logp(Level.SEVERE,
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
                         "Error processing", ex);
 			}
 		} catch (Exception ex) {
-			ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error!");
+            String message = loc.get("message.server.error", "Server error!");
+			ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
 			logger.logp(Level.SEVERE,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),

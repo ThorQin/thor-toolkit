@@ -17,6 +17,6 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
-public @interface CollectionItemAgent {
-	
+public @interface CollectionItem {
+    Class<?> itemType() default Object.class;
 }

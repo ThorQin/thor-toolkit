@@ -20,4 +20,9 @@ import java.lang.annotation.Target;
 public @interface ValidateBoolean {
 	boolean allowNull() default false;
 	boolean[] value() default {};
+    /**
+     * Will be used in error message if provided.
+     * @return Field or object's name or similar text.
+     */
+    String name() default "";
 }

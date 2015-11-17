@@ -117,21 +117,39 @@ public class Localization {
 
     /**
      * Translate message in specified locale.
-     * @param msg Message to be translated
+     * @param key Message to be translated
      * @return Translated message
      */
-	public String get(String msg) {
+	public String get(String key) {
         if (bundle == null)
-            return msg;
+            return key;
 		try {
-			if (bundle.keySet().contains(msg))
-				return bundle.getString(msg);
+			if (bundle.keySet().contains(key))
+				return bundle.getString(key);
 			else
-				return msg;
+				return key;
 		} catch (Exception e) {
-			return msg;
+			return key;
 		}
 	}
+
+    /**
+     * Translate message in specified locale.
+     * @param key Message to be translated
+     * @return Translated message
+     */
+    public String get(String key, String defaultMessage) {
+        if (bundle == null)
+            return defaultMessage;
+        try {
+            if (bundle.keySet().contains(key))
+                return bundle.getString(key);
+            else
+                return defaultMessage;
+        } catch (Exception e) {
+            return defaultMessage;
+        }
+    }
 
     public static synchronized String get(String bundle, String locale, String msg) {
         return getInstance(bundle, locale).get(msg);
