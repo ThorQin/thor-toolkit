@@ -7,7 +7,7 @@ import com.github.thorqin.toolkit.utility.Serializer;
  */
 public class WebContent {
 
-    public static enum Type {
+    public enum Type {
         PLAIN,
         JSON,
         HTML,

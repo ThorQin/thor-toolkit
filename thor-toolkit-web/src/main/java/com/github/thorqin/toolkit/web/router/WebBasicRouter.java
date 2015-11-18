@@ -9,6 +9,7 @@ import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.web.HttpException;
 import com.github.thorqin.toolkit.web.LifeCycleListener;
+import com.github.thorqin.toolkit.web.MessageConstant;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.WebModule;
 import com.github.thorqin.toolkit.web.annotation.Entity;
@@ -25,6 +26,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -621,20 +623,22 @@ public final class WebBasicRouter extends WebRouterBase {
                 }
             }
 		} catch (JsonSyntaxException ex) {
-            String message = loc.get("message.invalid.parameter", "Bad request: invalid parameters!");
+            String message = MessageConstant.INVALID_REQUEST_CONTENT.getMessage(loc);
 			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, message);
+            String logMsg = MessageFormat.format("Bad request, invalid JSON content: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage());
 			logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
-                    "Bad request for {0}",
-                    ex.getMessage());
+                    logMsg);
 		} catch (ValidateException ex) {
-            ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getLocalizedMessage());
+            ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
+            String logMsg = MessageFormat.format("Validate failed: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage());
             logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
-                    "Bad request for {0}",
-                    ex.getMessage());
+                    logMsg);
         } catch (HttpException ex) {
 			if (ex.getMessage() != null) {
 				if (ex.getJsonObject() != null)
@@ -645,10 +649,12 @@ public final class WebBasicRouter extends WebRouterBase {
 					ServletUtils.sendText(response, ex.getHttpStatus(), ex.getMessage());
 			} else
 				ServletUtils.send(response, ex.getHttpStatus());
+            String logMsg = MessageFormat.format("HttpException: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage());
             logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
-                    ex.getMessage(),
+                    logMsg,
                     ex.getCause());
 		} catch (InvocationTargetException ex) {
 			Throwable realEx = ex.getTargetException();
@@ -663,26 +669,37 @@ public final class WebBasicRouter extends WebRouterBase {
 						ServletUtils.sendText(response, httpEx.getHttpStatus(), httpEx.getMessage());
 				} else
 					ServletUtils.send(response, httpEx.getHttpStatus());
+                String logMsg = MessageFormat.format("HttpException: {0}: {1}",
+                        ServletUtils.getURL(request), ex.getMessage());
                 logger.logp(Level.WARNING,
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
-                        httpEx.getMessage(),
+                        logMsg,
                         httpEx.getCause());
 			} else {
-                String message = loc.get("message.server.error", "Server error!");
+                String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
 				ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
+                Throwable logThrowable;
+                if (realEx != null)
+                    logThrowable = realEx;
+                else
+                    logThrowable = ex;
+                String logMsg = MessageFormat.format("Unexpected server error, process failed: {0}: {1}",
+                        ServletUtils.getURL(request), logThrowable.getMessage());
 				logger.logp(Level.SEVERE,
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
-                        "Error processing", ex);
+                        logMsg, logThrowable);
 			}
 		} catch (Exception ex) {
-            String message = loc.get("message.server.error", "Server error!");
+            String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
 			ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
+            String logMsg = MessageFormat.format("Unexpected server error: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage());
 			logger.logp(Level.SEVERE,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
-                    "Error processing!!", ex);
+                    logMsg, ex);
 		} finally {
 			if (application != null && application.getSetting().traceRouter) {
 				Tracer.Info traceInfo = new Tracer.Info();

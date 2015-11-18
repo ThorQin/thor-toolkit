@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
  * @author nuo.qin
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD, ElementType.PARAMETER})
+@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER})
 public @interface ValidateString {
 	String NUMBER = "^[+\\-]?\\d+(\\.\\d+)?|\\.\\d+$";
 	String DIGITAL = "^\\d+$";

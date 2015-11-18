@@ -4,6 +4,7 @@
     "traceAccess": false,   // if not specified, default is false
     "sessionTimeout": 900,  // if not specified, default is 900
     "maxUploadSize": 10485760, // if not specified, default is 10MB
+    "compressJs": true,     // if not specified, default is true
     "gzip": true,           // if not specified, default is true
     "defaultAllow": true,   // if not specified, default is true
     "accessRules": []       // if not specified, default is empty

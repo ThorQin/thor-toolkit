@@ -15,38 +15,48 @@
     <script src="${root}/assets/script/tui/lang/zh-cn.js"></script>
     <script src="${root}/assets/script/tui/lang/en-us.js"></script>
     <tt:script>
+        tui.lang = '${session.get("lang")}';
+		if (tui.lang === "")
+			tui.lang = "en-us";
+        var languages = [
+            {"key":"en-us", "value":"English"},
+            {"key":"zh-cn", "value":"中文"}
+        ];
         $(function(){
             tui.ctrl.button("btnTest").on("click", function(){
                 var form = tui.ctrl.form();
                 form.action("getServerInfo.do");
                 form.on("receive", function(data){
-                    tui.errbox(data);
+                    tui.infobox(data);
                 });
                 form.submit();
             });
 
-            tui.ctrl.button("btnTest1").on("click", function(){
+            tui.ctrl.input("langSelector").on("select", function(data){
+                if (this.value() === tui.lang)
+                    return;
                 var form = tui.ctrl.form();
-                form.immediateValue({"name":"Thor", "age": 5});
-                form.action("echo.do");
-                form.on("receive", function(data){
-                    tui.infobox(JSON.stringify(data));
-                });
+                form.action("setLanguage.do");
+                form.immediateValue(this.value());
+                form.targetRedirect(".");
                 form.submit();
             });
+			tui.ctrl.input("langSelector").value(tui.lang);
         });
     </tt:script>
 </head>
 <body>
-<h1>${loc.get("title")}</h1>
+<div style="background:#204060;padding:4px;position:fixed;left:0;top:0;right:0">
+	<div style="float:right;">
+		<span style="color:white">${loc.get("language")}</span>
+		<span id="langSelector" class="tui-input" data-type="select" data-data="languages" ></span>
+	</div>
+	<div style="clear:both"></div>
+</div>
+<h1 style="margin-top:60px">${loc.get("title")}</h1>
+<hr>
 <br>
-<a id="btnTest" class="tui-button tui-primary">Show server info ...</a>
-<a id="btnTest1" class="tui-button tui-success">Post some data to server ...</a>
-<br>
-${myService.getServerTime()}
-<br>
-session:${session.get("lang")}
-
+<a id="btnTest" class="tui-button tui-primary">${loc.get("show.server.info")}</a>
 </body>
 </html>
 

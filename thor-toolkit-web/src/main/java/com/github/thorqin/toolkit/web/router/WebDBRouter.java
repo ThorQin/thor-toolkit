@@ -8,12 +8,14 @@ import com.github.thorqin.toolkit.utility.Serializer;
 import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
+import com.github.thorqin.toolkit.web.MessageConstant;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.DBRouter;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.ServletUtils;
 import com.google.common.base.Strings;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 import javax.servlet.ServletConfig;
@@ -24,6 +26,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.security.InvalidParameterException;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -411,6 +414,8 @@ public abstract class WebDBRouter extends WebRouterBase {
         } catch (SQLException ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
+            String logMsg = MessageFormat.format("SQL error: {0}: {1}: {2}",
+                    ServletUtils.getURL(request), mappingInfo.procedure, ex.getMessage());
             if (ex.getMessage() != null) {
                 Matcher matcher = errorPattern.matcher(ex.getMessage());
                 if (matcher.find()) {
@@ -420,29 +425,38 @@ public abstract class WebDBRouter extends WebRouterBase {
                         ServletUtils.send(response, status);
                     else
                         ServletUtils.sendText(response, status, loc.get(msg));
-                    logger.log(Level.WARNING, mappingInfo.procedure + " return HTTP error: " + ex.getMessage());
+                    logger.log(Level.WARNING, logMsg);
                 } else {
-                    String message = loc.get("message.server.error", "Server error!");
+                    String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
                     ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
-                    logger.log(Level.SEVERE, ex.getMessage(), ex);
+                    logger.log(Level.SEVERE, logMsg, ex);
                 }
             } else {
-                String message = loc.get("message.server.error", "Server error!");
+                String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
                 ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
-                logger.log(Level.SEVERE, ex.getMessage(), ex);
+                logger.log(Level.SEVERE, logMsg, ex);
             }
+        } catch (JsonSyntaxException ex) {
+            String message = MessageConstant.INVALID_REQUEST_CONTENT.getMessage(loc);
+            ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, message);
+            String logMsg = MessageFormat.format("Bad request, invalid JSON content: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage());
+            logger.log(Level.WARNING, logMsg);
         } catch (ValidateException ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
             ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
-            logger.log(Level.SEVERE, "'" + ServletUtils.getURL(request)
-                    + "' verify parameters failed: " + ex.getMessage());
+            String logMsg = MessageFormat.format("Validate failed: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage());
+            logger.log(Level.WARNING, logMsg);
         } catch (Exception ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
-            String message = loc.get("message.server.error", "Server error!");
+            String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
             ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
-            logger.log(Level.SEVERE, "'" + ServletUtils.getURL(request) + "' process failed!!", ex);
+            String logMsg = MessageFormat.format("Unexpected server error: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage());
+            logger.log(Level.WARNING, logMsg, ex);
         } finally {
             if (application != null && application.getSetting().traceRouter) {
                 Tracer.Info traceInfo = new Tracer.Info();

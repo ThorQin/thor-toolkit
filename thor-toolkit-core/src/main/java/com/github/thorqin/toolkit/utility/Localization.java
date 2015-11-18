@@ -57,7 +57,7 @@ public class Localization {
 	private ResourceBundle bundle;
 
     private static Map<String, Localization> cache = new HashMap<>();
-    private static Localization defaultLoc = new Localization();
+    private final static Localization defaultLoc = Localization.getInstance(null, null);
 
     private static String[] splitLocalePart(String localeString) {
         if (localeString == null) {
@@ -107,12 +107,18 @@ public class Localization {
         else if (country.matches("(?i)hant|cht"))
             country = "TW";
 		locale = new Locale(language.toLowerCase(), country.toUpperCase());
-		bundle = ResourceBundle.getBundle(bundleName, locale, this.getClass().getClassLoader(), new UTF8Control());
+        if (bundleName == null)
+            bundle = null;
+        else
+            bundle = ResourceBundle.getBundle(bundleName, locale, this.getClass().getClassLoader(), new UTF8Control());
 	}
 
     public Localization() {
-        locale = null;
-        bundle = null;
+        this(null, null, null);
+    }
+
+    public Locale getLocale() {
+        return locale;
     }
 
     /**
@@ -160,6 +166,8 @@ public class Localization {
     }
 
     public static synchronized Localization getInstance(String bundle, String locale) {
+        if (locale == null)
+            locale = "en-US";
         String key = bundle + "_" + locale;
         if (cache.containsKey(key)) {
             return cache.get(key);
@@ -168,8 +176,7 @@ public class Localization {
             try {
                 loc = new Localization(bundle, locale);
             } catch (Exception ex) {
-                ex.printStackTrace();
-                loc = new Localization(bundle, "en-US");
+                throw new RuntimeException("Get localization instance failed", ex);
             }
             cache.put(key, loc);
             return loc;

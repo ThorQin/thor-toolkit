@@ -5,14 +5,16 @@
  */
 package com.github.thorqin.toolkit.validation;
 
+import com.github.thorqin.toolkit.utility.Localization;
+
 /**
  *
  * @author nuo.qin
  */
-public interface Verifiable {
+public interface Validatable {
 	/**
 	 * If object do not pass the validation then throws ValidateException. 
 	 * @throws com.github.thorqin.toolkit.validation.ValidateException If not pass the validation then throw ValidateException
 	 */
-	void validate() throws ValidateException ;
+	void validate(Localization loc) throws ValidateException;
 }

@@ -16,10 +16,10 @@ import java.lang.annotation.Target;
  * @author nuo.qin
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD, ElementType.PARAMETER})
+@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER})
 public @interface ValidateNumber {
 	boolean allowNull() default false;
-	double min() default -Double.MAX_VALUE;
+	double min() default Double.MIN_VALUE;
 	double max() default Double.MAX_VALUE;
 	double[] value() default {};
     /**

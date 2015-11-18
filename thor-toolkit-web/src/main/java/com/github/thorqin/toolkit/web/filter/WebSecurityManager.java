@@ -130,7 +130,7 @@ public class WebSecurityManager extends WebFilterBase {
         WebSession session = null;
         Map<String, String> queryString = null;
         try {
-            MATCHE_RULE:
+            MATCH_RULE:
             for (int i = 0; i < rules.size(); i++) {
                 Rule rule = rules.get(i);
                 for (String key: rule.rule.keySet()) {
@@ -145,11 +145,11 @@ public class WebSecurityManager extends WebFilterBase {
                         if (request.getPathInfo() != null)
                             path += request.getPathInfo();
                         if (pattern.matcher(path).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.equals("method")) {
                         if (pattern.matcher(request.getMethod().toUpperCase()).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.startsWith("s:")) { // Session value
                         if (session == null) {
@@ -158,33 +158,33 @@ public class WebSecurityManager extends WebFilterBase {
                         Object value = session.get(key.substring(2));
                         String valStr = value == null ? "" : value.toString();
                         if (pattern.matcher(valStr).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.equals("server")) {
                         if (pattern.matcher(request.getServerName()).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.equals("scheme")) {
                         if (pattern.matcher(request.getScheme()).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.equals("port")) {
                         if (pattern.matcher(String.valueOf(request.getServerPort())).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.equals("client")) {
                         if (pattern.matcher(request.getRemoteAddr()).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.equals("uri")) {
                         if (pattern.matcher(request.getRequestURI()).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.startsWith("h:")) { // Header value
                         Object value = request.getHeader(key.substring(2));
                         String valStr = value == null ? "" : value.toString();
                         if (pattern.matcher(valStr).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     } else if (key.startsWith("q:")) { // Query string value
                         if (queryString == null) {
@@ -192,7 +192,7 @@ public class WebSecurityManager extends WebFilterBase {
                         }
                         String value = queryString.get(key.substring(2));
                         if (pattern.matcher(value).matches() != shouldMatch) {
-                            continue MATCHE_RULE;
+                            continue MATCH_RULE;
                         }
                     }
                 }

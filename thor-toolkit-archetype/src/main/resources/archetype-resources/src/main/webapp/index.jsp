@@ -6,7 +6,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<tt:env/><tt:loc bundle="message"/>
+	<tt:env bundle="message"/>
+	<tt:service service="myService"/>
     <title>${loc.get("title")}</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -17,26 +18,45 @@
     <script src="${root}/assets/script/tui/lang/zh-cn.js"></script>
     <script src="${root}/assets/script/tui/lang/en-us.js"></script>
     <tt:script>
+        tui.lang = '${session.get("lang")}';
+        var languages = [
+            {"key":"en-us", "value":"English"},
+            {"key":"zh-cn", "value":"中文"}
+        ];
         $(function(){
             tui.ctrl.button("btnTest").on("click", function(){
                 var form = tui.ctrl.form();
                 form.action("getServerInfo.do");
-                form.target("serverInfo");
-                form.field("*");
-                form.targetProperty("innerHTML");
-                form.on("success", function(){
-                    tui.infobox("<span id='serverInfo' style='display:inline-block;text-align:left;vertical-align:middle;width:180px;height:40px'></span>");
+                form.on("receive", function(data){
+                    tui.infobox(data);
                 });
                 form.submit();
             });
+
+            tui.ctrl.input("langSelector").on("select", function(data){
+                if (this.value() === tui.lang)
+                    return;
+                var form = tui.ctrl.form();
+                form.action("setLanguage.do");
+                form.immediateValue(this.value());
+                form.targetRedirect(".");
+                form.submit();
+            });
+			tui.ctrl.input("langSelector").value(tui.lang);
         });
     </tt:script>
 </head>
 <body>
-<h1>${loc.get("title")}</h1>
+<div style="background:#204060;padding:4px;position:fixed;left:0;top:0;right:0">
+	<div style="float:right;">
+		<span style="color:white">${loc.get("language")}</span>
+		<span id="langSelector" class="tui-input" data-type="select" data-data="languages" ></span>
+	</div>
+	<div style="clear:both"></div>
+</div>
+<h1 style="margin-top:60px">${loc.get("title")}</h1>
+<hr>
 <br>
-<a id="btnTest" class="tui-button tui-primary">Show server info ...</a>
-
+<a id="btnTest" class="tui-button tui-primary">${loc.get("show.server.info")}</a>
 </body>
 </html>
-

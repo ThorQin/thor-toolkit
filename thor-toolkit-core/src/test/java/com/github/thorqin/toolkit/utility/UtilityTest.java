@@ -116,7 +116,7 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
     @Test
     public void testStringFormatAndLog() {
 
-        System.out.println(DateTime.parse("1970-01-02T23:23:"));
+        System.out.println(Localization.getInstance("message", "enx-XXX").getLocale());
     }
 }
 
