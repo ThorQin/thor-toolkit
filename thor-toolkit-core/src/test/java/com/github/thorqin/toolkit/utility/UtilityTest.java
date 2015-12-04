@@ -3,7 +3,10 @@ package com.github.thorqin.toolkit.utility;
 import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.service.TaskService;
-import org.joda.time.DateTime;
+import com.github.thorqin.toolkit.validation.ValidateException;
+import com.github.thorqin.toolkit.validation.Validator;
+import com.github.thorqin.toolkit.validation.annotation.*;
+import com.google.gson.reflect.TypeToken;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -12,10 +15,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.text.MessageFormat;
+import java.lang.reflect.Type;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 /**
@@ -117,6 +118,40 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
     public void testStringFormatAndLog() {
 
         System.out.println(Localization.getInstance("message", "enx-XXX").getLocale());
+    }
+
+    static class Person {
+        @ValidateString("[a-z]+")
+        public String name;
+        @ValidateNumber(min = 20)
+        public Integer age;
+        @Validate
+        @ValidateCollection(type = Mail.class, minSize = 1)
+        public List<Mail> mails;
+    }
+
+    static class Mail {
+        @ValidateString("[a-z]+")
+        public String name;
+        @ValidateString(ValidateString.EMAIL)
+        public String address;
+    }
+
+    @Test
+    public void testValidation() throws ValidateException, IOException {
+
+        String json = Serializer.readTextResource("test.json");
+        Type type = new TypeToken<Map<String, List<Person>>>(){}.getType();
+        Map<String, List<Person>> persons = Serializer.fromJson(json, type);
+
+        @ValidateMap(type = List.class, asEntity = false, minSize = 1,
+                name = "用户列表", needKeys = {"public", "private"})
+        @ValidateCollection1(type = Person.class, minSize = 1)
+        @Validate
+        class TempClass{}
+
+        Validator validator = new Validator(Localization.getInstance());
+        validator.validate(persons, Map.class, TempClass.class.getAnnotations());
     }
 }
 

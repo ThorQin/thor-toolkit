@@ -1,11 +1,10 @@
 package com.github.thorqin.toolkit.amq;
 
 import com.github.thorqin.toolkit.annotation.Service;
-import com.github.thorqin.toolkit.service.ISettingComparable;
-import com.github.thorqin.toolkit.service.IStartable;
-import com.github.thorqin.toolkit.service.IStoppable;
+import com.github.thorqin.toolkit.service.IService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -15,6 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
@@ -27,12 +27,15 @@ import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import com.github.thorqin.toolkit.validation.ValidateException;
+import com.github.thorqin.toolkit.validation.Validator;
+import com.github.thorqin.toolkit.validation.annotation.ValidateString;
 import com.google.common.base.Strings;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ConfigurationException;
 import org.apache.activemq.transport.TransportListener;
 
-public class AMQService implements IStoppable, ISettingComparable, TransportListener {
+public class AMQService implements IService, TransportListener {
 
     public interface ConnectionListener {
         void onConnect();
@@ -83,9 +86,11 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
     }
 
     public static class AMQSetting {
+        @ValidateString
         public String uri;
         public String user;
         public String password;
+        @ValidateString
         public String address = "default";
         public boolean broadcast = false;
         public boolean trace = false;
@@ -97,11 +102,13 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
     private ActiveMQConnectionFactory connectionFactory;
 	private AMQSetting setting;
 	private Connection connection = null;
+    @Service("tracer")
     private Tracer tracer = null;
 	private final ThreadLocal<ProducerHolder> localProducer = new ThreadLocal<>();
     private Set<TransportListener> transportListeners = new HashSet<>();
     private Set<ConnectionListener> connectionListeners = new HashSet<>();
     private boolean isRunning = false;
+    private String serviceName = null;
 
     private void addTransportListener(TransportListener listener) {
         synchronized (transportListeners) {
@@ -364,6 +371,8 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
 		private final int deliveryMode = DeliveryMode.NON_PERSISTENT;
 		private final long defaultTimeToLive = 30000l;
 		protected Replier() throws JMSException {
+            if (!isRunning)
+                throw new JMSException("AMQ Service not started!");
 			if (connection == null)
 				throw new JMSException("Connection not allocate.");
 			holder = createHolder();
@@ -479,6 +488,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                     info.catalog = "amq";
                     info.name = "reply";
                     info.put("success", success);
+                    info.put("serviceName", serviceName);
                     info.put("subject", subject);
                     info.put("contentType", contentType);
                     info.put("startTime", beginTime);
@@ -501,6 +511,8 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
 		private int deliveryMode = DeliveryMode.NON_PERSISTENT;
 		private final long defaultTimeout = 30000l;
 		protected Sender(String address, boolean broadcast, boolean persistent) throws JMSException {
+            if (!isRunning)
+                throw new JMSException("AMQ Service not started!");
 			if (connection == null)
 				throw new JMSException("Connection not allocate.");
 			this.address = address;
@@ -591,6 +603,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                     info.catalog = "amq";
                     info.name = "send";
                     info.put("success", success);
+                    info.put("serviceName", serviceName);
                     info.put("subject", subject);
                     info.put("contentType", contentType);
                     info.put("startTime", beginTime);
@@ -623,6 +636,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                     info.catalog = "amq";
                     info.name = "send";
                     info.put("success", success);
+                    info.put("serviceName", serviceName);
                     info.put("subject", subject);
                     info.put("contentType", contentType);
                     info.put("startTime", beginTime);
@@ -704,6 +718,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                     info.put("subject", subject);
                     info.put("contentType", contentType);
                     info.put("success", success);
+                    info.put("serviceName", serviceName);
                     if (success) {
                         info.put("replyCode", replyCode);
                     }
@@ -728,6 +743,8 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
 		private String address = null;
 
 		protected Receiver(String address, boolean broadcast, String filter) throws JMSException {
+            if (!isRunning)
+                throw new JMSException("AMQ Service not started!");
 			if (connection == null)
 				throw new JMSException("Connection not allocate.");
 			this.address = address;
@@ -773,6 +790,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                     info.catalog = "amq";
                     info.name = "receive";
                     info.put("success", success);
+                    info.put("serviceName", serviceName);
                     if (success) {
                         info.put("subject", inMessage.getSubject());
                         info.put("contentType", inMessage.getContentType());
@@ -807,6 +825,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                     Tracer.Info info = new Tracer.Info();
                     info.catalog = "amq";
                     info.name = "receive";
+                    info.put("serviceName", serviceName);
                     info.put("success", success);
                     if (success) {
                         info.put("subject", inMessage.getSubject());
@@ -850,6 +869,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                     info.catalog = "amq";
                     info.name = "receiveNoWait";
                     info.put("success", success);
+                    info.put("serviceName", serviceName);
                     if (success) {
                         info.put("subject", inMessage.getSubject());
                         info.put("contentType", inMessage.getContentType());
@@ -910,6 +930,7 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                         info.catalog = "amq";
                         info.name = "onReceiveMessage";
                         info.put("success", success);
+                        info.put("serviceName", serviceName);
                         if (success) {
                             if (handler != null) {
                                 info.put("subject", inMessage.getSubject());
@@ -927,6 +948,8 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
 
 		protected AsyncReceiver(String address, boolean broadcast, String filter, 
 				MessageHandler handler) throws JMSException {
+            if (!isRunning)
+                throw new JMSException("AMQ Service not started!");
 			if (connection == null)
 				throw new JMSException("Connection not allocate.");
 			this.address = address;
@@ -957,41 +980,63 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
 		}
 	}
 
-    @Override
-    public boolean isSettingChanged(ConfigManager configManager, String configName) {
-        AMQService.AMQSetting newSetting = configManager.get(configName, AMQService.AMQSetting.class);
-        return !Serializer.equals(newSetting, setting);
+    public AMQService() {
+        this.setting = null;
+        this.tracer = null;
     }
 
-    public AMQService(ConfigManager configManager, String configName, Tracer tracer) throws JMSException {
-        this(configManager.get(configName, AMQService.AMQSetting.class), tracer);
-    }
-
-	public AMQService(AMQSetting setting) throws JMSException {
+	public AMQService(AMQSetting setting) throws ValidateException {
 		this(setting, null);
 	}
 
-    public AMQService(AMQSetting setting, Tracer tracer) throws JMSException {
+    public AMQService(AMQSetting setting, Tracer tracer) throws ValidateException {
+        validateSetting(setting);
         this.setting = setting;
         this.tracer = tracer;
-        if (Strings.isNullOrEmpty(setting.uri))
-            throw new ConfigurationException("Must provide the ActiveMQ URI info.");
+    }
+
+    private void validateSetting(AMQService.AMQSetting mailSetting) throws ValidateException {
+        Validator validator = new Validator(Localization.getInstance());
+        validator.validateObject(mailSetting, AMQService.AMQSetting.class, false);
+    }
+
+    @Override
+    public boolean config(ConfigManager configManager, String serviceName, boolean isReConfig) {
+        this.serviceName = serviceName;
+        AMQService.AMQSetting newSetting = configManager.get(serviceName, AMQService.AMQSetting.class);
+        try {
+            validateSetting(newSetting);
+        } catch (ValidateException ex) {
+            logger.log(Level.SEVERE, "Invalid AMQ configuration settings: {0}", ex.getMessage());
+            return false;
+        }
+        boolean needRestart = !Serializer.equals(newSetting, setting);
+        setting = newSetting;
+        return needRestart;
+    }
+
+    @Override
+    public boolean isStarted() {
+        return isRunning;
+    }
+
+    @Override
+    public synchronized void start() {
+        if (isRunning)
+            return;
         if (!Strings.isNullOrEmpty(setting.user))
             connectionFactory = new ActiveMQConnectionFactory(setting.user, setting.password, setting.uri);
         else
             connectionFactory = new ActiveMQConnectionFactory(setting.uri);
         connectionFactory.setTransportListener(this);
         connection = null;
-    }
-
-    public void start() {
-        if (isRunning)
-            return;
         isRunning = true;
         tryConnect();
     }
 
     public void connect() throws JMSException {
+        if (!isRunning)
+            throw new JMSException("AMQ Service not started!");
         connection = connectionFactory.createConnection();
         connection.start();
     }
@@ -1010,7 +1055,8 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
                         }
                     } catch (JMSException e) {
                         connection = null;
-                        logger.log(Level.SEVERE, "Try connect failed: " + e.getMessage());
+                        logger.log(Level.SEVERE, "Try connect failed! (Service name: {0}): {1}",
+                                new Object[]{serviceName, e.getMessage()});
                         try {
                             Thread.sleep(1000);
                         } catch (Exception ex)  {}
@@ -1022,11 +1068,13 @@ public class AMQService implements IStoppable, ISettingComparable, TransportList
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         if (!isRunning)
             return;
         isRunning = false;
         closeResource(connection);
+        connectionFactory.setTransportListener(null);
+        connectionFactory = null;
         connection = null;
     }
 

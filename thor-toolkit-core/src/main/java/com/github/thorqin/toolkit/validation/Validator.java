@@ -27,6 +27,7 @@ package com.github.thorqin.toolkit.validation;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.MessageFormat;
@@ -273,7 +274,7 @@ public final class Validator {
 				String fieldName = field.getName();
 				field.setAccessible(true);
 				try {
-					validateInternal(field.get(value), field.getType(), fieldName, field.getAnnotations());
+					validateInternal(field.get(value), field.getType(), fieldName, field.getAnnotations(), 0);
 				} catch (IllegalArgumentException | IllegalAccessException ex) {
 					throw new ValidateException("Cannot access field!", ex);
 				}
@@ -296,32 +297,8 @@ public final class Validator {
 		}
         pathStack.pop();
 	}
-	
-	private void validateCollectionItem(Object item, String name, ValidateCollection anno) throws ValidateException {
-		if (item == null) {
-			if (!anno.allowNullItem()) {
-                pathStack.push(name);
-                throw new ValidateException(ValidateMessageConstant.CANNOT_BE_NULL.getMessage(loc));
-            }
-		} else {
-			Class<?> itemType = anno.itemType();
-			if (itemType.isAnnotationPresent(CollectionItem.class)) {
-                CollectionItem collectionItem = itemType.getAnnotation(CollectionItem.class);
-                Annotation[] annotations = itemType.getAnnotations();
-                itemType = collectionItem.type();
-                validateInternal(item, itemType, name, annotations);
-			} else {
-                pathStack.push(name);
-				if (!itemType.isInstance(item))
-                    throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
-                            loc, itemType.getName(), item.getClass().getName()));
-				validateObject(item, itemType);
-                pathStack.pop();
-			}
-		}
-	}
-	
-	private void validateCollection(Collection<?> value, String name, ValidateCollection anno) throws ValidateException {
+
+	private void validateCollection(Collection<?> value, String name, ValidateCollection anno, Annotation[] annotations, int level) throws ValidateException {
         pathStack.push(anno.name().isEmpty() ? name: anno.name());
         if (value == null) {
 			if (!anno.allowNull())
@@ -340,14 +317,14 @@ public final class Validator {
             }
 			int i = 0;
 			for (Object item : value) {
-				validateCollectionItem(item, MessageFormat.format("[{0}]",i), anno);
+                validateInternal(item, anno.type(), MessageFormat.format("[{0}]",i), annotations, level + 1);
 				i++;
 			}
 		}
         pathStack.pop();
 	}
 	
-	private void validateArray(Object value, String name, ValidateCollection anno) throws ValidateException {
+	private void validateArray(Object value, String name, ValidateCollection anno, Annotation[] annotations, int level) throws ValidateException {
         pathStack.push(anno.name().isEmpty() ? name: anno.name());
 		if (value == null) {
 			if (!anno.allowNull())
@@ -366,30 +343,71 @@ public final class Validator {
             }
 			for (int i = 0; i < len; i++) {
 				Object item = Array.get(value, i);
-				validateCollectionItem(item, MessageFormat.format("[{0}]",i), anno);
+                validateInternal(item, anno.type(), MessageFormat.format("[{0}]",i), annotations, level + 1);
 			}
 		}
         pathStack.pop();
 	}
 	
-	private void validateMap(Map<?,?> value, String name, ValidateMap anno) throws ValidateException {
+	private void validateMap(Map<?,?> value, String name, ValidateMap anno, Annotation[] annotations, int level) throws ValidateException {
         pathStack.push(anno.name().isEmpty() ? name: anno.name());
         if (value == null) {
 			if (!anno.allowNull())
                 throw new ValidateException(ValidateMessageConstant.CANNOT_BE_NULL.getMessage(loc));
 		} else {
-			Class<?> type = anno.type();
-			Set<Field> fieldsToCheck = new HashSet<>();
-			fieldsToCheck.addAll(Arrays.asList(type.getFields()));
-			fieldsToCheck.addAll(Arrays.asList(type.getDeclaredFields()));
-			for (Field field : fieldsToCheck) {
-				if (Modifier.isStatic(field.getModifiers()))
-					continue;
-				String key = field.getName();
-				Object obj = value.get(key);
-				validateInternal(obj, field.getType(), key, field.getAnnotations());
-			}
-		}
+            // Validate size
+            int len = value.size();
+            if (anno.minSize() > 0 && anno.maxSize() != Integer.MAX_VALUE) {
+                if (len < anno.minSize() || len > anno.maxSize())
+                    throw new ValidateException(ValidateMessageConstant.COUNT_SHOULD_BETWEEN.getMessage(loc, anno.minSize(), anno.maxSize()));
+            } else if (anno.minSize() > 0) {
+                if (len < anno.minSize())
+                    throw new ValidateException(ValidateMessageConstant.COUNT_SHOULD_GREAT_THAN.getMessage(loc, anno.minSize()));
+            } else if (anno.maxSize() != Integer.MAX_VALUE) {
+                if (len > anno.maxSize())
+                    throw new ValidateException(ValidateMessageConstant.COUNT_SHOULD_LESS_THAN.getMessage(loc, anno.maxSize()));
+            }
+            // Validate needed keys
+            for (String key: anno.needKeys()) {
+                if (!value.containsKey(key)) {
+                    throw new ValidateException(ValidateMessageConstant.NEED_KEY.getMessage(loc, key));
+                }
+            }
+            // Validate key rule.
+            if (!anno.keyRule().isEmpty()) {
+                Pattern keyRule;
+                try {
+                    keyRule = Pattern.compile(anno.keyRule());
+                } catch (Exception e) {
+                    throw new ValidateException(ValidateMessageConstant.INVALID_KEY_RULE.getMessage(loc));
+                }
+                for (Object key: value.keySet()) {
+                    if (!keyRule.matcher(key.toString()).matches()) {
+                        throw new ValidateException(ValidateMessageConstant.INVALID_KEY.getMessage(loc, key));
+                    }
+                }
+            }
+
+            if (anno.asEntity()) {
+                Class<?> type = anno.type();
+                Set<Field> fieldsToCheck = new HashSet<>();
+                fieldsToCheck.addAll(Arrays.asList(type.getFields()));
+                fieldsToCheck.addAll(Arrays.asList(type.getDeclaredFields()));
+                for (Field field : fieldsToCheck) {
+                    if (Modifier.isStatic(field.getModifiers()))
+                        continue;
+                    String key = field.getName();
+                    Object obj = value.get(key);
+                    validateInternal(obj, field.getType(), key, field.getAnnotations(), 0);
+                }
+            } else {
+                for (Object key: value.keySet()) {
+                    Object item = value.get(key);
+                    validateInternal(item, anno.type(), MessageFormat.format("[{0}]", key),
+                            annotations, level + 1);
+                }
+            }
+        }
         pathStack.pop();
 	}
 
@@ -510,101 +528,236 @@ public final class Validator {
 		else
 			return Map.class.isInstance(value);
 	}
-	
+
+    private static <T> T getAnnoValue(Annotation annotation, String methodName) {
+        try {
+            return (T)annotation.getClass().getMethod(methodName).invoke(annotation);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private ValidateCollection toCollectionAnnotation(final Annotation annotation, int level) {
+        if (ValidateCollection.class.isInstance(annotation) && level == 0)
+            return (ValidateCollection)annotation;
+        else if (annotation.annotationType().getSimpleName().equals(ValidateCollection.class.getSimpleName() + level)) {
+            return new ValidateCollection() {
+                @Override
+                public Class<? extends Annotation> annotationType() {
+                    return ValidateCollection.class;
+                }
+
+                @Override
+                public boolean allowNull() {
+                    return getAnnoValue(annotation, "allowNull");
+                }
+
+                @Override
+                public int minSize() {
+                    return getAnnoValue(annotation, "minSize");
+                }
+
+                @Override
+                public int maxSize() {
+                    return getAnnoValue(annotation, "maxSize");
+                }
+
+                @Override
+                public Class<?> type() {
+                    return getAnnoValue(annotation, "type");
+                }
+
+                @Override
+                public String name() {
+                    return "";
+                }
+            };
+        } else {
+            return null;
+        }
+    }
+
+    private ValidateMap toMapAnnotation(final Annotation annotation, int level) {
+        if (ValidateMap.class.isInstance(annotation) && level == 0)
+            return (ValidateMap)annotation;
+        else if (annotation.annotationType().getSimpleName().equals(ValidateCollection.class.getSimpleName() + level)) {
+            return new ValidateMap() {
+                @Override
+                public Class<? extends Annotation> annotationType() {
+                    return ValidateMap.class;
+                }
+
+                @Override
+                public boolean allowNull() {
+                    return getAnnoValue(annotation, "allowNull");
+                }
+
+                @Override
+                public int minSize() {
+                    return getAnnoValue(annotation, "minSize");
+                }
+
+                @Override
+                public int maxSize() {
+                    return getAnnoValue(annotation, "maxSize");
+                }
+
+                @Override
+                public String keyRule() {
+                    return getAnnoValue(annotation, "keyRule");
+                }
+
+                @Override
+                public String[] needKeys() {
+                    return getAnnoValue(annotation, "needKeys");
+                }
+
+                @Override
+                public boolean asEntity() {
+                    return getAnnoValue(annotation, "asEntity");
+                }
+
+                @Override
+                public Class<?> type() {
+                    return getAnnoValue(annotation, "type");
+                }
+
+                @Override
+                public String name() {
+                    return "";
+                }
+            };
+        } else {
+            return null;
+        }
+    }
+
+    private static class FindResult<T> {
+        public T target;
+        public Annotation[] annotations;
+        public FindResult(T target, Annotation[] annotations, Annotation exclude) {
+            this.target = target;
+            this.annotations = new Annotation[annotations.length - 1];
+            int i = 0;
+            for (Annotation item: annotations) {
+                if (!item.equals(exclude))
+                    this.annotations[i++] = item;
+            }
+        }
+    }
+
 	@SuppressWarnings("unchecked")
-	private <T> T getAnnotation(Annotation[] annotations, Class<T> annoType, Class<?> objType) throws ValidateException {
+	private <T> FindResult<T> getAnnotation(Annotation[] annotations, Class<T> annoType, Class<?> objType, int level) throws ValidateException {
 		boolean hasOtherType = false;
-		for (Annotation anno : annotations) {
-			if (annoType.isInstance(anno))
-				return (T)anno;
-			else if (Validate.class.isInstance(anno) || 
-					ValidateString.class.isInstance(anno) ||
-					ValidateNumber.class.isInstance(anno) || 
-					ValidateCollection.class.isInstance(anno) ||
-					ValidateMap.class.isInstance(anno) ) {
-				hasOtherType = true;
-			}
+		for (Annotation anno: annotations) {
+            if (!anno.annotationType().getPackage().equals(Validate.class.getPackage())) {
+                continue;
+            }
+            hasOtherType = true;
+            if (annoType.equals(ValidateCollection.class)) {
+                Annotation target = toCollectionAnnotation(anno, level);
+                if (target != null) {
+                    return new FindResult<>((T)target, annotations, anno);
+                }
+            } else if (annoType.equals(ValidateMap.class)) {
+                Annotation target = toMapAnnotation(anno, level);
+                if (target != null) {
+                    return new FindResult<>((T)target, annotations, anno);
+                }
+            } else if (annoType.isInstance(anno)) {
+                return new FindResult<>((T)anno, annotations, anno);
+            }
 		}
-		if (!hasOtherType)
+        if (!hasOtherType)
 			return null;
 		else
-            throw new ValidateException(ValidateMessageConstant.INVALID_VALIDATE_RULE.getMessage(
-                    loc, objType.getName()));
+            throw new ValidateException(
+                    ValidateMessageConstant.INVALID_VALIDATION_RULE.getMessage(loc, objType.getName()));
 	}
+
+    private static Annotation[] exclude(Annotation[] annotations, Annotation excludeAnno) {
+        Annotation[] result = new Annotation[annotations.length - 1];
+        int i = 0;
+        for (Annotation anno: annotations) {
+            if (!anno.equals(excludeAnno))
+                result[i++] = anno;
+        }
+        return result;
+    }
 	
-	private void validateInternal(Object object, Class<?> type, String name, Annotation[] annotations) throws ValidateException {
+	private void validateInternal(Object object, Class<?> type, String name, Annotation[] annotations, int level) throws ValidateException {
 		if (isString(type)) {
 			if (!isStringOrNull(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			ValidateString anno = getAnnotation(annotations, ValidateString.class, type);
-			if (anno != null)
-				validateString((String)object, name, anno);
+            FindResult<ValidateString> result = getAnnotation(annotations, ValidateString.class, type, level);
+			if (result != null)
+				validateString((String)object, name, result.target);
 		} else if (isNumber(type)) {
 			if (!isNumberOrNull(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			ValidateNumber anno = getAnnotation(annotations, ValidateNumber.class, type);
-			if (anno != null)
-				validateNumber(toDouble(object), name, anno);
+            FindResult<ValidateNumber> result = getAnnotation(annotations, ValidateNumber.class, type, level);
+			if (result != null)
+				validateNumber(toDouble(object), name, result.target);
 		} else if (isBoolean(type)) {
 			if (!isBooleanOrNull(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			ValidateBoolean anno = getAnnotation(annotations, ValidateBoolean.class, type);
-			if (anno != null)
-				validateBoolean(toBoolean(object), name, anno);
+            FindResult<ValidateBoolean> result = getAnnotation(annotations, ValidateBoolean.class, type, level);
+			if (result != null)
+				validateBoolean(toBoolean(object), name, result.target);
 		} else if (isDate(type)) {
 			if (!isDateOrNull(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			ValidateDate anno = getAnnotation(annotations, ValidateDate.class, type);
-			if (anno != null)
-				validateDate(toDateTime(object), name, anno);
+            FindResult<ValidateDate> result = getAnnotation(annotations, ValidateDate.class, type, level);
+			if (result != null)
+				validateDate(toDateTime(object), name, result.target);
 		} else if (isCollection(type)) {
 			if (!isCollectionOrNull(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			ValidateCollection anno = getAnnotation(annotations, ValidateCollection.class, type);
-			if (anno != null)
-				validateCollection((Collection<?>)object, name, anno);
+            FindResult<ValidateCollection> result = getAnnotation(annotations, ValidateCollection.class, type, level);
+			if (result != null)
+				validateCollection((Collection<?>)object, name, result.target, result.annotations, level);
 		} else if (isArray(type)) {
 			if (!isArrayOrNull(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			ValidateCollection anno = getAnnotation(annotations, ValidateCollection.class, type);
-			if (anno != null)
-				validateArray(object, name, anno);
+            FindResult<ValidateCollection> result = getAnnotation(annotations, ValidateCollection.class, type, level);
+			if (result != null)
+				validateArray(object, name, result.target, result.annotations, level);
 		} else if (isMap(type)) {
 			if (!isMapOrNull(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			ValidateMap anno = getAnnotation(annotations, ValidateMap.class, type);
-			if (anno != null)
-				validateMap((Map<?,?>)object, name, anno);
+            FindResult<ValidateMap> result = getAnnotation(annotations, ValidateMap.class, type, level);
+			if (result != null)
+				validateMap((Map<?,?>)object, name, result.target, result.annotations, level);
 		} else {
 			if (object != null && !type.isInstance(object)) {
                 pathStack.push(name);
                 throw new ValidateException(ValidateMessageConstant.INVALID_TYPE.getMessage(
                         loc, type.getName(), object.getClass().getName()));
             }
-			Validate anno = getAnnotation(annotations, Validate.class, type);
-			if (anno != null)
-				validateObject(object, name, anno);
+            FindResult<Validate> result = getAnnotation(annotations, Validate.class, type, level);
+			if (result != null)
+				validateObject(object, name, result.target);
 		}
 	}
 
@@ -629,12 +782,12 @@ public final class Validator {
         });
     }
 
-    private static final Pattern ARRAY_NAME_PATTERN = Pattern.compile("\\[\\d+\\]");
+    private static final Pattern ARRAY_NAME_PATTERN = Pattern.compile("\\[.+\\]");
 
 	public void validate(Object object, Class<?> type, Annotation[] annotations) throws ValidateException {
 		try {
 			pathStack.clear();
-			validateInternal(object, type, null, annotations);
+			validateInternal(object, type, null, annotations, 0);
 		} catch (Exception ex) {
 			StringBuilder sb = new StringBuilder();
             boolean isEmpty = true;

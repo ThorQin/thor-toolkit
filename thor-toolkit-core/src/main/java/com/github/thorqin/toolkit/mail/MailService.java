@@ -29,24 +29,23 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-
 import com.github.thorqin.toolkit.annotation.Service;
-import com.github.thorqin.toolkit.service.ISettingComparable;
-import com.github.thorqin.toolkit.service.IStartable;
-import com.github.thorqin.toolkit.service.IStoppable;
+import com.github.thorqin.toolkit.service.IService;
 import com.github.thorqin.toolkit.service.TaskService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
-import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
+import com.github.thorqin.toolkit.validation.Validator;
+import com.github.thorqin.toolkit.validation.annotation.ValidateString;
 import org.apache.commons.codec.binary.Base64;
 
 /**
  *
  * @author nuo.qin
  */
-public class MailService implements IStartable, IStoppable, ISettingComparable {
+public class MailService implements IService {
 
     public final static String SECURE_STARTTLS = "starttls";
     public final static String SECURE_SSL = "ssl";
@@ -56,11 +55,14 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
         public boolean trace = false;
         public boolean debug = false;
         public boolean auth = true;
+        @ValidateString
         public String host;
         public int port = 25;
         public String user;
         public String password;
+        @ValidateString("^(starttls|ssl|no)$")
         public String secure = "no";
+        @ValidateString(ValidateString.EMAIL)
         public String from;
     }
 
@@ -83,30 +85,35 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
 		}
 	}
 
+    @Service("tracer")
+    private Tracer tracer = null;
     @Service("logger")
 	private Logger logger = Logger.getLogger(MailService.class.getName());
     private TaskService<Mail> taskService = null;
-	private final MailSetting setting;
-    private Tracer tracer = null;
+	private MailSetting setting;
+    private String serviceName = null;
 
-    @Override
-    public boolean isSettingChanged(ConfigManager configManager, String configName) {
-        MailService.MailSetting newSetting = configManager.get(configName, MailService.MailSetting.class);
-        return !Serializer.equals(newSetting, setting);
-    }
 
-    public MailService(ConfigManager configManager, String configName, Tracer tracer) throws ValidateException {
-        this(configManager.get(configName, MailService.MailSetting.class), tracer);
+    public MailService() {
+        setting = null;
+        tracer = null;
     }
 	
-	public MailService(MailSetting mailSetting) {
+	public MailService(MailSetting mailSetting) throws ValidateException {
+        validateSetting(mailSetting);
         setting = mailSetting;
         this.tracer = null;
 	}
 
-    public MailService(MailSetting mailSetting, Tracer tracer) {
+    public MailService(MailSetting mailSetting, Tracer tracer) throws ValidateException {
+        validateSetting(mailSetting);
         setting = mailSetting;
         this.tracer = tracer;
+    }
+
+    private void validateSetting(MailSetting mailSetting) throws ValidateException {
+        Validator validator = new Validator(Localization.getInstance());
+        validator.validateObject(mailSetting, MailService.MailSetting.class, false);
     }
 
     public synchronized void setTracer(Tracer tracer) {
@@ -206,6 +213,7 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
                 Tracer.Info info = new Tracer.Info();
                 info.catalog = "mail";
                 info.name = "send";
+                info.put("serviceName", serviceName);
                 info.put("success", success);
                 info.put("sender", mailFrom);
                 info.put("recipients", mail.to);
@@ -221,9 +229,30 @@ public class MailService implements IStartable, IStoppable, ISettingComparable {
     }
 
     @Override
+    public boolean config(ConfigManager configManager, String serviceName, boolean isReConfig) {
+        this.serviceName = serviceName;
+        MailService.MailSetting newSetting = configManager.get(serviceName, MailService.MailSetting.class);
+        try {
+            validateSetting(newSetting);
+            setting = newSetting;
+        } catch (ValidateException ex) {
+            logger.log(Level.SEVERE, "Invalid mail configuration settings: {0}", ex.getMessage());
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isStarted() {
+        return taskService != null;
+    }
+
+    @Override
 	public synchronized void start() {
         if (taskService != null)
             return;
+        if (setting == null) {
+            throw new RuntimeException("Invalid mail service setting.");
+        }
         taskService = new TaskService<>(new TaskService.TaskHandler<Mail>() {
             @Override
             public void process(Mail mail) {

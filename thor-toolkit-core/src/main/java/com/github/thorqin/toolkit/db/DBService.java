@@ -1,7 +1,7 @@
 package com.github.thorqin.toolkit.db;
 
 import com.github.thorqin.toolkit.annotation.Service;
-import com.github.thorqin.toolkit.service.ISettingComparable;
+import com.github.thorqin.toolkit.service.IService;
 import com.github.thorqin.toolkit.trace.*;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.utility.Localization;
@@ -14,7 +14,6 @@ import com.github.thorqin.toolkit.validation.annotation.ValidateString;
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
 import org.joda.time.DateTime;
-
 import java.io.*;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -24,9 +23,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.security.InvalidParameterException;
 import java.sql.*;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.Date;
 import java.util.logging.Level;
@@ -37,8 +36,9 @@ import java.util.logging.Logger;
  * @author nuo.qin
  *
  **********************************************************/
-public final class DBService implements AutoCloseable, ISettingComparable {
-	public static class DBSetting {
+public final class DBService implements IService, AutoCloseable {
+
+    public static class DBSetting {
 		@ValidateString
 		public String driver;
 		@ValidateString
@@ -819,17 +819,17 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		}
 	}
 
-	public static interface DBResultHanlder {
+	public interface DBResultHanlder {
 		void handle(ResultSet result) throws Exception;
 	}
 
-	public static interface RowTypeAdapter<T> {
-		public void make(T obj) throws SQLException;
+	public interface RowTypeAdapter<T> {
+		void make(T obj) throws SQLException;
 	}
 
-    public static interface TableAdjuster {
-        public String[] adjustHead(String[] head);
-        public Object[] adjustLine(Object[] line);
+    public interface TableAdjuster {
+        String[] adjustHead(String[] head);
+        Object[] adjustLine(Object[] line);
     }
 
 	public static class DBCursor implements AutoCloseable {
@@ -1074,80 +1074,109 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		void doWork(DBSession session) throws Exception;
 	}
 
+
+    @Service("tracer")
+    private Tracer tracer = null;
+
 	/* Private properties. */
 	private BoneCPConfig boneCPConfig;
 	private BoneCP boneCP = null;
-	final private DBSetting setting;
-	private Tracer tracer = null;
+	private DBSetting setting;
 	private Long lastInitTime = null;
+    private String serviceName = null;
 
 	public synchronized void setTracer(Tracer tracer) {
 		this.tracer = tracer;
 	}
 
     @Override
-    public boolean isSettingChanged(ConfigManager configManager, String configName) {
-        DBService.DBSetting newSetting = configManager.get(configName, DBService.DBSetting.class);
-        return !Serializer.equals(newSetting, setting);
+    public synchronized void start() {
+        if (setting == null) {
+            throw new ServiceConfigurationError(
+                    MessageFormat.format("Start DBService failed: DBSettings must be provided! (Service Name: {0})", serviceName));
+        }
+        if (boneCPConfig != null) {
+            logger.log(Level.WARNING, "DBService has already started! (Service Name: {0})", serviceName);
+            return;
+        }
+        try {
+            Class.forName(setting.driver);
+            boneCPConfig = new BoneCPConfig();
+            boneCPConfig.setDefaultAutoCommit(true);
+            boneCPConfig.setJdbcUrl(setting.uri);
+            boneCPConfig.setJdbcUrl(setting.uri);
+            boneCPConfig.setUsername(setting.user);
+            boneCPConfig.setPassword(setting.password);
+            boneCPConfig.setMinConnectionsPerPartition(setting.minConnectionsPerPartition);
+            boneCPConfig.setMaxConnectionsPerPartition(setting.maxConnectionsPerPartition);
+            boneCPConfig.setPartitionCount(setting.partitionCount);
+            boneCPConfig.setConnectionTimeoutInMs(setting.connectionTimeout);
+            boneCPConfig.setLazyInit(false); // For some reason I didn't use this feature.
+            if (!setting.lazyInit) {
+                init();
+            }
+        } catch (Exception ex) {
+            boneCPConfig = null;
+            throw new ServiceConfigurationError("Initialize DB Service failed. ", ex);
+        }
     }
 
-    /**
-     * In order to support registration of WebApplication service.
-     * @param configManager Application's config manager
-     * @param configName Configuration entry name
-     * @param tracer Tracer to trace every DB operations
-	 * @throws com.github.thorqin.toolkit.validation.ValidateException Throw if config file contain invalid content
-     */
-    public DBService(ConfigManager configManager, String configName, Tracer tracer) throws ValidateException {
-        this(configManager.get(configName, DBService.DBSetting.class), tracer);
+    @Override
+    public void stop() {
+        close();
+    }
+
+    @Override
+    public synchronized boolean isStarted() {
+        return boneCPConfig != null;
+    }
+
+    @Override
+    public boolean config(ConfigManager configManager, String serviceName, boolean isReConfig) {
+        this.serviceName = serviceName;
+        DBService.DBSetting newSetting = configManager.get(serviceName, DBService.DBSetting.class);
+        try {
+            validateSetting(newSetting);
+        } catch (ValidateException ex) {
+            logger.log(Level.SEVERE, "Invalid DB configuration settings: {0}", ex.getMessage());
+            return false;
+        }
+        boolean needRestart = !Serializer.equals(newSetting, setting);
+        setting = newSetting;
+        return needRestart;
+    }
+
+    public DBService() {
+        this.tracer = null;
+        this.setting = null;
     }
 
 	public DBService(DBSetting dbSetting) throws ValidateException {
 		this(dbSetting, null);
 	}
+
 	public DBService(DBSetting dbSetting, Tracer tracer) throws ValidateException {
+        validateSetting(dbSetting);
 		this.tracer = tracer;
-		Validator validator = new Validator(Localization.getInstance());
-		validator.validateObject(dbSetting, DBSetting.class, false);
 		this.setting = dbSetting;
-		try {
-			Class.forName(setting.driver);
-			boneCPConfig = new BoneCPConfig();
-			boneCPConfig.setDefaultAutoCommit(true);
-			boneCPConfig.setJdbcUrl(setting.uri);
-			boneCPConfig.setJdbcUrl(setting.uri);
-			boneCPConfig.setUsername(setting.user);
-			boneCPConfig.setPassword(setting.password);
-			boneCPConfig.setMinConnectionsPerPartition(setting.minConnectionsPerPartition);
-			boneCPConfig.setMaxConnectionsPerPartition(setting.maxConnectionsPerPartition);
-			boneCPConfig.setPartitionCount(setting.partitionCount);
-			boneCPConfig.setConnectionTimeoutInMs(setting.connectionTimeout);
-			boneCPConfig.setLazyInit(false);
-			if (!setting.lazyInit) {
-				init();
-			}
-		} catch (Exception ex) {
-			throw new ServiceConfigurationError("Initialize DB Service failed.", ex);
-		}
 	}
+
+    private void validateSetting(DBSetting dbSetting) throws ValidateException {
+        Validator validator = new Validator(Localization.getInstance());
+        validator.validateObject(dbSetting, DBSetting.class, false);
+    }
 
 	private void init() throws SQLException {
 		boneCP = new BoneCP(boneCPConfig);
 	}
 
     @Override
-	public void close() {
+	public synchronized void close() {
 		try {
-			if (boneCP != null) {
-				boneCP.close();
-				boneCPConfig = null;
-			} else {
-				synchronized (this) {
-					if (boneCP != null)
-						boneCP.close();
-					boneCPConfig = null;
-				}
-			}
+            if (boneCP != null)
+                boneCP.close();
+            boneCPConfig = null;
+            logger.log(Level.INFO, "DBService stopped! (Service Name: {0})", serviceName);
 		} catch (Exception ex) {
 			logger.log(Level.SEVERE, "Shutdown boneCP failed!", ex);
 		}
@@ -1318,6 +1347,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 		final protected Connection conn;
 		final protected Tracer tracer;
 		final Logger logger;
+        private String serviceName = null;
 		public DBSession(Connection conn, Logger logger) throws SQLException {
 			this(conn, null, logger);
 		}
@@ -1327,6 +1357,9 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 			this.logger = logger;
 			this.tracer = tracer;
 		}
+        void setServiceName(String serviceName) {
+            this.serviceName = serviceName;
+        }
 		private void trace(Tracer.Info info) {
 			try {
 				if (tracer != null)
@@ -1444,6 +1477,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "execute";
+                    info.put("serviceName", serviceName);
 					info.put("statement", queryString);
 					info.put("success", success);
 					info.put("startTime", beginTime);
@@ -1467,6 +1501,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "execute";
+                    info.put("serviceName", serviceName);
 					info.put("statement", "PreparedStatement");
 					info.put("success", success);
 					info.put("startTime", beginTime);
@@ -1505,6 +1540,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "query";
+                    info.put("serviceName", serviceName);
 					info.put("statement", queryString);
 					info.put("success", success);
 					info.put("startTime", beginTime);
@@ -1532,6 +1568,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "query";
+                    info.put("serviceName", serviceName);
 					info.put("statement", queryString);
 					info.put("success", success);
 					info.put("startTime", beginTime);
@@ -1671,6 +1708,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 					Tracer.Info info = new Tracer.Info();
 					info.catalog = "database";
 					info.name = "invoke";
+                    info.put("serviceName", serviceName);
 					info.put("statement", sqlString.toString());
 					info.put("success", success);
 					info.put("startTime", beginTime);
@@ -1761,7 +1799,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 			threadLocal.set(connections);
 		}
 		if (connections.empty()) {
-			Connection connection = getDBConnection();
+			Connection connection = getConnection();
 			connections.push(connection);
 			DBSession dbSession = new DBRootSession(connection);
 			dbSession.setAutoCommit(autoCommit);
@@ -1786,7 +1824,7 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 			connections = new Stack<>();
 			threadLocal.set(connections);
 		}
-		Connection connection = getDBConnection();
+		Connection connection = getConnection();
 		connections.push(connection);
 		DBSession dbSession = new DBRootSession(connection);
 		dbSession.setAutoCommit(autoCommit);
@@ -1796,32 +1834,29 @@ public final class DBService implements AutoCloseable, ISettingComparable {
 	/**
 	 * Allocate a new DB connection from the pool,
 	 * use raw connection will lost the advanced feature which the DBService provided.<br>
-	 * WARNING: should not use this method except you know what you do.
+	 * WARNING: should not use this method unless you know exactly what you are doing.
 	 * @return DB connection
 	 * @throws SQLException Raise exception when cannot obtain a DB connection.
 	 */
-	@Deprecated
 	public Connection getConnection() throws SQLException {
-		return getDBConnection();
-	}
-
-	private Connection getDBConnection() throws SQLException {
-		if (boneCP == null) {
-			synchronized (this) {
-				if (boneCP == null) {
-					if (lastInitTime != null && System.currentTimeMillis() < lastInitTime + 1000) {
-						// If last try failed in 1 second then throw exception directly.
-						throw new SQLException("Cannot connect to database.");
-					}
-					try {
-						init();
-					} finally {
-						lastInitTime = System.currentTimeMillis();
-					}
-				}
-			}
-		}
-		return boneCP.getConnection();
+        if (boneCPConfig == null)
+            throw new SQLException("DBService is not started!");
+        if (boneCP == null) {
+            synchronized (this) {
+                if (boneCP == null) {
+                    if (lastInitTime != null && System.currentTimeMillis() < lastInitTime + 1000) {
+                        // If last try failed in 1 second then throw exception directly.
+                        throw new SQLException("Cannot connect to database.");
+                    }
+                    try {
+                        init();
+                    } finally {
+                        lastInitTime = System.currentTimeMillis();
+                    }
+                }
+            }
+        }
+        return boneCP.getConnection();
 	}
 
 	@SuppressWarnings("unchecked")

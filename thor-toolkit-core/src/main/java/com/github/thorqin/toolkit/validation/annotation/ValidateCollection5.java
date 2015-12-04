@@ -35,18 +35,11 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER})
-public @interface ValidateCollection {
+public @interface ValidateCollection5 {
 	boolean allowNull() default false;
 	int minSize() default 0;
 	int maxSize() default Integer.MAX_VALUE;
-
 	Class<?> type() default Object.class;
-
-    /**
-     * Will be used in error message if provided.
-     * @return Field or object's name or similar text.
-     */
-    String name() default "";
 }
 
 

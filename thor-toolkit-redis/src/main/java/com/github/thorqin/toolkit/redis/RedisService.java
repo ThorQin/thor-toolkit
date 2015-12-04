@@ -1,22 +1,30 @@
 package com.github.thorqin.toolkit.redis;
 
-import com.github.thorqin.toolkit.service.ISettingComparable;
-import com.github.thorqin.toolkit.service.IStoppable;
-import com.github.thorqin.toolkit.trace.Tracer;
+import com.github.thorqin.toolkit.annotation.Service;
+import com.github.thorqin.toolkit.service.IService;
 import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.validation.ValidateException;
+import com.github.thorqin.toolkit.validation.Validator;
+import com.github.thorqin.toolkit.validation.annotation.ValidateCollection;
+import com.github.thorqin.toolkit.validation.annotation.ValidateString;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.joda.time.DateTime;
 import redis.clients.jedis.*;
-
+import java.text.MessageFormat;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class RedisService implements IStoppable, ISettingComparable {
+public class RedisService implements IService {
 
     public static class RedisSetting {
         /* Server URI:
          * redis://[user:password@]<address>[:<port>][/<db index, default: 0>]
          */
+        @ValidateString("^redis://([a-zA-Z0-9_\\-\\.]+:[^@]+@)?[a-zA-Z0-9\\.\\-_]+(:[0-9]+)?(/[0-9]+)?$")
+        @ValidateCollection(minSize = 1, type = String.class)
         public List<String> servers = new LinkedList<>();
         public int connectionTimeout = 2000;
         public int maxTotal = GenericObjectPoolConfig.DEFAULT_MAX_TOTAL;
@@ -34,8 +42,11 @@ public class RedisService implements IStoppable, ISettingComparable {
 
     // private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private RedisSetting setting;
-    private final ShardedJedisPool pool;
+    private RedisSetting setting = null;
+    private ShardedJedisPool pool = null;
+    @Service("logger")
+    private Logger logger = Logger.getLogger(RedisService.class.getName());
+    private String serviceName = null;
 
     public class RedisSession implements AutoCloseable {
         private ShardedJedis jedis;
@@ -193,22 +204,45 @@ public class RedisService implements IStoppable, ISettingComparable {
 
 
     @Override
-    public boolean isSettingChanged(ConfigManager configManager, String configName) {
-        RedisService.RedisSetting newSetting = configManager.get(configName, RedisService.RedisSetting.class);
-        return !Serializer.equals(newSetting, setting);
+    public boolean config(ConfigManager configManager, String serviceName, boolean isReConfig) {
+        this.serviceName = serviceName;
+        RedisSetting newSetting = configManager.get(serviceName, RedisSetting.class);
+        try {
+            validateSetting(newSetting);
+        } catch (ValidateException ex) {
+            logger.log(Level.SEVERE, "Invalid RedisService configuration settings: {0}", ex.getMessage());
+            return false;
+        }
+        boolean needRestart = !Serializer.equals(newSetting, setting);
+        setting = newSetting;
+        return needRestart;
     }
 
-    public RedisService(ConfigManager configManager, String configName, Tracer tracer) {
-        this(configManager.get(configName, RedisService.RedisSetting.class), tracer);
+    public RedisService() {
+        setting = null;
     }
 
-	public RedisService(RedisSetting setting) {
-		this(setting, null);
-	}
-
-    public RedisService(RedisSetting setting, Tracer tracer) {
+    public RedisService(RedisSetting setting) throws ValidateException {
         this.setting = setting;
+        validateSetting(setting);
+    }
 
+    private void validateSetting(RedisSetting setting) throws ValidateException {
+        Validator validator = new Validator(Localization.getInstance());
+        validator.validateObject(setting, RedisSetting.class, false);
+    }
+
+    @Override
+    public boolean isStarted() {
+        return pool != null;
+    }
+
+    @Override
+    public synchronized void start() {
+        if (pool == null) {
+            logger.log(Level.WARNING, "RedisService has already started! (Service name: {0})", serviceName);
+            return;
+        }
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMinIdle(setting.minIdle);
         poolConfig.setMaxTotal(setting.maxTotal);
@@ -221,7 +255,6 @@ public class RedisService implements IStoppable, ISettingComparable {
         poolConfig.setBlockWhenExhausted(setting.blockWhenExhausted);
         poolConfig.setFairness(setting.fairness);
         poolConfig.setLifo(setting.lifo);
-
         List<JedisShardInfo> shards = new ArrayList<>(setting.servers.size());
         if (setting.servers != null) {
             for (String server : setting.servers) {
@@ -230,32 +263,46 @@ public class RedisService implements IStoppable, ISettingComparable {
                 shards.add(info);
             }
         }
-        if (shards.size() < 1){
-            throw new ServiceConfigurationError("At least specify one redis server.");
-        }
         pool = new ShardedJedisPool(poolConfig, shards);
     }
 
+    @Override
+    public synchronized void stop() {
+        if (pool == null) {
+            logger.log(Level.WARNING, "RedisService has already stopped! (Service name: {0})", serviceName);
+            return;
+        }
+        if (!pool.isClosed())
+            pool.close();
+        pool = null;
+    }
+
     public RedisSession getSession() {
+        if (pool == null)
+            throw new RuntimeException(
+                    MessageFormat.format("RedisService is not started! (Service name: {0})", serviceName));
         return new RedisSession(pool.getResource());
     }
 
     public int getNumActive() {
+        if (pool == null)
+            throw new RuntimeException(
+                    MessageFormat.format("RedisService is not started! (Service name: {0})", serviceName));
         return pool.getNumActive();
     }
 
     public int getNumIdle() {
+        if (pool == null)
+            throw new RuntimeException(
+                    MessageFormat.format("RedisService is not started! (Service name: {0})", serviceName));
         return pool.getNumIdle();
     }
 
     public int getNumWaiters() {
+        if (pool == null)
+            throw new RuntimeException(
+                    MessageFormat.format("RedisService is not started! (Service name: {0})", serviceName));
         return pool.getNumWaiters();
-    }
-
-    @Override
-    public void stop() {
-        if (!pool.isClosed())
-            pool.close();
     }
 
 

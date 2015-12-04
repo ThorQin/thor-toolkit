@@ -15,19 +15,23 @@ public enum ValidateMessageConstant {
     INVALID_VALUE("validate.invalid.value", "invalid value"),
     INVALID_FORMAT("validate.invalid.format", "invalid format"),
     INVALID_TIME_FORMAT("validate.invalid.time.format", "specified min/max date time format is invalid"),
-    INVALID_VALIDATE_RULE("validate.invalid.rule", "invalid rule definition, specified rule cannot match object type: {0}"),
+    INVALID_VALIDATION_RULE("validate.invalid.rule", "invalid validation rule definition, specified rule cannot match object type: {0}"),
     VALUE_SHOULD_LESS_THAN("validate.value.should.less.than", "value should be less than or equal to {0}"),
     VALUE_SHOULD_GREAT_THAN("validate.value.should.great.than", "value should be greater than or equal to {0}"),
     VALUE_SHOULD_BETWEEN("validate.value.should.between", "value should between {0} and {1}"),
-    COUNT_SHOULD_LESS_THAN("validate.count.should.less.than", "item count should be less than or equal to {0}"),
-    COUNT_SHOULD_GREAT_THAN("validate.count.should.great.than", "item count should be greater than or equal to {0}"),
-    COUNT_SHOULD_BETWEEN("validate.count.should.between", "item count should between {0} and {1}"),
+    COUNT_SHOULD_LESS_THAN("validate.count.should.less.than", "element count should be less than or equal to {0}"),
+    COUNT_SHOULD_GREAT_THAN("validate.count.should.great.than", "element count should be greater than or equal to {0}"),
+    COUNT_SHOULD_BETWEEN("validate.count.should.between", "element count should between {0} and {1}"),
     TIME_SHOULD_LESS_THAN("validate.time.should.less.than", "time should be earlier than or equal to {0}"),
     TIME_SHOULD_GREAT_THAN("validate.time.should.great.than", "time should be later than or equal to {0}"),
     TIME_SHOULD_BETWEEN("validate.time.should.between", "time should between {0} and {1}"),
     LENGTH_SHOULD_LESS_THAN("validate.length.should.less.than", "length should be less than or equal to {0}"),
     LENGTH_SHOULD_GREAT_THAN("validate.length.should.great.than", "length should be greater than or equal to {0}"),
-    LENGTH_SHOULD_BETWEEN("validate.length.should.between", "length should between {0} and {1}");
+    LENGTH_SHOULD_BETWEEN("validate.length.should.between", "length should between {0} and {1}"),
+    INVALID_KEY("validate.invalid.key", "invalid key name ''{0}''"),
+    INVALID_KEY_RULE("validate.invalid.key.rule", "invalid key rule definition"),
+    NEED_KEY("validate.need.key", "must provide key ''{0}''");
+
     private String key;
     private String message;
 

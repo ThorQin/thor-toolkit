@@ -6,7 +6,10 @@
 
 package com.github.thorqin.toolkit.validation.annotation;
 
-import java.lang.annotation.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Validate object as an Map
@@ -14,7 +17,7 @@ import java.lang.annotation.*;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE, ElementType.PARAMETER})
-public @interface ValidateMap {
+public @interface ValidateMap2 {
 	boolean allowNull() default false;
     /**
      * Minimum size of the map
@@ -57,10 +60,4 @@ public @interface ValidateMap {
      * @return class definition
      */
 	Class<?> type();
-
-    /**
-     * Will be used in error message if provided.
-     * @return Field or object's name or similar text.
-     */
-    String name() default "";
 }

@@ -1,9 +1,7 @@
 package com.github.thorqin.toolkit;
 
 import com.github.thorqin.toolkit.annotation.Service;
-import com.github.thorqin.toolkit.service.ISettingComparable;
-import com.github.thorqin.toolkit.service.IStartable;
-import com.github.thorqin.toolkit.service.IStoppable;
+import com.github.thorqin.toolkit.service.IService;
 import com.github.thorqin.toolkit.trace.TraceRecorder;
 import com.github.thorqin.toolkit.trace.TraceService;
 import com.github.thorqin.toolkit.trace.Tracer;
@@ -158,7 +156,7 @@ public class Application {
     protected void destroy() {
         for (String name : serviceMapping.keySet()) {
             Object service = serviceMapping.get(name);
-            callServiceStop(service);
+            callServiceStop(service, name);
         }
         traceService.stop();
         applicationMap.remove(applicationName);
@@ -198,20 +196,14 @@ public class Application {
         if (!Serializer.equals(setting, newSetting)) {
             initLogger();
         }
-        List<Object> restartService = new LinkedList<>();
         for (String key: serviceTypes.keySet()) {
+            Object service;
             if (serviceMapping.containsKey(key)) {
-                Object service = serviceMapping.get(key);
-                if (isServiceSettingChanged(service, configManager, key)) {
-                    callServiceStop(service);
-                    restartService.add(createServiceInstance(key));
-                }
-            } else
-                restartService.add(createServiceInstance(key));
-        }
-        inject();
-        for (Object obj : restartService) {
-            callServiceStart(obj);
+                service = serviceMapping.get(key);
+            } else {
+                service = createServiceInstance(key);
+            }
+            callServiceConfig(service, configManager, key, true);
         }
     }
 
@@ -282,7 +274,14 @@ public class Application {
     protected final void startAllService() {
         for (String name : serviceMapping.keySet()) {
             Object service = serviceMapping.get(name);
-            callServiceStart(service);
+            callServiceStart(service, name);
+        }
+    }
+
+    protected final void configAllService() {
+        for (String name : serviceMapping.keySet()) {
+            Object service = serviceMapping.get(name);
+            callServiceConfig(service, configManager, name, false);
         }
     }
 
@@ -300,8 +299,7 @@ public class Application {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        configManager.addChangeListener(configChangeListener);
-        configManager.startWatch();
+
         // 2. Init logger
         initLogger();
         // 3. Start trace service
@@ -320,9 +318,13 @@ public class Application {
         for (String key: serviceMapping.keySet()) {
             logger.log(Level.FINE, "Register Service: " + key + " -> " + serviceMapping.get(key).getClass().getName());
         }
+        configAllService();
         // 5. Start all services which need be started.
         startAllService();
         logger.log(Level.INFO, "Application started!");
+
+        configManager.addChangeListener(configChangeListener);
+        configManager.startWatch();
     }
 
     public static Application get(String appName) {
@@ -384,7 +386,7 @@ public class Application {
     public final synchronized void unregisterService(String name) {
         Object service = serviceMapping.remove(name);
         if (service != null)
-            callServiceStop(service);
+            callServiceStop(service, name);
         serviceTypes.remove(name);
         logger.log(Level.FINE, "Un-Register Service: " + name);
         inject();
@@ -396,7 +398,7 @@ public class Application {
         Object service = createServiceInstance(name);
         logger.log(Level.FINE, "Register Service: " + name + " -> " + type.getName());
         inject();
-        callServiceStart(service);
+        callServiceStart(service, name);
     }
 
     private final void checkServiceName(String name) {
@@ -452,33 +454,66 @@ public class Application {
         return obj;
     }
 
-    private void callServiceStart(Object serviceInstance) {
-        if (IStartable.class.isAssignableFrom(serviceInstance.getClass())) {
-            IStartable service = (IStartable)serviceInstance;
-            service.start();
-        }
-    }
-
-    private void callServiceStop(Object serviceInstance) {
-        if (IStoppable.class.isAssignableFrom(serviceInstance.getClass())) {
-            IStoppable service = (IStoppable)serviceInstance;
-            service.stop();
-        } else if (AutoCloseable.class.isAssignableFrom(serviceInstance.getClass())) {
-            AutoCloseable closeable = (AutoCloseable)serviceInstance;
+    private void callServiceStart(Object serviceInstance, String serviceName) {
+        if (IService.class.isInstance(serviceInstance)) {
+            IService service = (IService)serviceInstance;
             try {
-                closeable.close();
+                service.start();
+                logger.log(Level.FINE, "Service started! (name: {0})", serviceName);
             } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Close service exception.", ex);
+                LogRecord record = new LogRecord(Level.SEVERE, "Start service error. (Service name: {0})");
+                record.setParameters(new Object[]{serviceName});
+                record.setThrown(ex);
+                logger.log(record);
             }
         }
     }
 
-    private boolean isServiceSettingChanged(Object serviceInstance, ConfigManager configManager, String configName) {
-        if (ISettingComparable.class.isAssignableFrom(serviceInstance.getClass())) {
-            ISettingComparable service = (ISettingComparable)serviceInstance;
-            return service.isSettingChanged(configManager, configName);
-        } else
-            return true;
+    private void callServiceStop(Object serviceInstance, String serviceName) {
+        if (IService.class.isInstance(serviceInstance)) {
+            IService service = (IService)serviceInstance;
+            if (service.isStarted()) {
+                try {
+                    service.stop();
+                    logger.log(Level.FINE, "Service stopped! (name: {0})", serviceName);
+                } catch (Exception ex) {
+                    LogRecord record = new LogRecord(Level.SEVERE, "Stop service error. (Service name: {0})");
+                    record.setParameters(new Object[]{serviceName});
+                    record.setThrown(ex);
+                    logger.log(record);
+                }
+            }
+        } else if (AutoCloseable.class.isInstance(serviceInstance)) {
+            AutoCloseable closeable = (AutoCloseable)serviceInstance;
+            try {
+                closeable.close();
+                logger.log(Level.FINE, "Service closed! (name: {0})", serviceName);
+            } catch (Exception ex) {
+                LogRecord record = new LogRecord(Level.SEVERE, "Close service error. (Service name: {0})");
+                record.setParameters(new Object[]{serviceName});
+                record.setThrown(ex);
+                logger.log(record);
+            }
+        }
+    }
+
+    private void callServiceConfig(Object serviceInstance, ConfigManager configManager, String serviceName, boolean isReConfig) {
+        if (IService.class.isInstance(serviceInstance)) {
+            IService service = (IService)serviceInstance;
+            try {
+                boolean needRestart = service.config(configManager, serviceName, isReConfig);
+                if (needRestart && service.isStarted()) {
+                    service.stop();
+                    service.start();
+                    logger.log(Level.FINE, "Service restart! (name: {0})", serviceName);
+                }
+            } catch (Exception ex) {
+                LogRecord record = new LogRecord(Level.SEVERE, "Service config exception. (Service name: {0})");
+                record.setParameters(new Object[]{serviceName});
+                record.setThrown(ex);
+                logger.log(record);
+            }
+        }
     }
 
     /**

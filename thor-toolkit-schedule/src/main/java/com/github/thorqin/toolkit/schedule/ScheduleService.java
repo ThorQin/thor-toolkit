@@ -3,12 +3,13 @@ package com.github.thorqin.toolkit.schedule;
 import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.schedule.annotation.ScheduleJob;
-import com.github.thorqin.toolkit.service.ISettingComparable;
-import com.github.thorqin.toolkit.service.IStartable;
-import com.github.thorqin.toolkit.service.IStoppable;
+import com.github.thorqin.toolkit.service.IService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
+import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.validation.ValidateException;
+import com.github.thorqin.toolkit.validation.Validator;
 import com.google.common.base.Strings;
 import org.quartz.*;
 import org.quartz.impl.DirectSchedulerFactory;
@@ -20,7 +21,7 @@ import java.util.logging.Logger;
 /**
  * Created by thor on 10/16/15.
  */
-public class ScheduleService implements IStartable, IStoppable, ISettingComparable {
+public class ScheduleService implements IService {
 
     public static class JobInfo {
         public String action;
@@ -35,6 +36,8 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
     }
 
     private Setting setting;
+
+    @Service("tracer")
     private Tracer tracer = null;
     private Scheduler scheduler;
 
@@ -44,20 +47,22 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
     @Service("application")
     private Application application = null;
 
-    public ScheduleService(ConfigManager configManager, String configName, Tracer tracer) throws SchedulerException {
-        this(configManager.get(configName, Setting.class), tracer);
+    private String serviceName = null;
+
+    public ScheduleService() {
+        setting = null;
+        tracer = null;
     }
 
-    public ScheduleService(Setting setting) throws SchedulerException {
+    public ScheduleService(Setting setting) throws ValidateException {
         this(setting, null);
     }
 
-    public ScheduleService(Setting setting, Tracer tracer) throws SchedulerException {
+    public ScheduleService(Setting setting, Tracer tracer) throws ValidateException {
+        validateSetting(setting);
         this.setting = (setting == null ? new Setting() : setting);
         this.tracer = tracer;
-        DirectSchedulerFactory factory = DirectSchedulerFactory.getInstance();
-        factory.createVolatileScheduler(this.setting.workers);
-        this.scheduler = factory.getScheduler();
+
     }
 
     public synchronized void setTracer(Tracer tracer) {
@@ -114,19 +119,39 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
         }
     }
 
-    @Override
-    public boolean isSettingChanged(ConfigManager configManager, String configName) {
-        Setting newSetting = configManager.get(configName, Setting.class);
-        if (newSetting == null)
-            newSetting = new Setting();
-        return !Serializer.equals(newSetting, setting);
+    private void validateSetting(Setting setting) throws ValidateException {
+        Validator validator = new Validator(Localization.getInstance());
+        validator.validateObject(setting, Setting.class, false);
     }
 
     @Override
-    public void start() {
+    public boolean config(ConfigManager configManager, String serviceName, boolean isReConfig) {
+        this.serviceName = serviceName;
+        Setting newSetting = configManager.get(serviceName, Setting.class);
         try {
-            if (scheduler.isStarted())
+            validateSetting(newSetting);
+        } catch (ValidateException ex) {
+            logger.log(Level.SEVERE, "Invalid scheduler configuration settings: {0}", ex.getMessage());
+            return false;
+        }
+        boolean needRestart = !Serializer.equals(newSetting, setting);
+        setting = newSetting;
+        return needRestart;
+    }
+
+    @Override
+    public boolean isStarted() {
+        return scheduler != null;
+    }
+
+    @Override
+    public synchronized void start() {
+        try {
+            if (scheduler != null)
                 return;
+            DirectSchedulerFactory factory = DirectSchedulerFactory.getInstance();
+            factory.createVolatileScheduler(setting.workers);
+            scheduler = factory.getScheduler();
             init();
             scheduler.start();
         } catch (SchedulerException e) {
@@ -136,6 +161,7 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
             Tracer.Info info = new Tracer.Info();
             info.catalog = "schedule service";
             info.name = "started";
+            info.put("serviceName", serviceName);
             tracer.trace(info);
         }
     }
@@ -149,10 +175,12 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
             boolean result = false;
             boolean trace = false;
             Application application = null;
+            String serviceName = null;
             try {
                 JobDataMap dataMap = context.getJobDetail().getJobDataMap();
                 String jobDefine = dataMap.getString("jobDefine");
                 String appName = dataMap.getString("appName");
+                serviceName = dataMap.getString("serviceName");
                 trace = dataMap.getBoolean("trace");
                 application = Application.get(appName);
                 if (application == null) {
@@ -179,6 +207,7 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
                 if (trace && application != null) {
                     Tracer.Info info = new Tracer.Info();
                     info.put("success", result);
+                    info.put("serviceName", serviceName);
                     info.catalog = "schedule service";
                     info.name = "Job: " + context.getJobDetail().getKey().getName();
                     application.getTracer().trace(info);
@@ -205,6 +234,7 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
                 .usingJobData("jobDefine", jobDefine)
                 .usingJobData("appName", application.getName())
                 .usingJobData("trace", setting.trace)
+                .usingJobData("serviceName", serviceName)
                 .build();
 
         Set<Trigger> triggers = new HashSet<>();
@@ -242,19 +272,22 @@ public class ScheduleService implements IStartable, IStoppable, ISettingComparab
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         try {
-            if (!scheduler.isStarted())
+            if (scheduler == null)
                 return;
             scheduler.clear();
             scheduler.shutdown();
         } catch (SchedulerException e) {
             throw new RuntimeException(e);
+        } finally {
+            scheduler = null;
         }
         if (setting.trace && tracer != null) {
             Tracer.Info info = new Tracer.Info();
             info.catalog = "schedule service";
             info.name = "stopped";
+            info.put("serviceName", serviceName);
             tracer.trace(info);
         }
     }

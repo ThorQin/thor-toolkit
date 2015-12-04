@@ -1,0 +1,36 @@
+{
+  "public": [
+    {
+      "name": "thor",
+      "age": 20,
+      "mails": [
+        {
+          "name": "aaa",
+          "address": "abc@gmail.com"
+        }
+      ]
+    },
+    {
+      "name": "thor",
+      "age": 20,
+      "mails": [
+        {
+          "name": "aaa",
+          "address": "abc@gmail.com"
+        }
+      ]
+    }
+  ],
+  "private": [
+    {
+      "name": "thor",
+      "age": 1,
+      "mails": [
+        {
+          "name": "aaa",
+          "address": "abc@gmail.com"
+        }
+      ]
+    }
+  ]
+}

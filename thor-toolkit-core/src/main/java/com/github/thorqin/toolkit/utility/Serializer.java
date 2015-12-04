@@ -29,6 +29,14 @@ public final class Serializer {
     public final static Type COMMON_MAP = new TypeToken<Map<String, Object>>(){}.getType();
     public final static Type COMMON_LIST = new TypeToken<List<Object>>(){}.getType();
 
+    public static <T> Type makeListType(Class<T> type) {
+        return new TypeToken<List<T>>(){}.getType();
+    }
+
+    public static <K, V> Type makeMapType(Class<K> keyType, Class<V> valueType) {
+        return new TypeToken<Map<K, V>>(){}.getType();
+    }
+
 	public static class DateTimeAdapter extends TypeAdapter<DateTime>
 			implements InstanceCreator<DateTime>,
 			JsonSerializer<DateTime>, JsonDeserializer<DateTime> {
