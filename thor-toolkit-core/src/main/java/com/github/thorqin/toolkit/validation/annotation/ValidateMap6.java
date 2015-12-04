@@ -46,9 +46,9 @@ public @interface ValidateMap6 {
 
     /**
      * If TRUE, then this map object will be checked as an entity
-     * and type field will indicate which the entity class will be used as the checking rule.<br/>
+     * and type field will indicate which the entity class will be used as the checking rule.<br>
      * If FALSE, then will check each element whether
-     * matches the type definition and it's related validation rule.<br/>
+     * matches the type definition and it's related validation rule.<br>
      * Default is TRUE
      * @return Value indicate whether checked as an entity.
      */
