@@ -16,9 +16,25 @@ import java.util.regex.Pattern;
  * @author nuo.qin
  * @param <T> Stored info object type
  */
-public final class RuleMatcher<T> {
+public final class RuleMatcher<T> implements Iterable<RuleMatcher<T>.Rule>  {
 
-    private class Rule {
+    @Override
+    public Iterator<Rule> iterator() {
+        return new Iterator<Rule>() {
+            private int i = 0;
+            @Override
+            public boolean hasNext() {
+                return i < rules.size();
+            }
+
+            @Override
+            public Rule next() {
+                return rules.get(i++);
+            }
+        };
+    }
+
+    public class Rule {
         public Pattern pattern;
         public T info;
         public int order;
@@ -82,6 +98,10 @@ public final class RuleMatcher<T> {
         rules.clear();
         cache.clear();
 	}
+
+    public Rule get(int index) {
+        return rules.get(index);
+    }
 	
 	public int size() {
 		return rules.size();

@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit.web.router;
 
+import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
@@ -476,7 +477,14 @@ public abstract class WebDBRouter extends WebRouterBase {
     @Override
     protected final void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         if (!dispatch(req, resp)) {
-            super.service(req, resp);
+            String requestPath = req.getServletPath();
+            for (String key: mapping.keySet()) {
+                if (key.endsWith(":" + requestPath)) {
+                    sendError(req, resp, 405);
+                    return;
+                }
+            }
+            sendError(req, resp, 404);
         }
     }
 }

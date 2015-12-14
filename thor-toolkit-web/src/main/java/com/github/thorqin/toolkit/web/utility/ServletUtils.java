@@ -1,10 +1,7 @@
 package com.github.thorqin.toolkit.web.utility;
 
-import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.MimeUtils;
 import com.github.thorqin.toolkit.utility.Serializer;
-import com.github.thorqin.toolkit.web.HttpException;
-
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -261,8 +258,6 @@ public final class ServletUtils {
         }
     }
 
-
-
     public static void setCookie(HttpServletResponse response, String name, String value, String path, String domain, Integer maxAge, boolean httpOnly, boolean secureOnly) {
         try {
             if (name == null || value == null)
@@ -354,47 +349,4 @@ public final class ServletUtils {
         }
     }
 
-    public static void error(Integer status, Throwable ex) throws HttpException {
-        error(status, null, ex, null);
-    }
-
-    public static void error(Integer status, Throwable ex, Localization loc) throws HttpException {
-        error(status, null, ex, loc);
-    }
-
-    public static void error(Throwable ex) throws HttpException {
-        error(null, null, ex, null);
-    }
-
-    public static void error(Throwable ex, Localization loc) throws HttpException {
-        error(null, null, ex, loc);
-    }
-
-    public static void error(Integer status, String message, Throwable ex) throws HttpException {
-        error(status, message, ex, null);
-    }
-
-    public static void error(Integer status, String message) throws HttpException {
-        error(status, message, null, null);
-    }
-
-    public static void error(Integer status) throws HttpException {
-        error(status, null, null, null);
-    }
-
-    public static void error(Integer status, String message, Localization loc) throws HttpException {
-        error(status, message, null, loc);
-    }
-
-    public static void error(String message, Localization loc) throws HttpException {
-        error(null, message, null, loc);
-    }
-
-    public static void error(String message) throws HttpException {
-        error(null, message, null, null);
-    }
-
-    public static void error(Integer status, String message, Throwable ex, Localization loc) throws HttpException {
-        throw new HttpException(status, message, ex, loc);
-    }
 }

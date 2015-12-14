@@ -38,8 +38,6 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 public final class UploadManager {
 	public final static int DEFAULT_MAX_SIZE = 1024 * 1024 * 10;
 	private final String uploadDir;
-//	private final Map<String, String> mime = new HashMap<>();
-//    private boolean restrictMime = true;
     private Pattern pattern;
     private boolean storeDetail;
 	private int maxUploadSize;
@@ -86,9 +84,21 @@ public final class UploadManager {
         this.storeDetail = storeDetail;
     }
 
+    private static String toFileName(String name) {
+        String fileName = name;
+        if (fileName.lastIndexOf("\\") != -1) {
+            fileName = fileName.substring(fileName.lastIndexOf("\\") + 1);
+        }
+        if (fileName.lastIndexOf("/") != -1) {
+            fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+        }
+        return fileName;
+    }
+
     public static class FileBasicInfo {
         public String fileId;
         public long createTime;
+        public long length = 0;
     }
 
 	public static class FileInfo extends FileBasicInfo {
@@ -96,13 +106,7 @@ public final class UploadManager {
 		public String mimeType;
 
 		public void setFileName(String name) {
-			fileName = name;
-			if (fileName.lastIndexOf("\\") != -1) {
-				fileName = fileName.substring(fileName.lastIndexOf("\\") + 1);
-			}
-			if (fileName.lastIndexOf("/") != -1) {
-				fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
-			}
+            fileName = toFileName(name);
 		}
 		public String getName() {
 			if (fileName.contains(".")) {
@@ -256,6 +260,7 @@ public final class UploadManager {
 			int length;
 			byte[] buffer = new byte[4096];
 			while ((length = in.read(buffer)) != -1) {
+                info.length += length;
 				bos.write(buffer, 0, length);
 			}
 		}
@@ -282,6 +287,7 @@ public final class UploadManager {
                 FileBasicInfo info = new FileBasicInfo();
                 info.fileId = filePathToId(f);
                 info.createTime = getCreationTime(f);
+                info.length = f.length();
                 files.add(info);
             }
         }
@@ -367,12 +373,11 @@ public final class UploadManager {
 			FileItemStream item = iterator.next();
 			try (InputStream stream = item.openStream()) {
 				if (!item.isFormField()) {
-					FileInfo info = new FileInfo();
-					info.setFileName(item.getName());
-					if (pattern != null && !pattern.matcher(info.fileName).matches()) {
+                    String fileName = toFileName(item.getName());
+					if (pattern != null && !pattern.matcher(fileName).matches()) {
 						continue;
 					}
-					info = store(stream, info.fileName);
+                    FileInfo info = store(stream, fileName);
 					uploadList.add(info);
 				}
 			}
@@ -395,6 +400,7 @@ public final class UploadManager {
             fileInfo.createTime = getCreationTime(dataFile);
             fileInfo.fileName = fileId + ".data";
             fileInfo.mimeType = MimeUtils.UNKNOWN_MIME;
+            fileInfo.length = dataFile.length();
             return fileInfo;
         }
 	}

@@ -719,7 +719,17 @@ public final class WebBasicRouter extends WebRouterBase {
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         if (!dispatch(req, resp)) {
-            super.service(req, resp);
+            String requestPath = req.getServletPath();
+            for (RuleMatcher<MappingInfo>.Rule rule: mapping) {
+                int pos = rule.pattern.toString().indexOf(":");
+                String newPattern = rule.pattern.toString().substring(pos + 1);
+                if (requestPath.matches(newPattern)) {
+                    sendError(req, resp, 405);
+                    return;
+                }
+            }
+            sendError(req, resp, 404);
         }
     }
+
 }
