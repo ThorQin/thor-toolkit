@@ -31,6 +31,9 @@ public final class RuleMatcher<T> implements Iterable<RuleMatcher<T>.Rule>  {
             public Rule next() {
                 return rules.get(i++);
             }
+
+            @Override
+            public void remove() {}
         };
     }
 

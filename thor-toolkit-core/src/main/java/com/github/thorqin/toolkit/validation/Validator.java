@@ -529,8 +529,10 @@ public final class Validator {
 			return Map.class.isInstance(value);
 	}
 
+	@SuppressWarnings("unchecked")
     private static <T> T getAnnoValue(Annotation annotation, String methodName) {
-        try {
+		try {
+
             return (T)annotation.getClass().getMethod(methodName).invoke(annotation);
         } catch (Exception e) {
             throw new RuntimeException(e);
