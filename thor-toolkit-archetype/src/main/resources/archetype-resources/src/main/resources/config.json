@@ -34,6 +34,16 @@
 	"trace": false
   },
 
+  "mq": {
+	"broker": "activemq",   // or "amqp"
+	"uri": "tcp://xxx.xxx.xxx.xxx:xxx", // or amqp://xxx.xxx.xxx.xxx:xxx
+	"user": "<USERNAME>",
+	"password": "<PASSWORD>",
+	"address": "default",   // queue or topic name
+	"broadcast": false,     // if false then address is a queue name otherwise is a topic name
+	"trace": false
+  },
+
   "mail": {
     "trace": false,         // if not specified, default is false
     "debug": false,         // if not specified, default is false

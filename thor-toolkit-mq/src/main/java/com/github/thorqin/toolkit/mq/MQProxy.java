@@ -4,9 +4,9 @@
  * and open the template in the editor.
  */
 
-package com.github.thorqin.toolkit.amq;
+package com.github.thorqin.toolkit.mq;
 
-import com.github.thorqin.toolkit.amq.annotation.AMQMethod;
+import com.github.thorqin.toolkit.mq.annotation.AMQMethod;
 import com.github.thorqin.toolkit.utility.Serializer;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -15,10 +15,10 @@ import java.lang.reflect.Method;
  *
  * @author nuo.qin
  */
-public class AMQProxy implements InvocationHandler {
-	private final AMQService amq;
-	public AMQProxy(AMQService amq) {
-		this.amq = amq;
+public class MQProxy implements InvocationHandler {
+	private final MQService mq;
+	public MQProxy(MQService mq) {
+		this.mq = mq;
 	}
 
 	@Override
@@ -30,9 +30,9 @@ public class AMQProxy implements InvocationHandler {
 		if (amqMethod != null) {
 			waitResponse = amqMethod.waitResponse();
 		}
-		AMQService.Sender sender = amq.createSender(address);
+		MQService.Sender sender = mq.createSender(address);
         if (waitResponse) {
-            AMQService.IncomingMessage incoming = sender.sendAndWaitForReply(method.getName(), args);
+            MQService.IncomingMessage incoming = sender.sendAndWaitForReply(method.getName(), args);
             if (incoming.getReplyCode() == -1)
                 throw new RuntimeException((String)incoming.getBody());
             if (method.getReturnType().equals(void.class) || method.getReturnType().equals(Void.class)) {

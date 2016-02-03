@@ -1,4 +1,4 @@
-package com.github.thorqin.toolkit.amq;
+package com.github.thorqin.toolkit.mq;
 
 import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.service.IService;
@@ -14,82 +14,44 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.jms.BytesMessage;
-import javax.jms.Connection;
-import javax.jms.DeliveryMode;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
+import javax.jms.*;
 
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.validation.annotation.ValidateString;
 import com.google.common.base.Strings;
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.ConfigurationException;
-import org.apache.activemq.transport.TransportListener;
+import org.apache.qpid.jms.JmsConnectionFactory;
 
-public class AMQService implements IService, TransportListener {
+public class MQService implements IService {
 
     public interface ConnectionListener {
         void onConnect();
         void onDisconnect();
     }
 
-    @Override
-    public void onCommand(Object o) {
-        synchronized (transportListeners) {
-            for (TransportListener listener : transportListeners) {
-                listener.onCommand(o);
+    private ExceptionListener exceptionListener = new ExceptionListener() {
+        @Override
+        public void onException(JMSException e) {
+            logger.log(Level.WARNING, "MQService connection exception", e);
+            connection = null;
+            synchronized (connectionListeners) {
+                for (ConnectionListener listener : connectionListeners) {
+                    listener.onDisconnect();
+                }
             }
+            tryConnect();
         }
-    }
+    };
 
-    @Override
-    public void onException(IOException e) {
-        synchronized (transportListeners) {
-            for (TransportListener listener : transportListeners) {
-                listener.onException(e);
-            }
-        }
-        connection = null;
-        synchronized (connectionListeners) {
-            for (ConnectionListener listener : connectionListeners) {
-                listener.onDisconnect();
-            }
-        }
-        tryConnect();
-    }
-
-    @Override
-    public void transportInterupted() {
-        synchronized (transportListeners) {
-            for (TransportListener listener : transportListeners) {
-                listener.transportInterupted();
-            }
-        }
-    }
-
-    @Override
-    public void transportResumed() {
-        synchronized (transportListeners) {
-            for (TransportListener listener : transportListeners) {
-                listener.transportResumed();
-            }
-        }
-    }
-
-    public static class AMQSetting {
+    public static class MQSetting {
         @ValidateString
         public String uri;
         public String user;
         public String password;
+        @ValidateString("^(activemq|amqp)$")
+        public String broker = "activemq";
         @ValidateString
         public String address = "default";
         public boolean broadcast = false;
@@ -98,37 +60,16 @@ public class AMQService implements IService, TransportListener {
 
 	@Service("logger")
     private Logger logger =
-            Logger.getLogger(AMQService.class.getName());
-    private ActiveMQConnectionFactory connectionFactory;
-	private AMQSetting setting;
+            Logger.getLogger(MQService.class.getName());
+    private ConnectionFactory connectionFactory;
+	private MQSetting setting;
 	private Connection connection = null;
     @Service("tracer")
     private Tracer tracer = null;
 	private final ThreadLocal<ProducerHolder> localProducer = new ThreadLocal<>();
-    private Set<TransportListener> transportListeners = new HashSet<>();
     private Set<ConnectionListener> connectionListeners = new HashSet<>();
     private boolean isRunning = false;
     private String serviceName = null;
-
-    private void addTransportListener(TransportListener listener) {
-        synchronized (transportListeners) {
-            if (!transportListeners.contains(listener))
-                transportListeners.add(listener);
-        }
-    }
-
-    private void removeTransportListener(TransportListener listener) {
-        synchronized (transportListeners) {
-            if (!transportListeners.contains(listener))
-                transportListeners.remove(listener);
-        }
-    }
-
-    private void clearTransportListener() {
-        synchronized (transportListeners) {
-            transportListeners.clear();
-        }
-    }
 
     public void addConnectionListener(ConnectionListener listener) {
         synchronized (connectionListeners) {
@@ -191,13 +132,19 @@ public class AMQService implements IService, TransportListener {
     private void clearHolder() {
         localProducer.remove();
     }
-	
+
+    public enum MessageEncoding {
+        JSON,
+        KRYO,
+        RAW
+    }
+
 	public class IncomingMessage {
 		private final String address;
 		private final String subject;
 		private final String contentType;
 		private final int replyCode;
-		private final boolean isJsonEncoding;
+		private final MessageEncoding encoding;
 		private final byte[] body;
 		private final Destination replyDestination;
 		private final String correlationID;
@@ -206,7 +153,7 @@ public class AMQService implements IService, TransportListener {
 				String address, 
 				String subject,
 				String contentType,
-				boolean isJsonEncoding,
+                MessageEncoding encoding,
 				int replyCode,
 				byte[] body,
 				Destination replyDestination,
@@ -214,7 +161,7 @@ public class AMQService implements IService, TransportListener {
 			this.address = address;
 			this.subject = subject;
 			this.contentType = contentType;
-			this.isJsonEncoding = isJsonEncoding;
+			this.encoding = encoding;
 			this.body = body;
 			this.replyDestination = replyDestination;
 			this.correlationID = correlationID;
@@ -229,8 +176,8 @@ public class AMQService implements IService, TransportListener {
 		public String getContentType() {
 			return contentType;
 		}
-		public boolean isJsonEncoding() {
-			return isJsonEncoding;
+		public MessageEncoding getEncoding() {
+			return encoding;
 		}
 		public int getReplyCode() {
 			return replyCode;
@@ -239,25 +186,28 @@ public class AMQService implements IService, TransportListener {
 			return body;
 		}
 		public <T> T getBody() throws IOException {
-			if (isJsonEncoding) {
+			if (encoding == MessageEncoding.JSON) {
 				return Serializer.fromJson(body);
-			} else {
+			} else if (encoding == MessageEncoding.KRYO) {
 				return Serializer.fromKryo(body);
-			}
+			} else
+                throw new IOException("Raw message cannot be convert to specified type.");
 		}
 		public <T> T getBody(Type type) throws IOException {
-			if (isJsonEncoding) {
+            if (encoding == MessageEncoding.JSON) {
 				return Serializer.fromJson(body, type);
-			} else {
+			} else if (encoding == MessageEncoding.KRYO) {
 				return Serializer.fromKryo(body);
-			}
+			} else
+                throw new IOException("Raw message cannot be convert to specified type.");
 		}
 		public <T> T getBody(Class<T> type) throws IOException {
-			if (isJsonEncoding) {
+            if (encoding == MessageEncoding.JSON) {
 				return Serializer.fromJson(body, type);
-			} else {
+            } else if (encoding == MessageEncoding.KRYO) {
 				return Serializer.fromKryo(body);
-			}
+			} else
+                throw new IOException("Raw message cannot be convert to specified type.");
 		}
 		public String getCorrelationID() {
 			return correlationID;
@@ -276,33 +226,33 @@ public class AMQService implements IService, TransportListener {
 					return null;
 			}
 		}
-		public void reply(byte[] replyMessage, String contentType, boolean useJsonEncoding)
+		public void reply(byte[] replyMessage, String contentType, MessageEncoding encoding)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, replyMessage, contentType, useJsonEncoding, replyDestination, correlationID);
+			replier.reply(subject, replyMessage, contentType, encoding, replyDestination, correlationID);
 		}
-		public void reply(int replyCode, byte[] replyMessage, String contentType, boolean useJsonEncoding)
+		public void reply(int replyCode, byte[] replyMessage, String contentType, MessageEncoding encoding)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, replyCode, replyMessage, contentType, useJsonEncoding, replyDestination, correlationID);
+			replier.reply(subject, replyCode, replyMessage, contentType, encoding, replyDestination, correlationID);
 		}
-		public void reply(byte[] replyMessage, String contentType, boolean useJsonEncoding, long timeToLive)
+		public void reply(byte[] replyMessage, String contentType, MessageEncoding encoding, long timeToLive)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, 0, replyMessage, contentType, useJsonEncoding, replyDestination, correlationID, timeToLive);
+			replier.reply(subject, 0, replyMessage, contentType, encoding, replyDestination, correlationID, timeToLive);
 		}
-		public void reply(int replyCode, byte[] replyMessage, String contentType, boolean useJsonEncoding, long timeToLive)
+		public void reply(int replyCode, byte[] replyMessage, String contentType, MessageEncoding encoding, long timeToLive)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, replyCode, replyMessage, contentType, useJsonEncoding, replyDestination, correlationID, timeToLive);
+			replier.reply(subject, replyCode, replyMessage, contentType, encoding, replyDestination, correlationID, timeToLive);
 		}
 		public <T> void reply(T replyMessage) 
 				throws JMSException, IOException {
@@ -332,34 +282,85 @@ public class AMQService implements IService, TransportListener {
 			Replier replier = createReplier();
 			replier.reply(subject, replyCode, replyMessage, replyDestination, correlationID, timeToLive);
 		}
-		public <T> void reply(T replyMessage, boolean useJsonEncoding) 
+		public <T> void reply(T replyMessage, MessageEncoding encoding)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, replyMessage, useJsonEncoding, replyDestination, correlationID);
+			replier.reply(subject, replyMessage, encoding, replyDestination, correlationID);
 		}
-		public <T> void reply(int replyCode, T replyMessage, boolean useJsonEncoding) 
+		public <T> void reply(int replyCode, T replyMessage, MessageEncoding encoding)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, replyCode, replyMessage, useJsonEncoding, replyDestination, correlationID);
+			replier.reply(subject, replyCode, replyMessage, encoding, replyDestination, correlationID);
 		}
-		public <T> void reply(T replyMessage, boolean useJsonEncoding, long timeToLive) 
+		public <T> void reply(T replyMessage, MessageEncoding encoding, long timeToLive)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, replyMessage, useJsonEncoding, replyDestination, correlationID, timeToLive);
+			replier.reply(subject, replyMessage, encoding, replyDestination, correlationID, timeToLive);
 		}
-		public <T> void reply(int replyCode, T replyMessage, boolean useJsonEncoding, long timeToLive) 
+		public <T> void reply(int replyCode, T replyMessage, MessageEncoding encoding, long timeToLive)
 				throws JMSException, IOException {
 			if (replyDestination == null)
 				return;
 			Replier replier = createReplier();
-			replier.reply(subject, replyCode, replyMessage, useJsonEncoding, replyDestination, correlationID, timeToLive);
+			replier.reply(subject, replyCode, replyMessage, encoding, replyDestination, correlationID, timeToLive);
 		}
+
+        public void reply(int replyCode, byte[] replyMessage, long timeToLive)
+                throws JMSException, IOException {
+            if (replyDestination == null)
+                return;
+            Replier replier = createReplier();
+            replier.reply(subject, replyCode, replyMessage, MessageEncoding.RAW, replyDestination, correlationID, timeToLive);
+        }
+
+        public void reply(int replyCode, String replyMessage, long timeToLive)
+                throws JMSException, IOException {
+            if (replyDestination == null)
+                return;
+            Replier replier = createReplier();
+            replier.reply(subject, replyCode, replyMessage == null ? null: replyMessage.getBytes("utf-8"),
+                    MessageEncoding.RAW, replyDestination, correlationID, timeToLive);
+        }
+
+        public void reply(int replyCode, byte[] replyMessage)
+                throws JMSException, IOException {
+            if (replyDestination == null)
+                return;
+            Replier replier = createReplier();
+            replier.reply(subject, replyCode, replyMessage, MessageEncoding.RAW, replyDestination, correlationID);
+        }
+
+        public void reply(int replyCode, String replyMessage)
+                throws JMSException, IOException {
+            if (replyDestination == null)
+                return;
+            Replier replier = createReplier();
+            replier.reply(subject, replyCode, replyMessage == null ? null: replyMessage.getBytes("utf-8"),
+                    MessageEncoding.RAW, replyDestination, correlationID);
+        }
+
+        public void reply(byte[] replyMessage)
+                throws JMSException, IOException {
+            if (replyDestination == null)
+                return;
+            Replier replier = createReplier();
+            replier.reply(subject, replyMessage, MessageEncoding.RAW, replyDestination, correlationID);
+        }
+
+        public void reply(String replyMessage)
+                throws JMSException, IOException {
+            if (replyDestination == null)
+                return;
+            Replier replier = createReplier();
+            replier.reply(subject, replyMessage == null ? null: replyMessage.getBytes("utf-8"),
+                    MessageEncoding.RAW, replyDestination, correlationID);
+        }
 	}
 
 	public interface MessageHandler {
@@ -372,7 +373,7 @@ public class AMQService implements IService, TransportListener {
 		private final long defaultTimeToLive = 30000l;
 		protected Replier() throws JMSException {
             if (!isRunning)
-                throw new JMSException("AMQ Service not started!");
+                throw new JMSException("MQ Service not started!");
 			if (connection == null)
 				throw new JMSException("Connection not allocate.");
 			holder = createHolder();
@@ -409,64 +410,66 @@ public class AMQService implements IService, TransportListener {
 		public <T> void reply(String subject, int replyCode, T replyMessage, Destination destination,
 				String correlationID, long timeToLive) throws IOException, JMSException {
 			byte[] bytes = Serializer.toKryo(replyMessage);
-			reply(subject, replyCode, bytes, Serializer.getTypeName(replyMessage), false, destination, correlationID, timeToLive);
+			reply(subject, replyCode, bytes, Serializer.getTypeName(replyMessage), MessageEncoding.KRYO, destination, correlationID, timeToLive);
 		}
-		public <T> void reply(String subject, T replyMessage, boolean useJsonEncoding, Destination destination,
+		public <T> void reply(String subject, T replyMessage, MessageEncoding encoding, Destination destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, 0, replyMessage, useJsonEncoding, destination, correlationID, defaultTimeToLive);
+			reply(subject, 0, replyMessage, encoding, destination, correlationID, defaultTimeToLive);
 		}
-		public <T> void reply(String subject, T replyMessage, boolean useJsonEncoding, String destination,
+		public <T> void reply(String subject, T replyMessage, MessageEncoding encoding, String destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, 0, replyMessage, useJsonEncoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
+			reply(subject, 0, replyMessage, encoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
 		}
-		public <T> void reply(String subject, int replyCode, T replyMessage, boolean useJsonEncoding, Destination destination,
+		public <T> void reply(String subject, int replyCode, T replyMessage, MessageEncoding encoding, Destination destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, replyCode, replyMessage, useJsonEncoding, destination, correlationID, defaultTimeToLive);
+			reply(subject, replyCode, replyMessage, encoding, destination, correlationID, defaultTimeToLive);
 		}
-		public <T> void reply(String subject, int replyCode, T replyMessage, boolean useJsonEncoding, String destination,
+		public <T> void reply(String subject, int replyCode, T replyMessage, MessageEncoding encoding, String destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, replyCode, replyMessage, useJsonEncoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
+			reply(subject, replyCode, replyMessage, encoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
 		}
-		public <T> void reply(String subject, T replyMessage, boolean useJsonEncoding, Destination destination,
+		public <T> void reply(String subject, T replyMessage, MessageEncoding encoding, Destination destination,
 				String correlationID, long timeToLive) throws IOException, JMSException {
-			reply(subject, 0, replyMessage, useJsonEncoding, destination, correlationID, timeToLive);
+			reply(subject, 0, replyMessage, encoding, destination, correlationID, timeToLive);
 		}
-		public <T> void reply(String subject, T replyMessage, boolean useJsonEncoding, String destination,
+		public <T> void reply(String subject, T replyMessage, MessageEncoding encoding, String destination,
 				String correlationID, long timeToLive) throws IOException, JMSException {
-			reply(subject, 0, replyMessage, useJsonEncoding, holder.session.createQueue(destination), correlationID, timeToLive);
+			reply(subject, 0, replyMessage, encoding, holder.session.createQueue(destination), correlationID, timeToLive);
 		}
-		public <T> void reply(String subject, int replyCode, T replyMessage, boolean useJsonEncoding, String destination,
+		public <T> void reply(String subject, int replyCode, T replyMessage, MessageEncoding encoding, String destination,
 				String correlationID, long timeToLive) throws IOException, JMSException {
-			reply(subject, replyCode, replyMessage, useJsonEncoding, 
+			reply(subject, replyCode, replyMessage, encoding,
 					holder.session.createQueue(destination), correlationID, timeToLive);
 		}
 		
-		public <T> void reply(String subject, int replyCode, T replyMessage, boolean useJsonEncoding, Destination destination,
+		public <T> void reply(String subject, int replyCode, T replyMessage, MessageEncoding encoding, Destination destination,
 				String correlationID, long timeToLive) throws IOException, JMSException {
 			byte[] bytes;
-			if (useJsonEncoding)
+			if (encoding == MessageEncoding.JSON)
 				bytes = Serializer.toJsonBytes(replyMessage);
-			else
+			else if (encoding == MessageEncoding.KRYO)
 				bytes = Serializer.toKryo(replyMessage);
-			reply(subject, replyCode, bytes, Serializer.getTypeName(replyMessage), useJsonEncoding, destination, correlationID, timeToLive);
+            else
+                throw new IOException("Cannot specify RAW encoding");
+			reply(subject, replyCode, bytes, Serializer.getTypeName(replyMessage), encoding, destination, correlationID, timeToLive);
 		}
-		public void reply(String subject, byte[] replyMessage, String contentType, boolean useJsonEncoding, Destination destination,
+		public void reply(String subject, byte[] replyMessage, String contentType, MessageEncoding encoding, Destination destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, 0, replyMessage, contentType, useJsonEncoding, destination, correlationID, defaultTimeToLive);
+			reply(subject, 0, replyMessage, contentType, encoding, destination, correlationID, defaultTimeToLive);
 		}
-		public void reply(String subject, byte[] replyMessage, String contentType, boolean useJsonEncoding, String destination,
+		public void reply(String subject, byte[] replyMessage, String contentType, MessageEncoding encoding, String destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, 0, replyMessage, contentType, useJsonEncoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
+			reply(subject, 0, replyMessage, contentType, encoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
 		}
-		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType, boolean useJsonEncoding, Destination destination,
+		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType, MessageEncoding encoding, Destination destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, replyCode, replyMessage, contentType, useJsonEncoding, destination, correlationID, defaultTimeToLive);
+			reply(subject, replyCode, replyMessage, contentType, encoding, destination, correlationID, defaultTimeToLive);
 		}
-		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType, boolean useJsonEncoding, String destination,
+		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType, MessageEncoding encoding, String destination,
 				String correlationID) throws IOException, JMSException {
-			reply(subject, replyCode, replyMessage, contentType, useJsonEncoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
+			reply(subject, replyCode, replyMessage, contentType, encoding, holder.session.createQueue(destination), correlationID, defaultTimeToLive);
 		}
-		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType, boolean useJsonEncoding, Destination destination,
+		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType, MessageEncoding encoding, Destination destination,
 				String correlationID, long timeToLive) throws IOException, JMSException {
             long beginTime = System.currentTimeMillis();
             boolean success = true;
@@ -476,7 +479,7 @@ public class AMQService implements IService, TransportListener {
                 bytesMessage.setJMSCorrelationID(correlationID);
                 bytesMessage.setStringProperty("subject", subject);
                 bytesMessage.setStringProperty("contentType", contentType);
-                bytesMessage.setBooleanProperty("jsonEncoding", useJsonEncoding);
+                bytesMessage.setStringProperty("encoding", encoding.toString());
                 bytesMessage.setIntProperty("replyCode", replyCode);
                 holder.producer.send(destination, bytesMessage, deliveryMode, 5, timeToLive);
             } catch (Exception ex) {
@@ -485,7 +488,7 @@ public class AMQService implements IService, TransportListener {
             } finally {
                 if (setting.trace && tracer != null) {
                     Tracer.Info info = new Tracer.Info();
-                    info.catalog = "amq";
+                    info.catalog = "mq";
                     info.name = "reply";
                     info.put("success", success);
                     info.put("serviceName", serviceName);
@@ -497,11 +500,51 @@ public class AMQService implements IService, TransportListener {
                 }
             }
         }
-		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType, boolean useJsonEncoding, String destination,
+		public void reply(String subject, int replyCode, byte[] replyMessage, String contentType,
+                          MessageEncoding encoding, String destination,
 				String correlationID, long timeToLive) throws IOException, JMSException {
-			reply(subject, replyCode, replyMessage, contentType, useJsonEncoding, 
+			reply(subject, replyCode, replyMessage, contentType, encoding,
 					holder.session.createQueue(destination),correlationID, timeToLive);
 		}
+
+        public void reply(String subject, int replyCode, byte[] replyMessage, String destination,
+                          String correlationID, long timeToLive) throws IOException, JMSException {
+            reply(subject, replyCode, replyMessage, Serializer.getTypeName(replyMessage),
+                    MessageEncoding.RAW, destination, correlationID, timeToLive);
+        }
+
+        public void reply(String subject, int replyCode, String replyMessage, String destination,
+                          String correlationID, long timeToLive) throws IOException, JMSException {
+            reply(subject, replyCode, replyMessage == null ? null : replyMessage.getBytes("utf-8"),
+                    Serializer.getTypeName(replyMessage),
+                    MessageEncoding.RAW, destination, correlationID, timeToLive);
+        }
+
+        public void reply(String subject, int replyCode, byte[] replyMessage, String destination,
+                          String correlationID) throws IOException, JMSException {
+            reply(subject, replyCode, replyMessage, Serializer.getTypeName(replyMessage),
+                    MessageEncoding.RAW, destination, correlationID, defaultTimeToLive);
+        }
+
+        public void reply(String subject, int replyCode, String replyMessage, String destination,
+                          String correlationID) throws IOException, JMSException {
+            reply(subject, replyCode, replyMessage == null ? null : replyMessage.getBytes("utf-8"),
+                    Serializer.getTypeName(replyMessage),
+                    MessageEncoding.RAW, destination, correlationID, defaultTimeToLive);
+        }
+
+        public void reply(String subject, byte[] replyMessage, String destination,
+                          String correlationID) throws IOException, JMSException {
+            reply(subject, 0, replyMessage, Serializer.getTypeName(replyMessage),
+                    MessageEncoding.RAW, destination, correlationID, defaultTimeToLive);
+        }
+
+        public void reply(String subject, String replyMessage, String destination,
+                          String correlationID) throws IOException, JMSException {
+            reply(subject, 0, replyMessage == null ? null : replyMessage.getBytes("utf-8"),
+                    Serializer.getTypeName(replyMessage),
+                    MessageEncoding.RAW, destination, correlationID, defaultTimeToLive);
+        }
 	}
 	
 	public class Sender {
@@ -537,53 +580,113 @@ public class AMQService implements IService, TransportListener {
 		}
 		public <T> void send(String subject, T message) throws IOException, JMSException {
 			byte[] bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), false, 0);
+			send(subject, bytes, Serializer.getTypeName(message), MessageEncoding.KRYO, 0);
 		}
 		public <T> void send(String subject, T message, String replyAddress, String correlationID) throws IOException, JMSException {
 			byte[] bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), replyAddress, correlationID, false, 0);
+			send(subject, bytes, Serializer.getTypeName(message), replyAddress, correlationID, MessageEncoding.KRYO, 0);
 		}
-		public <T> void send(String subject, T message, boolean useJsonEncoding) throws IOException, JMSException {
+		public <T> void send(String subject, T message, MessageEncoding encoding) throws IOException, JMSException {
 			byte[] bytes;
-			if (useJsonEncoding)
+			if (encoding == MessageEncoding.JSON)
 				bytes = Serializer.toJsonBytes(message);
-			else
+            else if (encoding == MessageEncoding.KRYO)
 				bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), useJsonEncoding, 0);
+            else
+                throw new IOException("Cannot specify RAW encoding");
+			send(subject, bytes, Serializer.getTypeName(message), encoding, 0);
 		}
-		public <T> void send(String subject, T message, String replyAddress, String correlationID, boolean useJsonEncoding) throws IOException, JMSException {
+		public <T> void send(String subject, T message, String replyAddress, String correlationID,
+                             MessageEncoding encoding) throws IOException, JMSException {
 			byte[] bytes;
-			if (useJsonEncoding)
-				bytes = Serializer.toJsonBytes(message);
-			else
-				bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), replyAddress, correlationID, useJsonEncoding, 0);
+            if (encoding == MessageEncoding.JSON)
+                bytes = Serializer.toJsonBytes(message);
+            else if (encoding == MessageEncoding.KRYO)
+                bytes = Serializer.toKryo(message);
+            else
+                throw new IOException("Cannot specify RAW encoding");
+			send(subject, bytes, Serializer.getTypeName(message), replyAddress, correlationID, encoding, 0);
 		}
 		public <T> void send(String subject, T message, long timeToLive) throws IOException, JMSException {
 			byte[] bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), false, timeToLive);
+			send(subject, bytes, Serializer.getTypeName(message), MessageEncoding.KRYO, timeToLive);
 		}
-		public <T> void send(String subject, T message, String replyAddress, String correlationID, long timeToLive) throws IOException, JMSException {
+		public <T> void send(String subject, T message, String replyAddress,
+                             String correlationID, long timeToLive) throws IOException, JMSException {
 			byte[] bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), replyAddress, correlationID, false, timeToLive);
+			send(subject, bytes, Serializer.getTypeName(message), replyAddress,
+                    correlationID, MessageEncoding.KRYO, timeToLive);
 		}
-		public <T> void send(String subject, T message, boolean useJsonEncoding, long timeToLive) throws IOException, JMSException {
+		public <T> void send(String subject, T message, MessageEncoding encoding,
+                             long timeToLive) throws IOException, JMSException {
 			byte[] bytes;
-			if (useJsonEncoding)
-				bytes = Serializer.toJsonBytes(message);
-			else
-				bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), useJsonEncoding, timeToLive);
+            if (encoding == MessageEncoding.JSON)
+                bytes = Serializer.toJsonBytes(message);
+            else if (encoding == MessageEncoding.KRYO)
+                bytes = Serializer.toKryo(message);
+            else
+                throw new IOException("Cannot specify RAW encoding");
+			send(subject, bytes, Serializer.getTypeName(message), encoding, timeToLive);
 		}
-		public <T> void send(String subject, T message, String replyAddress, String correlationID, boolean useJsonEncoding, long timeToLive) throws IOException, JMSException {
+		public <T> void send(String subject, T message, String replyAddress, String correlationID,
+                             MessageEncoding encoding, long timeToLive) throws IOException, JMSException {
 			byte[] bytes;
-			if (useJsonEncoding)
-				bytes = Serializer.toJsonBytes(message);
-			else
-				bytes = Serializer.toKryo(message);
-			send(subject, bytes, Serializer.getTypeName(message), replyAddress, correlationID, useJsonEncoding, timeToLive);
+            if (encoding == MessageEncoding.JSON)
+                bytes = Serializer.toJsonBytes(message);
+            else if (encoding == MessageEncoding.KRYO)
+                bytes = Serializer.toKryo(message);
+            else
+                throw new IOException("Cannot specify RAW encoding");
+			send(subject, bytes, Serializer.getTypeName(message), replyAddress, correlationID, encoding, timeToLive);
 		}
-		public void send(String subject, byte[] message, String contentType, boolean useJsonEncoding, long timeToLive) 
+
+        public <T> void send(String subject, byte[] message,
+                             long timeToLive) throws IOException, JMSException {
+            send(subject, message, Serializer.getTypeName(message), MessageEncoding.RAW, timeToLive);
+        }
+
+        public <T> void send(String subject, String message,
+                             long timeToLive) throws IOException, JMSException {
+            send(subject, message == null ? null : message.getBytes("utf-8"),
+                    Serializer.getTypeName(message), MessageEncoding.RAW, timeToLive);
+        }
+
+        public <T> void send(String subject, byte[] message) throws IOException, JMSException {
+            send(subject, message, Serializer.getTypeName(message), MessageEncoding.RAW, defaultTimeout);
+        }
+
+        public <T> void send(String subject, String message) throws IOException, JMSException {
+            send(subject, message == null ? null : message.getBytes("utf-8"),
+                    Serializer.getTypeName(message), MessageEncoding.RAW, defaultTimeout);
+        }
+
+        public <T> void send(String subject, byte[] message, String replyAddress, String correlationID,
+                             long timeToLive) throws IOException, JMSException {
+            send(subject, message, Serializer.getTypeName(message), replyAddress,
+                    correlationID, MessageEncoding.RAW, timeToLive);
+        }
+
+        public <T> void send(String subject, String message, String replyAddress, String correlationID,
+                             long timeToLive) throws IOException, JMSException {
+            send(subject, message == null ? null : message.getBytes("utf-8"),
+                    Serializer.getTypeName(message), replyAddress,
+                    correlationID, MessageEncoding.RAW, timeToLive);
+        }
+
+        public <T> void send(String subject, byte[] message,
+                             String replyAddress, String correlationID) throws IOException, JMSException {
+            send(subject, message, Serializer.getTypeName(message), replyAddress,
+                    correlationID, MessageEncoding.RAW, defaultTimeout);
+        }
+
+        public <T> void send(String subject, String message, String replyAddress, String correlationID) throws IOException, JMSException {
+            send(subject, message == null ? null : message.getBytes("utf-8"),
+                    Serializer.getTypeName(message), replyAddress,
+                    correlationID, MessageEncoding.RAW, defaultTimeout);
+        }
+
+		public void send(String subject, byte[] message, String contentType,
+                         MessageEncoding encoding, long timeToLive)
 				throws IOException, JMSException {
             long beginTime = System.currentTimeMillis();
             boolean success = true;
@@ -592,7 +695,7 @@ public class AMQService implements IService, TransportListener {
                 bytesMessage.writeBytes(message);
                 bytesMessage.setStringProperty("subject", subject);
                 bytesMessage.setStringProperty("contentType", contentType);
-                bytesMessage.setBooleanProperty("jsonEncoding", useJsonEncoding);
+                bytesMessage.setStringProperty("encoding", encoding.toString());
                 holder.producer.send(dest, bytesMessage, deliveryMode, 4, timeToLive);
             } catch (Exception ex) {
                 success = false;
@@ -600,7 +703,7 @@ public class AMQService implements IService, TransportListener {
             } finally {
                 if (setting.trace && tracer != null) {
                     Tracer.Info info = new Tracer.Info();
-                    info.catalog = "amq";
+                    info.catalog = "mq";
                     info.name = "send";
                     info.put("success", success);
                     info.put("serviceName", serviceName);
@@ -612,7 +715,8 @@ public class AMQService implements IService, TransportListener {
                 }
             }
 		}
-		public void send(String subject, byte[] message, String contentType, String replyAddress, String correlationID, boolean useJsonEncoding, long timeToLive) 
+		public void send(String subject, byte[] message, String contentType, String replyAddress,
+                         String correlationID, MessageEncoding encoding, long timeToLive)
 				throws IOException, JMSException {
             long beginTime = System.currentTimeMillis();
             boolean success = true;
@@ -621,7 +725,7 @@ public class AMQService implements IService, TransportListener {
                 bytesMessage.writeBytes(message);
                 bytesMessage.setStringProperty("subject", subject);
                 bytesMessage.setStringProperty("contentType", contentType);
-                bytesMessage.setBooleanProperty("jsonEncoding", useJsonEncoding);
+                bytesMessage.setStringProperty("encoding", encoding.toString());
                 if (replyAddress != null)
                     bytesMessage.setJMSReplyTo(holder.session.createQueue(replyAddress));
                 if (correlationID != null)
@@ -633,7 +737,7 @@ public class AMQService implements IService, TransportListener {
             } finally {
                 if (setting.trace && tracer != null) {
                     Tracer.Info info = new Tracer.Info();
-                    info.catalog = "amq";
+                    info.catalog = "mq";
                     info.name = "send";
                     info.put("success", success);
                     info.put("serviceName", serviceName);
@@ -655,21 +759,23 @@ public class AMQService implements IService, TransportListener {
 				throws IOException, JMSException, TimeoutException {
 			byte[] bytes = Serializer.toKryo(message);
 			String contentType = Serializer.getTypeName(message);
-			return sendAndWaitForReply(subject, bytes, contentType, false, timeout);
+			return sendAndWaitForReply(subject, bytes, contentType, MessageEncoding.KRYO, timeout);
 		}
-		public <T> IncomingMessage sendAndWaitForReply(String subject, T message, boolean useJsonEncoding, long timeout)  
+		public <T> IncomingMessage sendAndWaitForReply(String subject, T message, MessageEncoding encoding, long timeout)
 				throws IOException, JMSException, TimeoutException {
 			byte[] bytes;
-			if (useJsonEncoding)
-				bytes = Serializer.toJsonBytes(message);
-			else
-				bytes = Serializer.toKryo(message);
+            if (encoding == MessageEncoding.JSON)
+                bytes = Serializer.toJsonBytes(message);
+            else if (encoding == MessageEncoding.KRYO)
+                bytes = Serializer.toKryo(message);
+            else
+                throw new IOException("Cannot specify RAW encoding");
 			String contentType = Serializer.getTypeName(message);
-			return sendAndWaitForReply(subject, bytes, contentType, useJsonEncoding, timeout);
+			return sendAndWaitForReply(subject, bytes, contentType, encoding, timeout);
 		}
 
-		public IncomingMessage sendAndWaitForReply(String subject, byte[] message, String contentType, 
-				boolean useJsonEncoding, long timeout) throws IOException, 
+		public IncomingMessage sendAndWaitForReply(String subject, byte[] message, String contentType,
+                                                   MessageEncoding encoding, long timeout) throws IOException,
 				JMSException, TimeoutException {
             long beginTime = System.currentTimeMillis();
             boolean success = true;
@@ -682,7 +788,7 @@ public class AMQService implements IService, TransportListener {
                 bytesMessage.writeBytes(message);
                 bytesMessage.setStringProperty("subject", subject);
                 bytesMessage.setStringProperty("contentType", contentType);
-                bytesMessage.setBooleanProperty("jsonEncoding", useJsonEncoding);
+                bytesMessage.setStringProperty("encoding", encoding.toString());
                 bytesMessage.setJMSReplyTo(holder.replyQueue);
                 bytesMessage.setJMSCorrelationID(correlationID);
                 holder.producer.send(dest, bytesMessage, deliveryMode, 4, timeout);
@@ -704,7 +810,7 @@ public class AMQService implements IService, TransportListener {
                         address,
                         replyMessage.getStringProperty("subject"),
                         replyMessage.getStringProperty("contentType"),
-                        replyMessage.getBooleanProperty("jsonEncoding"),
+                        parseMessageEncoding(replyMessage.getStringProperty("encoding")),
                         replyCode,
                         replyBytes, null, null);
             } catch (Exception ex) {
@@ -713,7 +819,7 @@ public class AMQService implements IService, TransportListener {
             } finally {
                 if (setting.trace && tracer != null) {
                     Tracer.Info info = new Tracer.Info();
-                    info.catalog = "amq";
+                    info.catalog = "mq";
                     info.name = "sendAndWaitForReply";
                     info.put("subject", subject);
                     info.put("contentType", contentType);
@@ -736,6 +842,19 @@ public class AMQService implements IService, TransportListener {
 		} else
 			return 0;
 	}
+
+    private static MessageEncoding parseMessageEncoding(String encoding) {
+        MessageEncoding replyEncoding;
+        if (encoding == null) {
+            replyEncoding = MessageEncoding.RAW;
+        } else if (encoding.equals(MessageEncoding.JSON.toString())) {
+            replyEncoding = MessageEncoding.JSON;
+        } else if (encoding.equals(MessageEncoding.KRYO.toString())) {
+            replyEncoding = MessageEncoding.KRYO;
+        } else
+            replyEncoding = MessageEncoding.RAW;
+        return replyEncoding;
+    }
 	
 	public class Receiver implements AutoCloseable {
 		private Session session = null;
@@ -775,7 +894,7 @@ public class AMQService implements IService, TransportListener {
                         address,
                         message.getStringProperty("subject"),
                         message.getStringProperty("contentType"),
-                        message.getBooleanProperty("jsonEncoding"),
+                        parseMessageEncoding(message.getStringProperty("encoding")),
                         getReplyCode(message),
                         getBytes(message),
                         message.getJMSReplyTo(),
@@ -787,7 +906,7 @@ public class AMQService implements IService, TransportListener {
             } finally {
                 if (setting.trace && tracer != null) {
                     Tracer.Info info = new Tracer.Info();
-                    info.catalog = "amq";
+                    info.catalog = "mq";
                     info.name = "receive";
                     info.put("success", success);
                     info.put("serviceName", serviceName);
@@ -811,7 +930,7 @@ public class AMQService implements IService, TransportListener {
                         address,
                         message.getStringProperty("subject"),
                         message.getStringProperty("contentType"),
-                        message.getBooleanProperty("jsonEncoding"),
+                        parseMessageEncoding(message.getStringProperty("encoding")),
                         getReplyCode(message),
                         getBytes(message),
                         message.getJMSReplyTo(),
@@ -823,7 +942,7 @@ public class AMQService implements IService, TransportListener {
             } finally {
                 if (setting.trace && tracer != null) {
                     Tracer.Info info = new Tracer.Info();
-                    info.catalog = "amq";
+                    info.catalog = "mq";
                     info.name = "receive";
                     info.put("serviceName", serviceName);
                     info.put("success", success);
@@ -853,7 +972,7 @@ public class AMQService implements IService, TransportListener {
                             address,
                             message.getStringProperty("subject"),
                             message.getStringProperty("contentType"),
-                            message.getBooleanProperty("jsonEncoding"),
+                            parseMessageEncoding(message.getStringProperty("encoding")),
                             getReplyCode(message),
                             getBytes(message),
                             message.getJMSReplyTo(),
@@ -866,7 +985,7 @@ public class AMQService implements IService, TransportListener {
             } finally {
                 if (setting.trace && tracer != null && !noMessage) {
                     Tracer.Info info = new Tracer.Info();
-                    info.catalog = "amq";
+                    info.catalog = "mq";
                     info.name = "receiveNoWait";
                     info.put("success", success);
                     info.put("serviceName", serviceName);
@@ -913,8 +1032,8 @@ public class AMQService implements IService, TransportListener {
 						inMessage = new IncomingMessage(
 								address,
 								message.getStringProperty("subject"), 
-								message.getStringProperty("contentType"), 
-								message.getBooleanProperty("jsonEncoding"),
+								message.getStringProperty("contentType"),
+                                parseMessageEncoding(message.getStringProperty("encoding")),
 								getReplyCode(message),
 								getBytes(message), 
 								message.getJMSReplyTo(), 
@@ -927,7 +1046,7 @@ public class AMQService implements IService, TransportListener {
 				} finally {
                     if (setting.trace && tracer != null) {
                         Tracer.Info info = new Tracer.Info();
-                        info.catalog = "amq";
+                        info.catalog = "mq";
                         info.name = "onReceiveMessage";
                         info.put("success", success);
                         info.put("serviceName", serviceName);
@@ -980,34 +1099,34 @@ public class AMQService implements IService, TransportListener {
 		}
 	}
 
-    public AMQService() {
+    public MQService() {
         this.setting = null;
         this.tracer = null;
     }
 
-	public AMQService(AMQSetting setting) throws ValidateException {
+	public MQService(MQSetting setting) throws ValidateException {
 		this(setting, null);
 	}
 
-    public AMQService(AMQSetting setting, Tracer tracer) throws ValidateException {
+    public MQService(MQSetting setting, Tracer tracer) throws ValidateException {
         validateSetting(setting);
         this.setting = setting;
         this.tracer = tracer;
     }
 
-    private void validateSetting(AMQService.AMQSetting mailSetting) throws ValidateException {
+    private void validateSetting(MQSetting mailSetting) throws ValidateException {
         Validator validator = new Validator(Localization.getInstance());
-        validator.validateObject(mailSetting, AMQService.AMQSetting.class, false);
+        validator.validateObject(mailSetting, MQSetting.class, false);
     }
 
     @Override
     public boolean config(ConfigManager configManager, String serviceName, boolean isReConfig) {
         this.serviceName = serviceName;
-        AMQService.AMQSetting newSetting = configManager.get(serviceName, AMQService.AMQSetting.class);
+        MQSetting newSetting = configManager.get(serviceName, MQSetting.class);
         try {
             validateSetting(newSetting);
         } catch (ValidateException ex) {
-            logger.log(Level.SEVERE, "Invalid AMQ configuration settings: {0}", ex.getMessage());
+            logger.log(Level.SEVERE, "Invalid MQ configuration settings: {0}", ex.getMessage());
             return false;
         }
         boolean needRestart = !Serializer.equals(newSetting, setting);
@@ -1024,11 +1143,19 @@ public class AMQService implements IService, TransportListener {
     public synchronized void start() {
         if (isRunning)
             return;
-        if (!Strings.isNullOrEmpty(setting.user))
-            connectionFactory = new ActiveMQConnectionFactory(setting.user, setting.password, setting.uri);
-        else
-            connectionFactory = new ActiveMQConnectionFactory(setting.uri);
-        connectionFactory.setTransportListener(this);
+        if (setting.broker.equals("activemq")) {
+            if (!Strings.isNullOrEmpty(setting.user)) {
+                connectionFactory = new ActiveMQConnectionFactory(setting.user, setting.password, setting.uri);
+            } else {
+                connectionFactory = new ActiveMQConnectionFactory(setting.uri);
+            }
+        } else { // Used AMQP
+            if (!Strings.isNullOrEmpty(setting.user)) {
+                connectionFactory = new JmsConnectionFactory(setting.user, setting.password, setting.uri);
+            } else {
+                connectionFactory = new JmsConnectionFactory(setting.uri);
+            }
+        }
         connection = null;
         isRunning = true;
         tryConnect();
@@ -1053,6 +1180,7 @@ public class AMQService implements IService, TransportListener {
                                 listener.onConnect();
                             }
                         }
+                        connection.setExceptionListener(exceptionListener);
                     } catch (JMSException e) {
                         connection = null;
                         logger.log(Level.SEVERE, "Try connect failed! (Service name: {0}): {1}",
@@ -1073,7 +1201,6 @@ public class AMQService implements IService, TransportListener {
             return;
         isRunning = false;
         closeResource(connection);
-        connectionFactory.setTransportListener(null);
         connectionFactory = null;
         connection = null;
     }
@@ -1111,15 +1238,22 @@ public class AMQService implements IService, TransportListener {
 	}
 
 
-	private byte[] getBytes(Message message) throws IOException, JMSException {
+	private static byte[] getBytes(Message message) throws IOException, JMSException {
 		if (message == null)
 			return null;
 		else {
 			if (message instanceof BytesMessage) {
-				BytesMessage bytesMessage = (BytesMessage)message;
-				byte[] content = new byte[(int) bytesMessage.getBodyLength()];
-				bytesMessage.readBytes(content);
-				return content;
+                BytesMessage bytesMessage = (BytesMessage) message;
+                byte[] content = new byte[(int) bytesMessage.getBodyLength()];
+                bytesMessage.readBytes(content);
+                return content;
+            } else if (message instanceof TextMessage) {
+                TextMessage textMessage = (TextMessage) message;
+                String text = textMessage.getText();
+                if (text == null)
+                    return null;
+                else
+                    return text.getBytes("utf-8");
 			} else {
 				throw new JMSException("Invalid message: wrong type.");
 			}
@@ -1185,9 +1319,9 @@ public class AMQService implements IService, TransportListener {
     @SuppressWarnings("unchecked")
     public <T> T getProxy(Class<T> interfaceType) {
         Object instance = Proxy.newProxyInstance(
-                AMQProxy.class.getClassLoader(),
+                MQProxy.class.getClassLoader(),
                 new Class<?>[]{interfaceType},
-                new AMQProxy(this));
+                new MQProxy(this));
         return (T)instance;
     }
 }
