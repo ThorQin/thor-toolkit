@@ -62,7 +62,7 @@ public class MailService implements IService {
         public String password;
         @ValidateString("^(starttls|ssl|no)$")
         public String secure = "no";
-        @ValidateString(ValidateString.EMAIL)
+        //@ValidateString(ValidateString.EMAIL)
         public String from;
     }
 
@@ -156,8 +156,9 @@ public class MailService implements IService {
 
             MimeMessage message = new MimeMessage(session);
             StringBuilder mailTo = new StringBuilder();
-			if (mail.from != null)
-				message.setFrom(new InternetAddress(mail.from));
+			if (mail.from != null) {
+                message.setFrom(new InternetAddress(mail.from));
+            }
 			else if (setting.from != null)
 				message.setFrom(new InternetAddress(setting.from));
             mailFrom = StringUtils.join(message.getFrom());
@@ -272,7 +273,7 @@ public class MailService implements IService {
         if (taskService == null)
             return;
         try {
-            taskService.shutdown(30000);
+            taskService.shutdown();
         } catch (InterruptedException e) {
         }
         taskService = null;

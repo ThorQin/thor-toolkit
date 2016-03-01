@@ -9,10 +9,9 @@ import com.github.thorqin.toolkit.validation.annotation.*;
 import com.google.gson.reflect.TypeToken;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeUtility;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -152,6 +151,11 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
 
         Validator validator = new Validator(Localization.getInstance());
         validator.validate(persons, Map.class, TempClass.class.getAnnotations());
+    }
+
+    @Test
+    public void showEncodingMailAddress() throws UnsupportedEncodingException {
+        System.out.println(MimeUtility.encodeText("中国海油采办系统"));
     }
 }
 
