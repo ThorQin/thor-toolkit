@@ -37,13 +37,13 @@ public @interface WebEntry {
 
     /**
      * Path name, if name is same with the method name then keep this value in empty.
-     * @return
+     * @return Path name
      */
     String value() default "";
 
     /**
      * If set to TRUE then will send cross-site header to client
-     * @return
+     * @return Whether or not to send cross-site headers
      */
     boolean crossSite() default false;
 
@@ -51,7 +51,7 @@ public @interface WebEntry {
      * If multiple path can match the request url,
      * then use order value to define which path have high priority,
      * Rule is: order value smaller have the high priority.
-     * @return
+     * @return Order level
      */
     int order() default 10000;
 
@@ -65,7 +65,7 @@ public @interface WebEntry {
      * By default, this parameter is set to AUTO,
      * means if there have PART definition then do not use cache.
      *
-     * @return
+     * @return Cache type
      */
     CacheType cache() default CacheType.AUTO;
 
