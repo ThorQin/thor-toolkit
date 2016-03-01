@@ -35,6 +35,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import com.github.thorqin.toolkit.utility.Localization;
+import com.sun.org.apache.xerces.internal.impl.dv.ValidationContext;
 import javassist.Modifier;
 import com.github.thorqin.toolkit.validation.annotation.*;
 import org.joda.time.DateTime;
@@ -223,8 +224,18 @@ public final class Validator {
                 if (value.length() > anno.maxLength())
                     throw new ValidateException(ValidateMessageConstant.LENGTH_SHOULD_LESS_THAN.getMessage(loc, anno.maxLength()));
             }
-			if (!anno.value().trim().isEmpty()) {
-				boolean matches = value.matches(anno.value().trim());
+			if (anno.value().length > 0) {
+                boolean matches = false;
+                try {
+                    for (String rule : anno.value()) {
+                        if (value.matches(rule)) {
+                            matches = true;
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new ValidateException(ValidateMessageConstant.INVALID_STRING_PATTERN.getMessage(loc));
+                }
 				if (!matches) {
                     throw new ValidateException(ValidateMessageConstant.INVALID_FORMAT.getMessage(loc));
 				}

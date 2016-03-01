@@ -44,6 +44,7 @@ public @interface ValidateString {
 	String CURRENCY = "^-?(?:[A-Z]{3}|\\$|€|￥|￡|฿|₩)?\\d{1,3}(,\\d{3})*\\.\\d{2,3}$";
 	String USERNAME = "^[a-zA-Z]\\w{5,29}$";
 	String EMAIL = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$";
+    String MAIL_BOX = "(" + EMAIL + ")||(^.+\\s+<\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*>$)";
 	String CHINESE_CHARACTER = "^[\u4e00-\u9fa5]{0,}$";
 	String URL = "^https?://([\\w-]+\\.)+[\\w-]+(:[0-9]{1,5})?(/[\\w-./?%&=]*)?$";
 	String HTML_TAG = "<(.*)>(.*)<\\/(.*)>|<(.*)\\/>";
@@ -62,7 +63,7 @@ public @interface ValidateString {
 
 	boolean allowNull() default false;
 	boolean allowEmpty() default false;
-	String value() default "";
+	String[] value() default {};
 	int minLength() default 0;
 	int maxLength() default Integer.MAX_VALUE;
 

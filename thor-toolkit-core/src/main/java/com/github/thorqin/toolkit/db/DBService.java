@@ -987,8 +987,9 @@ public final class DBService implements IService, AutoCloseable {
                 if (anno == null)
                     continue;
                 String colName = anno.value();
-                if (colName.isEmpty())
-                    colName = field.getName();
+                if (colName.isEmpty()) {
+                    colName = StringUtils.camelToUnderline(field.getName());
+                }
                 Integer col = null;
                 for (int i = 0; i < columns.length; i++) {
                     if (columns[i].equalsIgnoreCase(colName)) {

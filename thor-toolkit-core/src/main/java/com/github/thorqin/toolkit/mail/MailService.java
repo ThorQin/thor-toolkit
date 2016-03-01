@@ -62,7 +62,7 @@ public class MailService implements IService {
         public String password;
         @ValidateString("^(starttls|ssl|no)$")
         public String secure = "no";
-        //@ValidateString(ValidateString.EMAIL)
+        @ValidateString(ValidateString.MAIL_BOX)
         public String from;
     }
 
