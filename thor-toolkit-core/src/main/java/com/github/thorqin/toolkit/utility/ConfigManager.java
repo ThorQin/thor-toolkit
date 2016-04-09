@@ -3,6 +3,8 @@ package com.github.thorqin.toolkit.utility;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import org.joda.time.DateTime;
+import org.yaml.snakeyaml.Yaml;
+
 import java.io.*;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -101,8 +103,13 @@ public class ConfigManager {
 
     private void loadDefaultResource(String resource) {
         try {
-            defaultRoot = Serializer.fromJson(
-                    Serializer.readTextResource(resource), JsonElement.class);
+            String textContent = Serializer.readTextResource(resource);
+            if (resource.matches(".+\\.yml")) {
+                Yaml yaml = new Yaml();
+                Object obj = yaml.load(textContent);
+                defaultRoot = Serializer.toJsonElement(obj);
+            } else
+                defaultRoot = Serializer.fromJson(textContent, JsonElement.class);
         } catch (Exception ex) {
             defaultRoot = null;
         }
@@ -176,13 +183,19 @@ public class ConfigManager {
         JsonElement newRoot;
         if (rawContent == null) {
             newRoot = null;
-        } else
-            newRoot = Serializer.fromJson(rawContent, JsonElement.class);
+        } else {
+            if (file != null && file.getName().matches(".+\\.yml")) {
+                Yaml yaml = new Yaml();
+                Object obj = yaml.load(rawContent);
+                newRoot = Serializer.toJsonElement(obj);
+            } else
+                newRoot = Serializer.fromJson(rawContent, JsonElement.class);
+        }
         if (defaultRoot == null) {
             rootObj = newRoot;
         } else if (newRoot == null) {
             rootObj = defaultRoot;
-        } else {
+        } else { // Both not null
             JsonArray container = new JsonArray();
             margeChild(container, defaultRoot, newRoot, null);
             rootObj = container.get(0);

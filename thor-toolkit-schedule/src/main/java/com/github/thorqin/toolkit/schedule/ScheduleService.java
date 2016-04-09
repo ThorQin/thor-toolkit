@@ -50,7 +50,7 @@ public class ScheduleService implements IService {
     private String serviceName = null;
 
     public ScheduleService() {
-        setting = null;
+        setting = new Setting();
         tracer = null;
     }
 
@@ -129,7 +129,11 @@ public class ScheduleService implements IService {
         this.serviceName = serviceName;
         Setting newSetting = configManager.get(serviceName, Setting.class);
         try {
-            validateSetting(newSetting);
+            if (newSetting == null) {
+                logger.log(Level.INFO, "SchedulerService initialized without any configuration.");
+                return false;
+            } else
+                validateSetting(newSetting);
         } catch (ValidateException ex) {
             logger.log(Level.SEVERE, "Invalid scheduler configuration settings: {0}", ex.getMessage());
             return false;

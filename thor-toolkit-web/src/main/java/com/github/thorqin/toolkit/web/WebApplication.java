@@ -94,6 +94,7 @@ public abstract class WebApplication extends Application
         appDataEnv = appAnno.appDataEnv();
         setServices(appAnno.services());
         sessionType = appAnno.sessionType();
+        configName = appAnno.configName();
         init();
         setting = configManager.get("/web", Setting.class, new Setting());
     }

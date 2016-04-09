@@ -46,6 +46,7 @@
       <directory>src/main/resources</directory>
       <includes>
         <include>**/*.json</include>
+        <include>**/*.yml</include>
         <include>**/*.key</include>
         <include>**/*.xml</include>
         <include>**/*.properties</include>

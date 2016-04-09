@@ -29,6 +29,7 @@ public class Application {
     protected static Map<String, Application> applicationMap = new HashMap<>();
     protected Logger logger;
     protected String applicationName;
+    protected String configName = "config.json";
     protected AppConfigManager configManager;
     protected String appDataEnv = null;
     protected final Map<String, Class<?>> serviceTypes = new HashMap<>();
@@ -59,6 +60,7 @@ public class Application {
     protected static final String SERVICE_NAME_DUPLICATED = "Service name already in used.";
     protected static final String SERVICE_NAME_NOT_REGISTERED = "Service name not registered.";
     protected static final String NEED_APPLICATION_NAME = "Must provide application name when more than one instance exiting.";
+    protected static final String UNSUPPORTED_CONFIG_FILE_TYPE = "Unsupported config file type, can only be '*.json' or '*.yml'.";
 
     private static class LogSetting {
         public boolean async = true;
@@ -81,6 +83,14 @@ public class Application {
         setName(name);
         this.appDataEnv = appDataEnv;
         setServices(services);
+        init();
+    }
+
+    public Application(String name, String appDataEnv, Service[] services, String configName) {
+        setName(name);
+        this.appDataEnv = appDataEnv;
+        setServices(services);
+        this.configName = configName;
         init();
     }
 
@@ -294,8 +304,10 @@ public class Application {
     protected final void init() {
         appClassLoader = createAppClassLoader(Application.class.getClassLoader(), getDataDir("lib"));
         // 1. Init config manager
+        if (!configName.matches("^.+\\.(json|yml)$"))
+            throw new RuntimeException(UNSUPPORTED_CONFIG_FILE_TYPE);
         try {
-            this.configManager = new AppConfigManager(this, "config.json");
+            this.configManager = new AppConfigManager(this, configName);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

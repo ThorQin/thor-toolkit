@@ -10,6 +10,7 @@ import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.schedule.ScheduleService;
 
 @WebApp(name = "${artifactId}",
+        configName = "config.json", // Or "config.yml" if you more like YAML syntax
         routers = {
                 @WebRouter("*.do")
                 // Uncomment following line to enable database router
