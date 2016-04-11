@@ -78,5 +78,20 @@
                 <module>test-website</module>
             </modules>
         </profile>
+        <profile>
+            <id>Reference</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dependence</outputDirectory>
+                            <excludeTransitive>false</excludeTransitive>
+                            <stripVersion>true</stripVersion>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
