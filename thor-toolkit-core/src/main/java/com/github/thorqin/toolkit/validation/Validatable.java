@@ -13,7 +13,8 @@ import com.github.thorqin.toolkit.utility.Localization;
  */
 public interface Validatable {
 	/**
-	 * If object do not pass the validation then throws ValidateException. 
+	 * If object do not pass the validation then throws ValidateException.
+     * @param loc Provide locale info for generate validation error message
 	 * @throws com.github.thorqin.toolkit.validation.ValidateException If not pass the validation then throw ValidateException
 	 */
 	void validate(Localization loc) throws ValidateException;

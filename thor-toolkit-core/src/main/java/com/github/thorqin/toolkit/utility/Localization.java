@@ -142,6 +142,8 @@ public class Localization {
     /**
      * Translate message in specified locale.
      * @param key Message to be translated
+     * @param defaultMessage If key not found then return the default message.
+     *
      * @return Translated message
      */
     public String get(String key, String defaultMessage) {

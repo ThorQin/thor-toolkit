@@ -148,6 +148,10 @@ public final class Validator {
 		});
 	}
 
+    public Validator() {
+        this.loc = Localization.getInstance();
+    }
+
     public Validator(Localization loc) {
         this.loc = loc;
     }
@@ -819,4 +823,39 @@ public final class Validator {
 		}
     }
 
+    public static void validate(Object object) throws ValidateException {
+        if (object == null) {
+            throw new ValidateException(ValidateMessageConstant.CANNOT_BE_NULL.getMessage(Localization.getInstance()));
+        }
+        Validator validator = new Validator();
+        validator.validateObject(object, object.getClass(), false);
+    }
+
+    public static void validate(Object object, Localization loc) throws ValidateException {
+        if (object == null) {
+            throw new ValidateException(ValidateMessageConstant.CANNOT_BE_NULL.getMessage(loc));
+        }
+        Validator validator = new Validator(loc);
+        validator.validateObject(object, object.getClass(), false);
+    }
+
+    public static void validate(Object object, Class<?> type, final boolean allowNull) throws ValidateException {
+        Validator validator = new Validator();
+        validator.validateObject(object, type, allowNull);
+    }
+
+    public static void validate(Object object, Class<?> type) throws ValidateException {
+        Validator validator = new Validator();
+        validator.validateObject(object, type, false);
+    }
+
+    public static void validate(Object object, Class<?> type, Localization loc) throws ValidateException {
+        Validator validator = new Validator(loc);
+        validator.validateObject(object, type, false);
+    }
+
+    public static void validate(Object object, Class<?> type, boolean allowNull, Localization loc) throws ValidateException {
+        Validator validator = new Validator(loc);
+        validator.validateObject(object, type, allowNull);
+    }
 }

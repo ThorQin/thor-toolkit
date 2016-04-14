@@ -287,7 +287,7 @@ public class MailService implements IService {
 
     /**
      * Post mail item into send queue
-     * @param mail
+     * @param mail Mail item.
      */
 	public synchronized void post(Mail mail) {
         if (taskService != null)
