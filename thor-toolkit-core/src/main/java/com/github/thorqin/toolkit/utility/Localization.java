@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.MessageFormat;
 import java.util.*;
 
 /**
@@ -130,9 +131,10 @@ public class Localization {
         if (bundle == null)
             return key;
 		try {
-			if (bundle.keySet().contains(key))
-				return bundle.getString(key);
-			else
+			if (bundle.keySet().contains(key)) {
+                String msg = bundle.getString(key);
+                return msg;
+            } else
 				return key;
 		} catch (Exception e) {
 			return key;
@@ -140,10 +142,29 @@ public class Localization {
 	}
 
     /**
+     * Translate message in specified locale and format with parameters
+     * @param key Message to be translated
+     * @param params Message will be formatted with those parameters
+     * @return Translated message
+     */
+    public String getMessage(String key, Object... params) {
+        if (bundle == null)
+            return key;
+        try {
+            if (bundle.keySet().contains(key)) {
+                String msg = bundle.getString(key);
+                return MessageFormat.format(msg, params);
+            } else
+                return key;
+        } catch (Exception e) {
+            return key;
+        }
+    }
+
+    /**
      * Translate message in specified locale.
      * @param key Message to be translated
      * @param defaultMessage If key not found then return the default message.
-     *
      * @return Translated message
      */
     public String get(String key, String defaultMessage) {
@@ -159,8 +180,34 @@ public class Localization {
         }
     }
 
+    /**
+     * Translate message in specified locale.
+     * @param key Message to be translated
+     * @param defaultMessage If key not found then return the default message.
+     * @param params Message will be formatted with those parameters
+     * @return Translated message
+     */
+    public String getMessage(String key, String defaultMessage, Object... params) {
+        String msg;
+        try {
+            if (bundle == null)
+                msg = defaultMessage;
+            else if (bundle.keySet().contains(key))
+                msg = bundle.getString(key);
+            else
+                msg = defaultMessage;
+        } catch (Exception e) {
+            msg = defaultMessage;
+        }
+        return MessageFormat.format(msg, params);
+    }
+
     public static synchronized String get(String bundle, String locale, String msg) {
         return getInstance(bundle, locale).get(msg);
+    }
+
+    public static synchronized String getMessage(String bundle, String locale, String msg, Object... params) {
+        return getInstance(bundle, locale).getMessage(msg, params);
     }
 
     public static Localization getInstance() {
