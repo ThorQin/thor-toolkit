@@ -170,6 +170,8 @@ public class Localization {
     public static synchronized Localization getInstance(String bundle, String locale) {
         if (locale == null)
             locale = "en-US";
+        if (bundle == null)
+            bundle = "message";
         String key = bundle + "_" + locale;
         if (cache.containsKey(key)) {
             return cache.get(key);

@@ -108,8 +108,9 @@ public final class WebInitializer implements ServletContainerInitializer {
 					// Add filters ...
 					List<WebApplication.FilterInfo> filterInfos = application.getFilters();
 					for (WebApplication.FilterInfo info : filterInfos) {
-						FilterRegistration filterRegistration = ctx.addFilter(
+						FilterRegistration.Dynamic filterRegistration = ctx.addFilter(
 								"TTFilter_" + (filterCount++), info.filter);
+                        filterRegistration.setAsyncSupported(true);
                         filterRegistration.setInitParameter("sessionClass", application.getSessionType().getName());
 						if (info.path.length == 0)
 							filterRegistration.addMappingForUrlPatterns(null, true, "/*");
