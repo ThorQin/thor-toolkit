@@ -18,10 +18,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public final class Serializer {
@@ -383,47 +380,38 @@ public final class Serializer {
 	public static <T> T fromJson(byte[] bytes, Class<T> type) throws IOException, ClassCastException {
 		try (ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
 				InputStreamReader reader = new InputStreamReader(byteStream)) {
-			T obj = gson.fromJson(reader, type);
-			return obj;
+            return gson.fromJson(reader, type);
 		}
 	}
 	public static <T> T fromJson(byte[] bytes, Type type) throws IOException, ClassCastException {
 		try (ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
 				InputStreamReader reader = new InputStreamReader(byteStream)) {
-			T obj = gson.fromJson(reader, type);
-			return obj;
+            return gson.fromJson(reader, type);
 		}
 	}
 	public static <T> T fromJson(String json) throws ClassCastException {
 		Type typeOfT = new TypeToken<T>(){}.getType();
-		T obj = gson.fromJson(json, typeOfT);
-		return obj;
+        return gson.fromJson(json, typeOfT);
 	}
 	public static <T> T fromJson(String json, Class<T> type) throws ClassCastException {
-		T obj = gson.fromJson(json, type);
-		return obj;
+        return gson.fromJson(json, type);
 	}
 	
 	public static <T> T fromJson(String json, Type type) throws ClassCastException {
-		T obj = gson.fromJson(json, type);
-		return obj;
+        return gson.fromJson(json, type);
 	}
 	public static <T> T fromJson(Reader reader, Class<T> type) throws IOException, ClassCastException {
-		T obj = gson.fromJson(reader, type);
-		return obj;
+        return gson.fromJson(reader, type);
 	}
 	public static <T> T fromJson(Reader reader, Type type) throws IOException, ClassCastException {
-		T obj = gson.fromJson(reader, type);
-		return obj;
+        return gson.fromJson(reader, type);
 	}
 	public static <T> T fromJson(JsonElement jsonElement, Class<T> type) throws ClassCastException {
-		T obj = gson.fromJson(jsonElement, type);
-		return obj;
+        return gson.fromJson(jsonElement, type);
 	}
 
 	public static <T> T fromJson(JsonElement jsonElement, Type type) throws ClassCastException {
-		T obj = gson.fromJson(jsonElement, type);
-		return obj;
+        return gson.fromJson(jsonElement, type);
 	}
 	public static <T> T readJsonResource(String resource, Class<T> type) throws IOException, ClassCastException {
 		try (InputStream in = Serializer.class.getClassLoader().getResourceAsStream(resource);
@@ -466,7 +454,7 @@ public final class Serializer {
 			return "";
 		StringBuilder sb = new StringBuilder();
 		Class<?> type = obj.getClass();
-		for (Field field: type.getDeclaredFields()) {
+		for (Field field: getVisibleFields(type)) {
 			if (field.isAccessible()) {
 				if (sb.length() > 0)
 					sb.append("&");
@@ -482,7 +470,6 @@ public final class Serializer {
         if (obj == null)
             return "";
         StringBuilder sb = new StringBuilder();
-        Class<?> type = obj.getClass();
         for (String key: obj.keySet()) {
             if (sb.length() > 0)
                 sb.append("&");
@@ -514,7 +501,7 @@ public final class Serializer {
         if (map == null)
             return null;
         T obj = type.newInstance();
-		for (Field field: type.getDeclaredFields()) {
+		for (Field field: getVisibleFields(type)) {
 			String key;
 			SerializedName name = field.getAnnotation(SerializedName.class);
 			if (name == null)
@@ -782,5 +769,23 @@ public final class Serializer {
      */
     public static boolean equals(Object obj1, Object obj2) {
         return toJsonString(obj1).equals(toJsonString(obj2));
+    }
+
+
+    /**
+     * Get all visible fields of the specified class which are the sum of
+     * getFields() and getDeclaredFields() returned result.
+     * @param type Which type will extract fields info of
+     * @return A set of fields
+     */
+    public static Set<Field> getVisibleFields(Class<?> type) {
+        Set<Field> fieldSet = new HashSet<>();
+        for (Field field : type.getFields()) {
+            fieldSet.add(field);
+        }
+        for (Field field : type.getDeclaredFields()) {
+            fieldSet.add(field);
+        }
+        return fieldSet;
     }
 }

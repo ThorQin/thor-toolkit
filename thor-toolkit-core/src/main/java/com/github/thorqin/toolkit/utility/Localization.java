@@ -190,10 +190,6 @@ public class Localization {
         return getInstance(bundle, locale).get(msg, defaultMessage);
     }
 
-    public static synchronized String getMessage(String bundle, String locale, String msg, Object... params) {
-        return getInstance(bundle, locale).getMessage(msg, msg, params);
-    }
-
     public static Localization getInstance() {
         return defaultLoc;
     }
