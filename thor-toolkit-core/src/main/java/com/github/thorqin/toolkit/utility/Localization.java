@@ -142,26 +142,6 @@ public class Localization {
 	}
 
     /**
-     * Translate message in specified locale and format with parameters
-     * @param key Message to be translated
-     * @param params Message will be formatted with those parameters
-     * @return Translated message
-     */
-    public String getMessage(String key, Object... params) {
-        if (bundle == null)
-            return key;
-        try {
-            if (bundle.keySet().contains(key)) {
-                String msg = bundle.getString(key);
-                return MessageFormat.format(msg, params);
-            } else
-                return key;
-        } catch (Exception e) {
-            return key;
-        }
-    }
-
-    /**
      * Translate message in specified locale.
      * @param key Message to be translated
      * @param defaultMessage If key not found then return the default message.
@@ -206,8 +186,12 @@ public class Localization {
         return getInstance(bundle, locale).get(msg);
     }
 
+    public static synchronized String get(String bundle, String locale, String msg, String defaultMessage) {
+        return getInstance(bundle, locale).get(msg, defaultMessage);
+    }
+
     public static synchronized String getMessage(String bundle, String locale, String msg, Object... params) {
-        return getInstance(bundle, locale).getMessage(msg, params);
+        return getInstance(bundle, locale).getMessage(msg, msg, params);
     }
 
     public static Localization getInstance() {
