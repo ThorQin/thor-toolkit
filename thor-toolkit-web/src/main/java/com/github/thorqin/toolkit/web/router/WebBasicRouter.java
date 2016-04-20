@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.RuleMatcher;
@@ -596,8 +597,9 @@ public final class WebBasicRouter extends WebRouterBase {
 			try {
 				result = info.method.invoke(inst, realParameters.toArray());
 			} finally {
-				if (mInfo.session != null && !mInfo.session.isSaved() && !mInfo.session.isNew())
-					mInfo.session.save();
+				if (mInfo.session != null && !mInfo.session.isSaved() && !mInfo.session.isNew()) {
+                    mInfo.session.save();
+                }
 			}
 
             if (result != null) {

@@ -54,7 +54,32 @@ public abstract class WebApplication extends Application
         public boolean compressJs = true;
         public boolean traceRouter = false;
         public boolean traceAccess = false;
+        /**
+         * positive value: session will be expired after a period time.
+         * zero value: never expire except close the browser.
+         * negative value: never expire regardless of whether the browser is closed but
+         * session will be expired when time passed reach to the value of sessionDays.
+         */
         public int sessionTimeout = 900;
+        /**
+         * If session is client session and set never expire then use this value to
+         * specify how many days this session will be kept in client computer.
+         */
+        public int sessionDays = 90;
+        /**
+         * If different applications will share the session but they placed under different secondary domains,
+         * then they can specify main domain name to session to achieve the goal.
+         * Only available when session type is client session.
+         */
+        public String sessionDomain = null;
+
+        /**
+         * If different applications but in same domain will share the session
+         * they can specify path to session to achieve the goal.
+         * Only available when session type is client session.
+         */
+        public String sessionPath = null;
+
         public int maxUploadSize = UploadManager.DEFAULT_MAX_SIZE;
     }
 

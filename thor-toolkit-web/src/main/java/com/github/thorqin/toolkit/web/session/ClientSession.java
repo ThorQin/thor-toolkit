@@ -211,7 +211,7 @@ public class ClientSession extends WebSession {
 	}
 	
 	public void save(String path) {
-		save(path, null, null, true, false);
+        save(path, null, null, true, false);
 	}
 	
 	private static String getRootPath(HttpServletRequest req) {
@@ -224,7 +224,20 @@ public class ClientSession extends WebSession {
 
 	@Override
 	public void save() {
-		save(getRootPath(request), null, null, true, false);
+        if (application != null) {
+            Integer maxAge = null;
+            if (application.getSetting().sessionTimeout < 0) {
+                maxAge = application.getSetting().sessionDays * 60 * 60 * 24;
+            }
+            String path;
+            if (application.getSetting().sessionPath != null)
+                path = application.getSetting().sessionPath;
+            else
+                path = getRootPath(request);
+            save(path, application.getSetting().sessionDomain, maxAge, true, false);
+        } else {
+            save(getRootPath(request), null, null, true, false);
+        }
 	}
 	
 	@Override
