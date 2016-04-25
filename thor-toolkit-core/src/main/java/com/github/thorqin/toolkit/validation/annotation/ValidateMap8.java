@@ -59,5 +59,5 @@ public @interface ValidateMap8 {
      * @see #asEntity()
      * @return class definition
      */
-	Class<?> type();
+	Class<?> type() default Object.class;
 }

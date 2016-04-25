@@ -500,6 +500,10 @@ public final class Serializer {
         Map<String, String> map = fromUrlEncoding(formData);
         if (map == null)
             return null;
+
+        if (Map.class.isAssignableFrom(type))
+            return (T)map;
+
         T obj = type.newInstance();
 		for (Field field: getVisibleFields(type)) {
 			String key;

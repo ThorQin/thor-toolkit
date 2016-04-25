@@ -59,5 +59,5 @@ public @interface ValidateMap4 {
      * @see #asEntity()
      * @return class definition
      */
-	Class<?> type();
+	Class<?> type() default Object.class;
 }

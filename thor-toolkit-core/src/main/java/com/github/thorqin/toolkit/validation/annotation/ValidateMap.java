@@ -56,7 +56,7 @@ public @interface ValidateMap {
      * @see #asEntity()
      * @return class definition
      */
-	Class<?> type();
+	Class<?> type() default Object.class;
 
     /**
      * Will be used in error message if provided.
