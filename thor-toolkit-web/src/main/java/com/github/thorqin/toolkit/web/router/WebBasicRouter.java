@@ -588,7 +588,9 @@ public final class WebBasicRouter extends WebRouterBase {
                 mInfo.httpBody = ServletUtils.readHttpBody(request);
 
 			WebEntry entryAnno = info.method.getAnnotation(WebEntry.class);
-            if (entryAnno != null && entryAnno.crossSite()) {
+            WebModule moduleAnno = info.method.getDeclaringClass().getAnnotation(WebModule.class);
+            if ((moduleAnno != null && moduleAnno.crossSite()) ||
+                    (entryAnno != null && entryAnno.crossSite())) {
                 ServletUtils.setCrossSiteHeaders(response);
             }
 			Object inst = info.instance;
