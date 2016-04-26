@@ -26,10 +26,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
@@ -528,6 +531,8 @@ public final class WebBasicRouter extends WebRouterBase {
 		public Map<String, String> urlParams = new HashMap<>();
 	}
 
+    private final static Pattern ERROR_PATTERN = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
+
 	private boolean dispatch(HttpServletRequest request,
 			HttpServletResponse response)
 			throws ServletException, IOException {
@@ -659,18 +664,23 @@ public final class WebBasicRouter extends WebRouterBase {
                     logMsg,
                     ex.getCause());
 		} catch (InvocationTargetException ex) {
-			Throwable realEx = ex.getTargetException();
+            Throwable realEx = ex;
+            Throwable cause = realEx.getCause();
+            while (cause != null && !HttpException.class.isInstance(realEx)) {
+                realEx = cause;
+                cause = realEx.getCause();
+            }
 			if (HttpException.class.isInstance(realEx)) {
-				HttpException httpEx = (HttpException)realEx;
-				if (httpEx.getMessage() != null) {
-					if (httpEx.getJsonObject() != null)
-						ServletUtils.sendJsonObject(response, httpEx.getHttpStatus(), httpEx.getJsonObject());
-					else if (httpEx.isJsonString())
-						ServletUtils.sendJsonString(response, httpEx.getHttpStatus(), httpEx.getMessage());
-					else
-						ServletUtils.sendText(response, httpEx.getHttpStatus(), httpEx.getMessage());
-				} else
-					ServletUtils.send(response, httpEx.getHttpStatus());
+                HttpException httpEx = (HttpException) realEx;
+                if (httpEx.getMessage() != null) {
+                    if (httpEx.getJsonObject() != null)
+                        ServletUtils.sendJsonObject(response, httpEx.getHttpStatus(), httpEx.getJsonObject());
+                    else if (httpEx.isJsonString())
+                        ServletUtils.sendJsonString(response, httpEx.getHttpStatus(), httpEx.getMessage());
+                    else
+                        ServletUtils.sendText(response, httpEx.getHttpStatus(), httpEx.getMessage());
+                } else
+                    ServletUtils.send(response, httpEx.getHttpStatus());
                 String logMsg = MessageFormat.format("HttpException: {0}: {1}",
                         ServletUtils.getURL(request), ex.getMessage());
                 logger.logp(Level.WARNING,
@@ -678,6 +688,26 @@ public final class WebBasicRouter extends WebRouterBase {
                         matchResult.info.method.getName(),
                         logMsg,
                         httpEx.getCause());
+            } else if (SQLException.class.isInstance(realEx)) {
+                String logMsg = MessageFormat.format("SQL error: {0}: {1}",
+                        ServletUtils.getURL(request), realEx.getMessage());
+                Matcher matcher = ERROR_PATTERN.matcher(realEx.getMessage());
+                if (matcher.find()) {
+                    int status = Integer.valueOf(matcher.group(1));
+                    String msg = matcher.group(2);
+                    if (msg == null)
+                        ServletUtils.send(response, status);
+                    else
+                        ServletUtils.sendText(response, status, loc.get(msg));
+                } else {
+                    String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
+                    ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
+                }
+                logger.logp(Level.WARNING,
+                        matchResult.info.method.getDeclaringClass().getName(),
+                        matchResult.info.method.getName(),
+                        logMsg,
+                        realEx);
 			} else {
                 String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
 				ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);

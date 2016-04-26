@@ -1,6 +1,5 @@
 package com.github.thorqin.toolkit.web.router;
 
-import com.github.thorqin.toolkit.Application;
 import com.github.thorqin.toolkit.db.DBService;
 import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
@@ -240,7 +239,7 @@ public abstract class WebDBRouter extends WebRouterBase {
         UNKNOWN
     }
 
-    private final static Pattern errorPattern = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
+    private final static Pattern ERROR_PATTERN = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
 
     private void validateParameter(String jsonValue, String validateClassName, Localization loc) throws ValidateException {
         if (validateClassName == null) {
@@ -418,7 +417,7 @@ public abstract class WebDBRouter extends WebRouterBase {
             String logMsg = MessageFormat.format("SQL error: {0}: {1}: {2}",
                     ServletUtils.getURL(request), mappingInfo.procedure, ex.getMessage());
             if (ex.getMessage() != null) {
-                Matcher matcher = errorPattern.matcher(ex.getMessage());
+                Matcher matcher = ERROR_PATTERN.matcher(ex.getMessage());
                 if (matcher.find()) {
                     int status = Integer.valueOf(matcher.group(1));
                     String msg = matcher.group(2);
@@ -438,6 +437,8 @@ public abstract class WebDBRouter extends WebRouterBase {
                 logger.log(Level.SEVERE, logMsg, ex);
             }
         } catch (JsonSyntaxException ex) {
+            if (session != null && !session.isSaved() && !session.isNew())
+                session.save();
             String message = MessageConstant.INVALID_REQUEST_CONTENT.getMessage(loc);
             ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, message);
             String logMsg = MessageFormat.format("Bad request, invalid JSON content: {0}: {1}",
