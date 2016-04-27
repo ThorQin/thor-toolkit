@@ -34,7 +34,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.github.thorqin.toolkit.web.session.ClientSession;
 import com.github.thorqin.toolkit.web.session.SessionFactory;
 import com.github.thorqin.toolkit.web.session.WebSession;
 import com.github.thorqin.toolkit.web.utility.RuleMatcher;
@@ -623,8 +622,12 @@ public final class WebBasicRouter extends WebRouterBase {
                             ServletUtils.sendHtml(response, strContent, supportGzip);
                         } else if (content.getType() == WebContent.Type.PLAIN) {
                             ServletUtils.sendText(response, strContent, supportGzip);
-                        } else if (content.getType() == WebContent.Type.REDIRECTION) {
+                        } else if (content.getType() == WebContent.Type.VIEW) {
                             request.getRequestDispatcher(strContent).forward(request, response);
+                        } else if (content.getType() == WebContent.Type.REDIRECTION) {
+                            response.sendRedirect(strContent);
+                        } else if (content.getType() == WebContent.Type.CUSTOM) {
+                            ServletUtils.sendText(response, strContent, content.getContentType(), supportGzip);
                         }
                     }
                 } else {

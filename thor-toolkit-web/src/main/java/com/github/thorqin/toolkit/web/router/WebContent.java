@@ -11,11 +11,14 @@ public class WebContent {
         PLAIN,
         JSON,
         HTML,
-        REDIRECTION
+        VIEW,
+        REDIRECTION,
+        CUSTOM
     }
 
     protected String content;
     protected Type type;
+    protected String contentType;
 
     private WebContent() {}
 
@@ -28,6 +31,18 @@ public class WebContent {
         return type;
     }
 
+    public String getContentType() {
+        if (type == Type.PLAIN)
+            return "text/plain";
+        else if (type == Type.JSON)
+            return "application/json";
+        else if (type == Type.HTML)
+            return "text/html";
+        else if (type == Type.CUSTOM)
+            return contentType;
+        else
+            return null;
+    }
 
     public static WebContent json(Object object) {
         WebContent content = new WebContent();
@@ -50,6 +65,14 @@ public class WebContent {
         return content;
     }
 
+    public static WebContent text(String plain, String contentType) {
+        WebContent content = new WebContent();
+        content.content = plain;
+        content.type = Type.CUSTOM;
+        content.contentType = contentType;
+        return content;
+    }
+
     public static WebContent html(String html) {
         WebContent content = new WebContent();
         content.content = html;
@@ -60,6 +83,13 @@ public class WebContent {
     public static WebContent view(String path) {
         WebContent content = new WebContent();
         content.content = path;
+        content.type = Type.VIEW;
+        return content;
+    }
+
+    public static WebContent redirect(String url) {
+        WebContent content = new WebContent();
+        content.content = url;
         content.type = Type.REDIRECTION;
         return content;
     }
