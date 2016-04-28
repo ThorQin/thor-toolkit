@@ -697,6 +697,7 @@ public final class WebBasicRouter extends WebRouterBase {
                 String logMsg = MessageFormat.format("SQL error: {0}: {1}",
                         ServletUtils.getURL(request), realEx.getMessage());
                 Matcher matcher = ERROR_PATTERN.matcher(realEx.getMessage());
+                Throwable logThrown = null;
                 if (matcher.find()) {
                     int status = Integer.valueOf(matcher.group(1));
                     String msg = matcher.group(2);
@@ -707,12 +708,13 @@ public final class WebBasicRouter extends WebRouterBase {
                 } else {
                     String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
                     ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
+                    logThrown = realEx;
                 }
                 logger.logp(Level.WARNING,
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
                         logMsg,
-                        realEx);
+                        logThrown);
 			} else {
                 String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
 				ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
