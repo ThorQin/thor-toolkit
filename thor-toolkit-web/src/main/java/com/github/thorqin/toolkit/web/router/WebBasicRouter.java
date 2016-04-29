@@ -276,7 +276,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			} else if (name.startsWith("/")) {
 				name = name.substring(1);
 			}
-			String fullPath = path + name;
+			String fullPath = entry.fromRoot() ? "/" + name : path + name;
 			if (crossSite || entry.crossSite()) {
 				String key = HttpMethod.OPTIONS + ":" + fullPath;
 				System.out.println("Add Mapping: " + key);

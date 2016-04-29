@@ -41,6 +41,8 @@ public @interface WebEntry {
      */
     String value() default "";
 
+    boolean fromRoot() default false;
+
     /**
      * If set to TRUE then will send cross-site header to client
      * @return Whether or not to send cross-site headers

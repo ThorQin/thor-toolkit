@@ -42,22 +42,22 @@ public class InitTag extends SimpleTagSupport {
             }
         }
         getJspContext().setAttribute("root", request.getContextPath());
-
+        String currentLocale;
+        if (locale == null) {
+            if (app != null) {
+                Object lang = session.get("lang");
+                if (lang != null && lang.getClass().equals(String.class))
+                    currentLocale = (String)lang;
+                else
+                    currentLocale = request.getHeader("Accept-Language");
+            } else
+                currentLocale = request.getHeader("Accept-Language");
+        } else
+            currentLocale = locale;
+        getJspContext().setAttribute("lang", Localization.standardize(currentLocale));
         if (bundle == null) {
             getJspContext().setAttribute("loc", Localization.getInstance());
         } else {
-            String currentLocale;
-            if (locale == null) {
-                if (app != null) {
-                    Object lang = session.get("lang");
-                    if (lang != null && lang.getClass().equals(String.class))
-                        currentLocale = (String)lang;
-                    else
-                        currentLocale = request.getHeader("Accept-Language");
-                } else
-                    currentLocale = request.getHeader("Accept-Language");
-            } else
-                currentLocale = locale;
             getJspContext().setAttribute("loc", Localization.getInstance(bundle, currentLocale));
         }
     }

@@ -60,7 +60,7 @@ public class Localization {
     private static Map<String, Localization> cache = new HashMap<>();
     private final static Localization defaultLoc = Localization.getInstance(null, null);
 
-    private static String[] splitLocalePart(String localeString) {
+    public static String[] splitLocalePart(String localeString) {
         if (localeString == null) {
             localeString = "en-US";
         }
@@ -81,6 +81,11 @@ public class Localization {
             localeString = "en-US";
             return localeString.split("-");
         }
+    }
+
+    public static String standardize(String localeString) {
+        String[] arr = splitLocalePart(localeString);
+        return arr[0].toLowerCase() + "-" + arr[1].toUpperCase();
     }
 
 	/**

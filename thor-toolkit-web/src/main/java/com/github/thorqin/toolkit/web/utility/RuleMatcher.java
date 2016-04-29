@@ -162,7 +162,7 @@ public final class RuleMatcher<T> implements Iterable<RuleMatcher<T>.Rule>  {
     }
 
     public static Pattern paramPattern = Pattern.compile(
-            "\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}");
+            "\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}|\\*");
     public static String ruleToExp(String rule, Set<String> parameters) {
         parameters.clear();
         Matcher matcher = paramPattern.matcher(rule);
@@ -172,10 +172,14 @@ public final class RuleMatcher<T> implements Iterable<RuleMatcher<T>.Rule>  {
             sb.append(removeKeyword(rule.substring(pos, matcher.start())));
             pos = matcher.end();
             String key = matcher.group(1);
-            if (parameters.contains(key))
-                throw new InvalidParameterException("URL parameter value duplicated: " + key);
-            parameters.add(key);
-            sb.append("(?<").append(key).append(">[^/?]+)");
+            if (key != null) {
+                if (parameters.contains(key))
+                    throw new InvalidParameterException("URL parameter value duplicated: " + key);
+                parameters.add(key);
+                sb.append("(?<").append(key).append(">[^/?]+)");
+            } else { // is '*'
+                sb.append(".*");
+            }
         }
         sb.append(removeKeyword(rule.substring(pos)));
         return sb.toString();
