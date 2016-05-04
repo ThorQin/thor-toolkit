@@ -146,8 +146,8 @@ public final class WebBasicRouter extends WebRouterBase {
 		super.destroy();
 	}
 
-	public void setCrossSiteHeaders(HttpServletResponse response) {
-		ServletUtils.setCrossSiteHeaders(response);
+	public void setCrossSiteHeaders(HttpServletRequest request, HttpServletResponse response) {
+		ServletUtils.setCrossSiteHeaders(request, response);
 	}
 
 	private Object addMapping(List<MappingInfo> collection, Class<?> clazz, Method method, Object inst) {
@@ -283,7 +283,7 @@ public final class WebBasicRouter extends WebRouterBase {
 				MappingInfo info = new MappingInfo();
 				info.instance = this;
 				info.method = this.getClass().getMethod(
-						"setCrossSiteHeaders", HttpServletResponse.class);
+						"setCrossSiteHeaders", HttpServletRequest.class, HttpServletResponse.class);
 				info.method.setAccessible(true);
                 mapping.addURLRule(key, info, entry.order(),
                         shouldUseCache(entry, fullPath));
@@ -590,7 +590,7 @@ public final class WebBasicRouter extends WebRouterBase {
             WebModule moduleAnno = info.method.getDeclaringClass().getAnnotation(WebModule.class);
             if ((moduleAnno != null && moduleAnno.crossSite()) ||
                     (entryAnno != null && entryAnno.crossSite())) {
-                ServletUtils.setCrossSiteHeaders(response);
+                ServletUtils.setCrossSiteHeaders(request, response);
             }
 			Object inst = info.instance;
 			Class<?>[] params = info.method.getParameterTypes();

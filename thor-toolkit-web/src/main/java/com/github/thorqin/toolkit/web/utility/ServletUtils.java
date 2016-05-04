@@ -19,8 +19,13 @@ public final class ServletUtils {
     public final static int COMPRESSION_MIN_SIZE = 2048;
     private static Logger logger = Logger.getLogger(ServletUtils.class.getName());
 
-    public static void setCrossSiteHeaders(HttpServletResponse response) {
-        response.setHeader("Access-Control-Allow-Origin", "*");
+    public static void setCrossSiteHeaders(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader("Origin");
+        if (origin == null)
+            origin = "*";
+        response.setHeader("Access-Control-Allow-Origin", origin);
+        if (origin.equals("*"))
+            response.addHeader("Access-Control-Allow-Origin", "null");
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("P3P", "CP=CAO PSA OUR");
         response.setHeader("Access-Control-Allow-Methods",
