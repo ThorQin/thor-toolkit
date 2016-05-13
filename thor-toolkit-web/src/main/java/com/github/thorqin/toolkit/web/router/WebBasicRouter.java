@@ -687,7 +687,7 @@ public final class WebBasicRouter extends WebRouterBase {
                 } else
                     ServletUtils.send(response, httpEx.getHttpStatus());
                 String logMsg = MessageFormat.format("HttpException: {0}: {1}",
-                        ServletUtils.getURL(request), ex.getMessage());
+                        ServletUtils.getURL(request), httpEx.getMessage());
                 logger.logp(Level.WARNING,
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
