@@ -41,8 +41,8 @@ import com.github.thorqin.toolkit.web.utility.ServletUtils;
 import com.google.gson.JsonSyntaxException;
 import javassist.bytecode.AnnotationsAttribute;
 import javassist.bytecode.ClassFile;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
+
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -532,6 +532,16 @@ public final class WebBasicRouter extends WebRouterBase {
 
     private final static Pattern ERROR_PATTERN = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
 
+    private void saveSession(WebSession session) {
+        try {
+            if (session != null && session.isSaved() && session.isNew()) {
+                session.save();
+            }
+        } catch (Exception e) {
+            System.err.println("Save session failed: " + e.getMessage());
+        }
+    }
+
 	private boolean dispatch(HttpServletRequest request,
 			HttpServletResponse response)
 			throws ServletException, IOException {
@@ -550,7 +560,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		// Handler has been found then route the input request to appropriate routine to do a further processing.
         Localization loc = Localization.getInstance();
         try {
-            MethodRuntimeInfo mInfo = new MethodRuntimeInfo();
+            final MethodRuntimeInfo mInfo = new MethodRuntimeInfo();
 			mInfo.request = request;
 			mInfo.response = response;
             // Obtain session object
@@ -602,9 +612,26 @@ public final class WebBasicRouter extends WebRouterBase {
 			Object result;
 			try {
 				result = info.method.invoke(inst, realParameters.toArray());
+                if (request.isAsyncStarted()) {
+                    request.getAsyncContext().addListener(new AsyncListener() {
+                        @Override
+                        public void onComplete(AsyncEvent event) throws IOException {
+                            saveSession(mInfo.session);
+                        }
+
+                        @Override
+                        public void onTimeout(AsyncEvent event) throws IOException {}
+
+                        @Override
+                        public void onError(AsyncEvent event) throws IOException {}
+
+                        @Override
+                        public void onStartAsync(AsyncEvent event) throws IOException {}
+                    });
+                }
 			} finally {
-				if (mInfo.session != null && !mInfo.session.isSaved() && !mInfo.session.isNew()) {
-                    mInfo.session.save();
+                if (!request.isAsyncStarted()) {
+                    saveSession(mInfo.session);
                 }
 			}
 
