@@ -532,9 +532,9 @@ public final class WebBasicRouter extends WebRouterBase {
 
     private final static Pattern ERROR_PATTERN = Pattern.compile("<http:(\\d{3})(?::(.+))?>");
 
-    private void saveSession(WebSession session) {
+    private static void saveSession(WebSession session) {
         try {
-            if (session != null && session.isSaved() && session.isNew()) {
+            if (session != null && !session.isSaved() && !session.isNew()) {
                 session.save();
             }
         } catch (Exception e) {
