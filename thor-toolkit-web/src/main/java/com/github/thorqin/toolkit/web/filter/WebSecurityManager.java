@@ -230,7 +230,11 @@ public class WebSecurityManager extends WebFilterBase {
                     else
                         ServletUtils.send(resp, status);
                 } else {
-                    String contextPath = ((HttpServletRequest) request).getContextPath();
+                    String contextPath;
+                    if (application != null)
+                        contextPath = application.getRootPath((HttpServletRequest) request);
+                    else
+                        contextPath = ((HttpServletRequest) request).getContextPath();
                     contextPath += "/";
                     if (action.redirection.startsWith("$/")) {
                         resp.sendRedirect(contextPath + action.redirection.substring(2));

@@ -25,7 +25,7 @@ import com.github.thorqin.toolkit.utility.Serializer;
  */
 public class ClientSession extends WebSession {
 
-	private final static String sessionName = "_Thor_Session";
+	private final String sessionName;
 	private final static String keyCode = "kyj1JEkLQ/5To0AF81vlmA==";
 	private final static ThreadLocal<Encryptor> encryptorLocalStore = new ThreadLocal<>();
 	private boolean isSaved = false;
@@ -98,6 +98,13 @@ public class ClientSession extends WebSession {
 
 	public ClientSession(WebApplication application, HttpServletRequest request, HttpServletResponse response) {
 		super(application, request, response);
+        if (application != null) {
+            if (application.getSetting().sessionName != null) {
+                this.sessionName = application.getSetting().sessionName;
+            } else
+                this.sessionName = "_Thor_Session";
+        } else
+            this.sessionName = "_Thor_Session";
 		Cookie[] cookies = request.getCookies();
 		if (cookies == null) {
 			newSession();
@@ -179,7 +186,7 @@ public class ClientSession extends WebSession {
 	}
 
     public void delete() {
-        save(getRootPath(request), null, 0, true, false);
+        save(getRootPath(), null, 0, true, false);
     }
 
 	public void save(String path, String domain, Integer maxAge, boolean httpOnly, boolean secureOnly) {
@@ -214,8 +221,12 @@ public class ClientSession extends WebSession {
         save(path, null, null, true, false);
 	}
 	
-	private static String getRootPath(HttpServletRequest req) {
-		String path = req.getContextPath();
+	private String getRootPath() {
+        String path;
+        if (application != null)
+            path = application.getRootPath(request);
+        else
+            path = request.getContextPath();
 		if (path == null || path.isEmpty())
 			return "/";
 		else
@@ -233,10 +244,10 @@ public class ClientSession extends WebSession {
             if (application.getSetting().sessionPath != null)
                 path = application.getSetting().sessionPath;
             else
-                path = getRootPath(request);
+                path = getRootPath();
             save(path, application.getSetting().sessionDomain, maxAge, true, false);
         } else {
-            save(getRootPath(request), null, null, true, false);
+            save(getRootPath(), null, null, true, false);
         }
 	}
 	

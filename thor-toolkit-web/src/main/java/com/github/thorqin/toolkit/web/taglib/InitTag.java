@@ -41,7 +41,31 @@ public class InitTag extends SimpleTagSupport {
                 throw new JspException(e);
             }
         }
-        getJspContext().setAttribute("root", request.getContextPath());
+        String rootPath;
+        if (app != null)
+            rootPath = app.getRootPath(request);
+        else {
+            rootPath = request.getContextPath();
+        }
+        getJspContext().setAttribute("root", rootPath);
+        String relative = "";
+        String p = request.getServletPath().replaceAll("/+", "/").replaceAll("/./","/");
+        int pos = 0;
+        int count = 0;
+        while (pos < p.length()) {
+            if (p.charAt(pos) == '/') {
+                count++;
+                if (count > 2) {
+                    relative += "/";
+                }
+                if (count > 1) {
+                    relative += "..";
+                }
+            }
+            pos++;
+        }
+        getJspContext().setAttribute("relative", relative);
+
         String currentLocale;
         if (locale == null) {
             if (app != null) {

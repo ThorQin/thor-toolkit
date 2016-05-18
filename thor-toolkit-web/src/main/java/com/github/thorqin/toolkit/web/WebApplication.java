@@ -41,6 +41,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.logging.*;
 import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author nuo.qin
@@ -54,6 +55,12 @@ public abstract class WebApplication extends Application
         public boolean compressJs = true;
         public boolean traceRouter = false;
         public boolean traceAccess = false;
+
+        /**
+         * Used only when session is client session, client session use cookie to store session information.
+         * Different application should use different 'sessionName' to avoid key conflict.
+         */
+        public String sessionName = "_Thor_Session";
         /**
          * positive value: session will be expired after a period time.
          * zero value: never expire except close the browser.
@@ -79,6 +86,8 @@ public abstract class WebApplication extends Application
          * Only available when session type is client session.
          */
         public String sessionPath = null;
+
+        public String rootPath = null;
 
         public int maxUploadSize = UploadManager.DEFAULT_MAX_SIZE;
     }
@@ -247,6 +256,14 @@ public abstract class WebApplication extends Application
             constructor = clazz.getConstructor();
             constructor.setAccessible(true);
             return constructor.newInstance();
+        }
+    }
+
+    public String getRootPath(HttpServletRequest request) {
+        if (setting.rootPath == null) {
+            return request.getContextPath();
+        } else {
+            return setting.rootPath;
         }
     }
 }
