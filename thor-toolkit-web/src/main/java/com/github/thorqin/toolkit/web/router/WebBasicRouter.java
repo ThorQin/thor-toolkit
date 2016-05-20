@@ -5,6 +5,7 @@ import com.github.thorqin.toolkit.trace.Tracer;
 import com.github.thorqin.toolkit.utility.ConfigManager;
 import com.github.thorqin.toolkit.utility.Localization;
 import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.web.HttpException;
@@ -650,6 +651,7 @@ public final class WebBasicRouter extends WebRouterBase {
                         } else if (content.getType() == WebContent.Type.PLAIN) {
                             ServletUtils.sendText(response, strContent, supportGzip);
                         } else if (content.getType() == WebContent.Type.VIEW) {
+                            request.setAttribute("_thor_toolkit_redirect_reference_path_", request.getRequestURI());
                             request.getRequestDispatcher(strContent).forward(request, response);
                         } else if (content.getType() == WebContent.Type.REDIRECTION) {
                             response.sendRedirect(strContent);
@@ -664,16 +666,16 @@ public final class WebBasicRouter extends WebRouterBase {
 		} catch (JsonSyntaxException ex) {
             String message = MessageConstant.INVALID_REQUEST_CONTENT.getMessage(loc);
 			ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, message);
-            String logMsg = MessageFormat.format("Bad request, invalid JSON content: {0}: {1}",
-                    ServletUtils.getURL(request), ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("Bad request, invalid JSON content: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage()));
 			logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
                     logMsg);
 		} catch (ValidateException ex) {
             ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
-            String logMsg = MessageFormat.format("Validate failed: {0}: {1}",
-                    ServletUtils.getURL(request), ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("Validate failed: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage()));
             logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
@@ -688,8 +690,8 @@ public final class WebBasicRouter extends WebRouterBase {
 					ServletUtils.sendText(response, ex.getHttpStatus(), ex.getMessage());
 			} else
 				ServletUtils.send(response, ex.getHttpStatus());
-            String logMsg = MessageFormat.format("HttpException: {0}: {1}",
-                    ServletUtils.getURL(request), ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("HttpException: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage()));
             logger.logp(Level.WARNING,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),
@@ -713,16 +715,16 @@ public final class WebBasicRouter extends WebRouterBase {
                         ServletUtils.sendText(response, httpEx.getHttpStatus(), httpEx.getMessage());
                 } else
                     ServletUtils.send(response, httpEx.getHttpStatus());
-                String logMsg = MessageFormat.format("HttpException: {0}: {1}",
-                        ServletUtils.getURL(request), httpEx.getMessage());
+                String logMsg = StringUtils.toSafeFormat(MessageFormat.format("HttpException: {0}: {1}",
+                        ServletUtils.getURL(request), httpEx.getMessage()));
                 logger.logp(Level.WARNING,
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
                         logMsg,
                         httpEx.getCause());
             } else if (SQLException.class.isInstance(realEx)) {
-                String logMsg = MessageFormat.format("SQL error: {0}: {1}",
-                        ServletUtils.getURL(request), realEx.getMessage());
+                String logMsg = StringUtils.toSafeFormat(MessageFormat.format("SQL error: {0}: {1}",
+                        ServletUtils.getURL(request), realEx.getMessage()));
                 Matcher matcher = ERROR_PATTERN.matcher(realEx.getMessage());
                 Throwable logThrown = null;
                 if (matcher.find()) {
@@ -750,8 +752,8 @@ public final class WebBasicRouter extends WebRouterBase {
                     logThrowable = realEx;
                 else
                     logThrowable = ex;
-                String logMsg = MessageFormat.format("Unexpected server error, process failed: {0}: {1}",
-                        ServletUtils.getURL(request), logThrowable.getMessage());
+                String logMsg = StringUtils.toSafeFormat(MessageFormat.format("Unexpected server error, process failed: {0}: {1}",
+                        ServletUtils.getURL(request), logThrowable.getMessage()));
 				logger.logp(Level.SEVERE,
                         matchResult.info.method.getDeclaringClass().getName(),
                         matchResult.info.method.getName(),
@@ -760,8 +762,8 @@ public final class WebBasicRouter extends WebRouterBase {
 		} catch (Exception ex) {
             String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
 			ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
-            String logMsg = MessageFormat.format("Unexpected server error: {0}: {1}",
-                    ServletUtils.getURL(request), ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("Unexpected server error: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage()));
 			logger.logp(Level.SEVERE,
                     matchResult.info.method.getDeclaringClass().getName(),
                     matchResult.info.method.getName(),

@@ -157,5 +157,10 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
     public void showEncodingMailAddress() throws UnsupportedEncodingException {
         System.out.println(MimeUtility.encodeText("中国海油采办系统"));
     }
+
+    @Test
+    public void testSafeForamt() {
+        System.out.println(StringUtils.toSafeFormat("{'0': abc}"));
+    }
 }
 

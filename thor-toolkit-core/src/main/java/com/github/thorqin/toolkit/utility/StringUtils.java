@@ -174,4 +174,10 @@ public final class StringUtils {
 		}
 		return sb.toString();
 	}
+
+    public static String toSafeFormat(String msg) {
+        if (msg == null)
+            return null;
+        return msg.replaceAll("'", "''").replaceAll("(\\{|\\})","'$1'");
+    }
 }

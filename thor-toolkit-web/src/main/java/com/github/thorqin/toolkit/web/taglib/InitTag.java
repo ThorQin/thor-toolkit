@@ -49,7 +49,12 @@ public class InitTag extends SimpleTagSupport {
         }
         getJspContext().setAttribute("root", rootPath);
         String relative = "";
-        String p = request.getServletPath().replaceAll("/+", "/").replaceAll("/./","/");
+        String referencePath = (String)request.getAttribute("_thor_toolkit_redirect_reference_path_");
+        String p;
+        if (referencePath != null)
+            p = referencePath.replaceAll("/+", "/").replaceAll("/./","/");
+        else
+            p = request.getRequestURI().replaceAll("/+", "/").replaceAll("/./","/");
         int pos = 0;
         int count = 0;
         while (pos < p.length()) {

@@ -414,8 +414,8 @@ public abstract class WebDBRouter extends WebRouterBase {
         } catch (SQLException ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
-            String logMsg = MessageFormat.format("SQL error: {0}: {1}: {2}",
-                    ServletUtils.getURL(request), mappingInfo.procedure, ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("SQL error: {0}: {1}: {2}",
+                    ServletUtils.getURL(request), mappingInfo.procedure, ex.getMessage()));
             if (ex.getMessage() != null) {
                 Matcher matcher = ERROR_PATTERN.matcher(ex.getMessage());
                 if (matcher.find()) {
@@ -441,23 +441,23 @@ public abstract class WebDBRouter extends WebRouterBase {
                 session.save();
             String message = MessageConstant.INVALID_REQUEST_CONTENT.getMessage(loc);
             ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, message);
-            String logMsg = MessageFormat.format("Bad request, invalid JSON content: {0}: {1}",
-                    ServletUtils.getURL(request), ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("Bad request, invalid JSON content: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage()));
             logger.log(Level.WARNING, logMsg);
         } catch (ValidateException ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
             ServletUtils.sendText(response, HttpServletResponse.SC_BAD_REQUEST, ex.getMessage());
-            String logMsg = MessageFormat.format("Validate failed: {0}: {1}",
-                    ServletUtils.getURL(request), ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("Validate failed: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage()));
             logger.log(Level.WARNING, logMsg);
         } catch (Exception ex) {
             if (session != null && !session.isSaved() && !session.isNew())
                 session.save();
             String message = MessageConstant.UNEXPECTED_SERVER_ERROR.getMessage(loc);
             ServletUtils.sendText(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
-            String logMsg = MessageFormat.format("Unexpected server error: {0}: {1}",
-                    ServletUtils.getURL(request), ex.getMessage());
+            String logMsg = StringUtils.toSafeFormat(MessageFormat.format("Unexpected server error: {0}: {1}",
+                    ServletUtils.getURL(request), ex.getMessage()));
             logger.log(Level.WARNING, logMsg, ex);
         } finally {
             if (application != null && application.getSetting().traceRouter) {
