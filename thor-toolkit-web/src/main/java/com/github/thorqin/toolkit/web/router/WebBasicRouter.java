@@ -44,6 +44,7 @@ import javassist.bytecode.AnnotationsAttribute;
 import javassist.bytecode.ClassFile;
 
 import javax.servlet.*;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -574,11 +575,19 @@ public final class WebBasicRouter extends WebRouterBase {
 
             // Build loc object
             MappingInfo info = matchResult.info;
-            Object lang = mInfo.session.get("lang");
+
             String language;
-            if (lang != null && lang.getClass().equals(String.class)) {
-                language = (String)lang;
-            } else
+            String lang = null;
+            for (Cookie cookie : request.getCookies()) {
+                String name = cookie.getName();
+                if (name != null && name.equals("tt-lang")) {
+                    lang = cookie.getValue();
+                    break;
+                }
+            }
+            if (lang != null)
+                language = lang;
+            else
                 language = request.getHeader("Accept-Language");
             mInfo.loc = Localization.getInstance(info.localeMessage, language);
             loc = mInfo.loc;

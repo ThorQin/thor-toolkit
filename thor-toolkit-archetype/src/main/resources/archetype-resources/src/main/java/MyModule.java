@@ -1,3 +1,5 @@
+import com.sun.deploy.net.HttpResponse;
+
 #set( $symbol_pound = '#' )
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\' )
@@ -13,12 +15,11 @@ import com.github.thorqin.toolkit.web.session.WebSession;
 
 @WebModule
 public class MyModule {
+    @Service("application")
+    WebApplication app;
 	/*
     @Service("db")
     DBService db;
-
-	@Service("application")
-	Application app;
 
 	@Service("logger")
 	Logger logger;
@@ -38,8 +39,8 @@ public class MyModule {
     }
 
     @WebEntry(method = HttpMethod.POST)
-    public void setLanguage(@Entity @ValidateString("^(en-us|zh-cn)$") String language, WebSession session) {
-        session.set("lang", language.toLowerCase());
+    public void setLanguage(@Entity @ValidateString("^(en-us|zh-cn)$") String language, HttpServletRequest request, HttpServeltResponse response, WebSession session) {
+        ServletUtils.setLanguageCookie(app, request, response, language.toLowerCase());
     }
 
 }

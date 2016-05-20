@@ -2,6 +2,8 @@ package com.github.thorqin.toolkit.web.utility;
 
 import com.github.thorqin.toolkit.utility.MimeUtils;
 import com.github.thorqin.toolkit.utility.Serializer;
+import com.github.thorqin.toolkit.web.WebApplication;
+
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -314,6 +316,22 @@ public final class ServletUtils {
             }
             return null;
         }
+    }
+
+    public static void setLanguageCookie(WebApplication application, HttpServletRequest request, HttpServletResponse response, String lang, String path) {
+        if (path == null) {
+            String root = application.getRootPath(request);
+            if (root == null || root.isEmpty()) {
+                path = "/";
+            } else
+                path = root;
+        }
+        Integer maxAge = application.getSetting().sessionDays * 60 * 60 * 24;
+        setCookie(response, "tt-lang", lang, path, application.getSetting().sessionDomain, maxAge, false, false);
+    }
+
+    public static void setLanguageCookie(WebApplication application, HttpServletRequest request, HttpServletResponse response, String lang) {
+        setLanguageCookie(application, request, response, lang, null);
     }
 
     public static void download(HttpServletRequest req,

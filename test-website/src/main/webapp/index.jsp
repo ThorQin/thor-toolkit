@@ -15,7 +15,7 @@
     <script src="${root}/assets/script/tui/lang/zh-cn.js"></script>
     <script src="${root}/assets/script/tui/lang/en-us.js"></script>
     <tt:script>
-        tui.lang = '${session.get("lang")}';
+        tui.lang = '${lang}';
 		if (tui.lang === "")
 			tui.lang = "en-us";
         var languages = [

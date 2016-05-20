@@ -36,8 +36,8 @@ public class MyModule {
     }
 
     @WebEntry(method = HttpMethod.POST)
-    public void setLanguage(@Entity @ValidateString("^(en-us|zh-cn)$") String language, WebSession session) {
-        session.set("lang", language.toLowerCase());
+    public void setLanguage(@Entity @ValidateString("^(en-us|zh-cn)$") String language, HttpServletRequest request, HttpServletResponse response, WebSession session) {
+        ServletUtils.setLanguageCookie(app, request, response, language.toLowerCase());
     }
 
 }

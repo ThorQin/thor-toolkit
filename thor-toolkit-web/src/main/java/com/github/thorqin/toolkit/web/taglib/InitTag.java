@@ -8,6 +8,7 @@ import com.github.thorqin.toolkit.web.session.WebSession;
 import com.google.common.base.Strings;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.JspException;
@@ -73,13 +74,17 @@ public class InitTag extends SimpleTagSupport {
 
         String currentLocale;
         if (locale == null) {
-            if (app != null) {
-                Object lang = session.get("lang");
-                if (lang != null && lang.getClass().equals(String.class))
-                    currentLocale = (String)lang;
-                else
-                    currentLocale = request.getHeader("Accept-Language");
-            } else
+            String lang = null;
+            for (Cookie cookie : request.getCookies()) {
+                String name = cookie.getName();
+                if (name != null && name.equals("tt-lang")) {
+                    lang = cookie.getValue();
+                    break;
+                }
+            }
+            if (lang != null)
+                currentLocale = lang;
+            else
                 currentLocale = request.getHeader("Accept-Language");
         } else
             currentLocale = locale;

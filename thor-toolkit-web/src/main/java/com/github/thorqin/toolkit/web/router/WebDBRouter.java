@@ -20,6 +20,7 @@ import com.google.gson.reflect.TypeToken;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -303,11 +304,18 @@ public abstract class WebDBRouter extends WebRouterBase {
                 session.touch();
             }
             // Build loc object
-            Object lang = session.get("lang");
             String language;
-            if (lang != null && lang.getClass().equals(String.class)) {
-                language = (String)lang;
-            } else
+            String lang = null;
+            for (Cookie cookie : request.getCookies()) {
+                String name = cookie.getName();
+                if (name != null && name.equals("tt-lang")) {
+                    lang = cookie.getValue();
+                    break;
+                }
+            }
+            if (lang != null)
+                language = lang;
+            else
                 language = request.getHeader("Accept-Language");
             loc = Localization.getInstance(localeBundle, language);
 
