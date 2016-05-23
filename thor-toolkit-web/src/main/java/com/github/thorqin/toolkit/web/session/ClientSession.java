@@ -186,7 +186,15 @@ public class ClientSession extends WebSession {
 	}
 
     public void delete() {
-        save(getRootPath(), null, 0, true, false);
+        if (application != null) {
+            String path;
+            if (application.getSetting().sessionPath != null)
+                path = application.getSetting().sessionPath;
+            else
+                path = getRootPath();
+            save(path, application.getSetting().sessionDomain, 0, true, false);
+        } else
+            save(getRootPath(), null, 0, true, false);
     }
 
 	public void save(String path, String domain, Integer maxAge, boolean httpOnly, boolean secureOnly) {
@@ -239,6 +247,8 @@ public class ClientSession extends WebSession {
             Integer maxAge = null;
             if (application.getSetting().sessionTimeout < 0) {
                 maxAge = application.getSetting().sessionDays * 60 * 60 * 24;
+            } else if (application.getSetting().sessionTimeout > 0) {
+                maxAge = application.getSetting().sessionTimeout;
             }
             String path;
             if (application.getSetting().sessionPath != null)
