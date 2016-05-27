@@ -578,11 +578,13 @@ public final class WebBasicRouter extends WebRouterBase {
 
             String language;
             String lang = null;
-            for (Cookie cookie : request.getCookies()) {
-                String name = cookie.getName();
-                if (name != null && name.equals("tt-lang")) {
-                    lang = cookie.getValue();
-                    break;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    String name = cookie.getName();
+                    if (name != null && name.equals("tt-lang")) {
+                        lang = cookie.getValue();
+                        break;
+                    }
                 }
             }
             if (lang != null)

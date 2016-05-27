@@ -27,11 +27,13 @@ public class LocaleTag extends SimpleTagSupport {
             String currentLocale;
             if (locale == null) {
                 String lang = null;
-                for (Cookie cookie : request.getCookies()) {
-                    String name = cookie.getName();
-                    if (name != null && name.equals("tt-lang")) {
-                        lang = cookie.getValue();
-                        break;
+                if (request.getCookies() != null) {
+                    for (Cookie cookie : request.getCookies()) {
+                        String name = cookie.getName();
+                        if (name != null && name.equals("tt-lang")) {
+                            lang = cookie.getValue();
+                            break;
+                        }
                     }
                 }
                 if (lang != null)
