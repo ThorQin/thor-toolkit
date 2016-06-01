@@ -217,9 +217,11 @@ public class WebSecurityManager extends WebFilterBase {
             if (action.allow) {
                 chain.doFilter(request, response);
             } else if (action.redirection == null) {
+                ServletUtils.setCrossSiteHeaders((HttpServletRequest) request, (HttpServletResponse) response);
                 ServletUtils.sendText((HttpServletResponse)response, HttpServletResponse.SC_FORBIDDEN, "Forbidden!");
             } else {
                 HttpServletResponse resp = ((HttpServletResponse)response);
+                ServletUtils.setCrossSiteHeaders((HttpServletRequest) request, resp);
                 Pattern pattern = Pattern.compile("^:([1-5][0-9]{2})(?::(.*))?$");
                 Matcher matcher = pattern.matcher(action.redirection);
                 if (matcher != null && matcher.find()) {
