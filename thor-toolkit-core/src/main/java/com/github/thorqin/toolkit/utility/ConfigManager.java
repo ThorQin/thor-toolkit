@@ -102,17 +102,19 @@ public class ConfigManager {
     }
 
     private void loadDefaultResource(String resource) {
+        String textContent;
         try {
-            String textContent = Serializer.readTextResource(resource);
-            if (resource.matches(".+\\.yml")) {
-                Yaml yaml = new Yaml();
-                Object obj = yaml.load(textContent);
-                defaultRoot = Serializer.toJsonElement(obj);
-            } else
-                defaultRoot = Serializer.fromJson(textContent, JsonElement.class);
-        } catch (Exception ex) {
+            textContent = Serializer.readTextResource(resource);
+        } catch (IOException ex) {
             defaultRoot = null;
+            return;
         }
+        if (resource.matches(".+\\.yml")) {
+            Yaml yaml = new Yaml();
+            Object obj = yaml.load(textContent);
+            defaultRoot = Serializer.toJsonElement(obj);
+        } else
+            defaultRoot = Serializer.fromJson(textContent, JsonElement.class);
     }
 
     public synchronized void startWatch() {
