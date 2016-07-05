@@ -5,10 +5,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -39,6 +36,35 @@ public class UtilityTest {
         }
     }
 
+    private String fileIdToPath(String fileId) {
+        String uploadDir = "basedir";
+        StringBuilder sb = new StringBuilder(uploadDir.length() + 50);
+        sb.append(uploadDir).append("/");
+        int len = fileId.length(), i = 0, scan = 0;
+        while (i < 5 && scan + 2 < len) {
+            sb.append(fileId.substring(scan, scan + 2));
+            sb.append('/');
+            i++;
+            scan += 2;
+        }
+        sb.append(fileId);
+        return sb.toString();
+    }
+
+    private String filePathToId(File file) {
+        String uploadDir = "basedir";
+        String path = file.getAbsoluteFile().getPath();
+        String basePath = new File(uploadDir).getAbsoluteFile().getPath();
+        if (!path.startsWith(basePath)) {
+            return null;
+        }
+        if (!path.endsWith(".data")) {
+            return null;
+        }
+        String name = file.getName();
+        return name.substring(0, name.length() - 5);
+    }
+
     @Test
     public void testDownloadManager() throws IOException {
 //        Pattern pattern = Pattern.compile("(?i).+\\.(ktr|kjb)");
@@ -47,6 +73,12 @@ public class UtilityTest {
 //        String name = f.getName();
 //        name = f.getParent() + "/" + name.substring(0, name.length() - 4) + "json";
 //        System.out.println(name);
+        String fileId = UUID.randomUUID().toString().replaceAll("-", "");
+        System.out.println(fileId);
+        String path = fileIdToPath(fileId);
+        System.out.println(path);
+
+        System.out.println(filePathToId(new File(path + ".data")));
     }
 
 }

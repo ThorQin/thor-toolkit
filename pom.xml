@@ -83,6 +83,21 @@
       </distributionManagement>
     </profile>
     <profile>
+      <id>simptrue</id>
+      <distributionManagement>
+        <repository>
+          <id>simptrue-releases</id>
+          <name>Simptrue Releases</name>
+          <url>${release.url}</url>
+        </repository>
+        <snapshotRepository>
+          <id>simptrue-snapshots</id>
+          <name>Simptrue Snapshots</name>
+          <url>${snapshot.url}</url>
+        </snapshotRepository>
+      </distributionManagement>
+    </profile>
+    <profile>
       <id>mobile-plat</id>
       <distributionManagement>
         <repository>

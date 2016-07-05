@@ -5,6 +5,7 @@
  */
 package com.github.thorqin.toolkit.web.utility;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -21,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -125,16 +127,17 @@ public final class UploadManager {
 	}
 
     private String fileIdToPath(String fileId) {
-        StringBuilder sb = new StringBuilder(40);
+        StringBuilder sb = new StringBuilder(uploadDir.length() + 50);
+        sb.append(uploadDir).append("/");
         int len = fileId.length(), i = 0, scan = 0;
-        while (i < 7 && scan + 4 < len) {
-            sb.append(fileId.substring(scan, scan + 4));
+        while (i < 5 && scan + 2 < len) {
+            sb.append(fileId.substring(scan, scan + 2));
             sb.append('/');
             i++;
-            scan += 4;
+            scan += 2;
         }
-        sb.append(fileId.substring(scan));
-        return uploadDir + "/" + sb.toString();
+        sb.append(fileId);
+        return sb.toString();
     }
 
     private String filePathToId(File file) {
@@ -143,13 +146,39 @@ public final class UploadManager {
         if (!path.startsWith(basePath)) {
             return null;
         }
-        path = path.substring(basePath.length());
-        path = path.replaceAll("/|\\\\","");
-        if (path.endsWith(".data")) {
-            path = path.substring(0, path.length() - 5);
+        if (!path.endsWith(".data")) {
+            return null;
         }
-        return path;
+        String name = file.getName();
+        return name.substring(0, name.length() - 5);
     }
+
+//    private String fileIdToPath(String fileId) {
+//        StringBuilder sb = new StringBuilder(40);
+//        int len = fileId.length(), i = 0, scan = 0;
+//        while (i < 7 && scan + 4 < len) {
+//            sb.append(fileId.substring(scan, scan + 4));
+//            sb.append('/');
+//            i++;
+//            scan += 4;
+//        }
+//        sb.append(fileId.substring(scan));
+//        return uploadDir + "/" + sb.toString();
+//    }
+//
+//    private String filePathToId(File file) {
+//        String path = file.getAbsoluteFile().getPath();
+//        String basePath = new File(uploadDir).getAbsoluteFile().getPath();
+//        if (!path.startsWith(basePath)) {
+//            return null;
+//        }
+//        path = path.substring(basePath.length());
+//        path = path.replaceAll("/|\\\\","");
+//        if (path.endsWith(".data")) {
+//            path = path.substring(0, path.length() - 5);
+//        }
+//        return path;
+//    }
 
 	public void deleteFile(String fileId) {
         String filePath = fileIdToPath(fileId);
@@ -270,6 +299,39 @@ public final class UploadManager {
         }
 		return info;
 	}
+
+    public FileInfo store(BufferedImage image, String fileName) throws IOException {
+        FileInfo info = new FileInfo();
+        info.fileId = UUID.randomUUID().toString().replaceAll("-", "");
+        info.fileName = fileName;
+        String mimeType;
+        String imageType;
+        if (info.getExtName().isEmpty() || info.getExtName().toLowerCase().equals("png")) {
+            mimeType = "image/png";
+            imageType = "png";
+        } else if (info.getExtName().toLowerCase().equals("jpeg")) {
+            mimeType = "image/jpeg";
+            imageType = "jpeg";
+        } else
+            throw new RuntimeException("Unsupported image format!");
+        info.mimeType = mimeType;
+        info.createTime = new Date().getTime();
+
+        String filePath = fileIdToPath(info.fileId);
+        String dataFile = filePath + ".data";
+        // Make sure all parent folders are exist.
+        File dir = new File(dataFile).getParentFile();
+        Files.createDirectories(dir.toPath());
+
+        try (FileOutputStream bos = new FileOutputStream(dataFile)) {
+            ImageIO.write(image, imageType, bos);
+        }
+        if (storeDetail) {
+            String jsonFile = filePath + ".json";
+            Serializer.writeJsonFile(info, jsonFile);
+        }
+        return info;
+    }
 
     private static long getCreationTime(File f) throws IOException {
         BasicFileAttributes attributes = Files.readAttributes(f.toPath(), BasicFileAttributes.class);
