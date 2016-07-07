@@ -1174,8 +1174,10 @@ public final class DBService implements IService, AutoCloseable {
     @Override
 	public synchronized void close() {
 		try {
-            if (boneCP != null)
+            if (boneCP != null) {
                 boneCP.close();
+                boneCP = null;
+            }
             boneCPConfig = null;
             logger.log(Level.INFO, "DBService stopped! (Service Name: {0})", serviceName);
 		} catch (Exception ex) {
