@@ -11,7 +11,7 @@ import javax.servlet.Filter;
 public abstract class WebFilterBase implements Filter, ConfigManager.ChangeListener {
     protected final WebApplication application;
 
-    WebFilterBase(WebApplication application) {
+    public WebFilterBase(WebApplication application) {
         this.application = application;
     }
 
