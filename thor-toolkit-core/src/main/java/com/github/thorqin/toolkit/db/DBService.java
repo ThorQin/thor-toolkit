@@ -1467,6 +1467,10 @@ public final class DBService implements IService, AutoCloseable {
 			}
 		}
 
+        public PreparedStatement prepareStatement(String sql) throws SQLException {
+            return conn.prepareStatement(sql);
+        }
+
 		public int execute(String queryString, Object... args) throws SQLException {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;
