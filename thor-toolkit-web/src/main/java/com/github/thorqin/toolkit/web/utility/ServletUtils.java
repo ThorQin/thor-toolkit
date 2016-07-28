@@ -336,6 +336,15 @@ public final class ServletUtils {
 
     public static void download(HttpServletRequest req,
                                 HttpServletResponse resp,
+                                byte[] content,
+                                String fileName) throws IOException {
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(content)) {
+            download(req, resp, inputStream, fileName, null);
+        }
+    }
+
+    public static void download(HttpServletRequest req,
+                                HttpServletResponse resp,
                                 File file,
                                 String fileName) throws IOException {
         try (FileInputStream inputStream = new FileInputStream(file)) {
