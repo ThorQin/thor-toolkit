@@ -372,12 +372,12 @@ public final class WebBasicRouter extends WebRouterBase {
 				return Serializer.fromUrlEncoding(mInfo.httpBody, paramType);
 			} else {
 				logger.log(Level.WARNING, 
-					"WARNING: Cannot deserialize class ''{0}'' from HTTP body: Unsupported post encoding.", paramType.getName());
+					"Cannot deserialize class ''{0}'' from HTTP body: Unsupported post encoding.", paramType.getName());
 				return null;
 			}
 		} catch (IOException | ClassCastException | IllegalAccessException | InstantiationException ex) {
 			logger.log(Level.WARNING, 
-					"WARNING: Cannot deserialize class ''{0}'' from HTTP body.", paramType.getName());
+					"Cannot deserialize class ''{0}'' from HTTP body.", paramType.getName());
 			return null;
 		}
 	}
@@ -393,52 +393,11 @@ public final class WebBasicRouter extends WebRouterBase {
 	}
 	
 	private static Object convertParam(String val, Class<?> paramType, String paramName) throws ValidateException {
-		if (paramType.equals(String.class))
-			return val;
-		else if (paramType.equals(Integer.class) || paramType.equals(int.class)) {
-			try {
-				return Integer.valueOf(val);
-			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid parameter '" + paramName + "': Need an integer value");
-			}
-		} else if (paramType.equals(Long.class) || paramType.equals(long.class)) {
-			try {
-				return Long.valueOf(val);
-			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid parameter '" + paramName + "': Need an long integer value");
-			}
-		} else if (paramType.equals(Short.class) || paramType.equals(short.class)) {
-			try {
-				return Short.valueOf(val);
-			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid parameter '" + paramName + "': Need an short integer value");
-			}
-		} else if (paramType.equals(Byte.class) || paramType.equals(byte.class)) {
-			try {
-				return Byte.valueOf(val);
-			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid parameter '" + paramName + "': Need an byte value");
-			}
-		} else if (paramType.equals(Float.class) || paramType.equals(float.class)) {
-			try {
-				return Float.valueOf(val);
-			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid parameter '" + paramName + "': Need an float value");
-			}
-		} else if (paramType.equals(Double.class) || paramType.equals(double.class)) {
-			try {
-				return Double.valueOf(val);
-			} catch (NumberFormatException err) {
-				throw new ValidateException("Invalid parameter '" + paramName + "': Need an double value");
-			}
-		} else if (paramType.equals(Boolean.class) || paramType.equals(boolean.class)) {
-			try {
-				return Boolean.valueOf(val);
-			} catch (Exception err) {
-				throw new ValidateException("Invalid parameter '" + paramName + "': Need an boolean value");
-			}
-		} else
-			throw new ValidateException("Invalid parameter '" + paramName + "': Cannot translate to specified parameter type!");
+		try {
+			return Serializer.parseString(val, paramType);
+		} catch (Exception e) {
+			throw new ValidateException("Invalid parameter '" + paramName + "': " + e.getMessage());
+		}
 	}
 
 	private Object makeParam(
@@ -496,11 +455,13 @@ public final class WebBasicRouter extends WebRouterBase {
 					Entity annoEntity = (Entity)ann;
 					Object param = null;
 					if (annoEntity.source() == SourceType.HTTP_BODY ) {
-						param = parseFromBody(paramType, annoEntity, mInfo);
+						if (mInfo.method.equals("POST") || mInfo.method.equals("PUT"))
+							param = parseFromBody(paramType, annoEntity, mInfo);
 					} else if (annoEntity.source() == SourceType.QUERY_STRING) {
 						param = parseFromQueryString(paramType, mInfo);
 					} else if (annoEntity.source() == SourceType.EITHER) {
-						param = parseFromBody(paramType, annoEntity, mInfo);
+						if (mInfo.method.equals("POST") || mInfo.method.equals("PUT"))
+							param = parseFromBody(paramType, annoEntity, mInfo);
 						if (param == null)
 							param = parseFromQueryString(paramType, mInfo);
 					}
@@ -523,6 +484,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		public RequestPostType postType;
 		public String httpBody;
 		public HttpServletRequest request;
+		public String method;
 		public HttpServletResponse response;
 		public WebSession session = null;
         //public String localeMessage;
@@ -564,6 +526,7 @@ public final class WebBasicRouter extends WebRouterBase {
         try {
             final MethodRuntimeInfo mInfo = new MethodRuntimeInfo();
 			mInfo.request = request;
+			mInfo.method = request.getMethod().toUpperCase();
 			mInfo.response = response;
             // Obtain session object
             mInfo.session = sessionFactory.getSession(application, mInfo.request, mInfo.response);
@@ -596,7 +559,7 @@ public final class WebBasicRouter extends WebRouterBase {
 			boolean postJson = (request.getContentType() != null &&
 					request.getContentType().split(";")[0].equalsIgnoreCase("application/json") ||
 					request.getContentType() == null &&
-                            (request.getMethod().equalsIgnoreCase("POST") || request.getMethod().equalsIgnoreCase("PUT")));
+                            (mInfo.method.equals("POST") || mInfo.method.equals("PUT")));
 			boolean postForm = (request.getContentType() != null
 				&& request.getContentType().split(";")[0].equalsIgnoreCase("application/x-www-form-urlencoded"));
 			if (postJson)

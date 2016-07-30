@@ -73,12 +73,13 @@ public class UtilityTest {
 //        String name = f.getName();
 //        name = f.getParent() + "/" + name.substring(0, name.length() - 4) + "json";
 //        System.out.println(name);
-        String fileId = UUID.randomUUID().toString().replaceAll("-", "");
-        System.out.println(fileId);
-        String path = fileIdToPath(fileId);
-        System.out.println(path);
+//        String fileId = UUID.randomUUID().toString().replaceAll("-", "");
+//        System.out.println(fileId);
+//        String path = fileIdToPath(fileId);
+//        System.out.println(path);
+//
+//        System.out.println(filePathToId(new File(path + ".data")));
 
-        System.out.println(filePathToId(new File(path + ".data")));
     }
 
 }

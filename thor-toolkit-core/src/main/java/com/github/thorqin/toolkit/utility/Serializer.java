@@ -3,6 +3,9 @@ package com.github.thorqin.toolkit.utility;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.DefaultSerializers;
+import com.google.common.base.Strings;
+import com.google.common.math.BigIntegerMath;
 import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
@@ -11,13 +14,19 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.FormatUtils;
+
 import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.text.DateFormat;
 import java.util.*;
 
 
@@ -128,124 +137,138 @@ public final class Serializer {
 			.setPrettyPrinting()
 			.create();
 	
-	public interface StringConvertor {
-		void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException;
+	public interface StringConverter {
+		Object parse(String value) throws IllegalArgumentException;
 	}
+
+	public static void setFieldByString(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
+		Class<?> type = field.getType();
+		StringConverter converter = convertMapping.get(type);
+		if (converter != null) {
+			Object val = converter.parse(value);
+			field.setAccessible(true);
+			field.set(obj, val);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> T parseString(String value, Class<T> type) {
+		StringConverter converter = convertMapping.get(type);
+		return (T) converter.parse(value);
+	}
+
 	
-	private static final Map<Class<?>, StringConvertor> convertMapping;
+	private static final Map<Class<?>, StringConverter> convertMapping;
 	
 	static {
 		convertMapping = new HashMap<>();
-		convertMapping.put(String.class, new StringConvertor() {
+		convertMapping.put(String.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.set(obj, value);
+			public Object parse(String value) throws IllegalArgumentException {
+				return value;
 			}
 		});
-		convertMapping.put(Byte.class, new StringConvertor() {
+		convertMapping.put(Byte.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				if (value == null)
-                    field.set(obj, null);
-                else
-                    field.set(obj, Byte.valueOf(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : Byte.valueOf(value);
 			}
 		});
-		convertMapping.put(Short.class, new StringConvertor() {
+		convertMapping.put(Short.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-                if (value == null)
-                    field.set(obj, null);
-                else
-                    field.set(obj, Short.valueOf(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : Short.valueOf(value);
 			}
 		});
-		convertMapping.put(Integer.class, new StringConvertor() {
+		convertMapping.put(Integer.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-                if (value == null)
-                    field.set(obj, null);
-                else
-                    field.set(obj, Integer.valueOf(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : Integer.valueOf(value);
 			}
 		});
-		convertMapping.put(Long.class, new StringConvertor() {
+		convertMapping.put(Long.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-                if (value == null)
-                    field.set(obj, null);
-                else
-                    field.set(obj, Long.valueOf(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : Long.valueOf(value);
 			}
 		});
-		convertMapping.put(Float.class, new StringConvertor() {
+		convertMapping.put(Float.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-                if (value == null)
-                    field.set(obj, null);
-                else
-                    field.set(obj, Float.valueOf(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : Float.valueOf(value);
 			}
 		});
-		convertMapping.put(Double.class, new StringConvertor() {
+		convertMapping.put(Double.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-                if (value == null)
-                    field.set(obj, null);
-                else
-                    field.set(obj, Double.valueOf(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : Double.valueOf(value);
 			}
 		});
-		convertMapping.put(Boolean.class, new StringConvertor() {
+		convertMapping.put(Boolean.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-                if (value == null)
-                    field.set(obj, null);
-                else
-                    field.set(obj, Boolean.valueOf(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : Boolean.valueOf(value);
 			}
 		});
 		
-		convertMapping.put(byte.class, new StringConvertor() {
+		convertMapping.put(byte.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.setByte(obj, Byte.parseByte(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? 0 : Byte.parseByte(value);
 			}
 		});
-		convertMapping.put(short.class, new StringConvertor() {
+		convertMapping.put(short.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.setShort(obj, Short.parseShort(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? 0 : Short.parseShort(value);
 			}
 		});
-		convertMapping.put(int.class, new StringConvertor() {
+		convertMapping.put(int.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.setInt(obj, Integer.parseInt(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? 0 : Integer.parseInt(value);
 			}
 		});
-		convertMapping.put(long.class, new StringConvertor() {
+		convertMapping.put(long.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.setLong(obj, Long.parseLong(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? 0 : Long.parseLong(value);
 			}
 		});
-		convertMapping.put(float.class, new StringConvertor() {
+		convertMapping.put(float.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.setFloat(obj, Float.parseFloat(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? 0 : Float.parseFloat(value);
 			}
 		});
-		convertMapping.put(double.class, new StringConvertor() {
+		convertMapping.put(double.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.setDouble(obj, Double.parseDouble(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? 0 : Double.parseDouble(value);
 			}
 		});
-		convertMapping.put(boolean.class, new StringConvertor() {
+		convertMapping.put(boolean.class, new StringConverter() {
 			@Override
-			public void setValue(Object obj, Field field, String value) throws IllegalArgumentException, IllegalAccessException {
-				field.setBoolean(obj, Boolean.parseBoolean(value));
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? false : Boolean.parseBoolean(value);
+			}
+		});
+		convertMapping.put(DateTime.class, new StringConverter() {
+			@Override
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : DateTime.parse(value);
+			}
+		});
+		convertMapping.put(BigDecimal.class, new StringConverter() {
+			@Override
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : new BigDecimal(value);
+			}
+		});
+		convertMapping.put(BigInteger.class, new StringConverter() {
+			@Override
+			public Object parse(String value) throws IllegalArgumentException {
+				return Strings.isNullOrEmpty(value) ? null : new BigInteger(value);
 			}
 		});
 	}
@@ -258,10 +281,6 @@ public final class Serializer {
 		}
 	}
 
-	public static StringConvertor getStringConvertor(Class<?> type) {
-		return convertMapping.get(type);
-	}
-	
 	private static Kryo getKryo() {
 		Kryo kryo = localKryo.get();
 		if (kryo == null) {
@@ -496,13 +515,14 @@ public final class Serializer {
         return map;
     }
 
+	@SuppressWarnings("unchecked")
 	public static <T> T fromUrlEncoding(String formData, Class<T> type) throws InstantiationException, IllegalAccessException, UnsupportedEncodingException {
         Map<String, String> map = fromUrlEncoding(formData);
         if (map == null)
             return null;
-
-        if (Map.class.isAssignableFrom(type))
-            return (T)map;
+        if (Map.class.isAssignableFrom(type)) {
+			return (T) map;
+		}
 
         T obj = type.newInstance();
 		for (Field field: getVisibleFields(type)) {
@@ -515,12 +535,7 @@ public final class Serializer {
 			String val = map.get(key);
 			if (val == null)
 				continue;
-			Class<?> fieldType = field.getType();
-			StringConvertor convertor = convertMapping.get(fieldType);
-			if (convertor != null) {
-				field.setAccessible(true);
-				convertor.setValue(obj, field, val);
-			}
+			setFieldByString(obj, field, val);
 		}
 		return obj;
 	}
