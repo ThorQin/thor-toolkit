@@ -959,12 +959,16 @@ public final class DBService implements IService, AutoCloseable {
 			return list;
 		}
 
-		public List<Map<String, Object>> getList() throws SQLException {
+        public List<Map<String, Object>> getList() throws SQLException {
+            return getList(false);
+        }
+
+		public List<Map<String, Object>> getList(boolean camelColumnNames) throws SQLException {
 			List<Map<String, Object>> list = new LinkedList<>();
 			if (resultSet == null)
 				return list;
 			while (resultSet.next()) {
-				Map<String, Object> obj = get();
+				Map<String, Object> obj = get(camelColumnNames);
 				list.add(obj);
 			}
 			return list;
@@ -1009,13 +1013,23 @@ public final class DBService implements IService, AutoCloseable {
             return obj;
         }
 
-		public Map<String, Object> get() throws SQLException {
+        public Map<String, Object> get() throws SQLException {
+            return get(false);
+        }
+
+		public Map<String, Object> get(boolean camelColumnNames) throws SQLException {
 			if (resultSet == null)
 				return null;
 			Map<String, Object> obj = new HashMap<>();
-			for (int i = 0; i < columns.length; i++) {
-				obj.put(columns[i], getValue(i + 1));
-			}
+            if (camelColumnNames) {
+                for (int i = 0; i < columns.length; i++) {
+                    obj.put(StringUtils.underlineToCamel(columns[i]), getValue(i + 1));
+                }
+            } else {
+                for (int i = 0; i < columns.length; i++) {
+                    obj.put(columns[i], getValue(i + 1));
+                }
+            }
 			return obj;
 		}
 
@@ -1643,6 +1657,12 @@ public final class DBService implements IService, AutoCloseable {
 				return cursor.getList();
 			}
 		}
+        public List<Map<String, Object>> queryListAdjust(String queryString,
+                                                   Object... args) throws SQLException {
+            try (DBCursor cursor = query(queryString, args)) {
+                return cursor.getList(true);
+            }
+        }
 		public <T> T queryFirst(String queryString,
 								Class<T> type,
 								Object... args) throws SQLException, InstantiationException, IllegalAccessException {
@@ -1662,6 +1682,15 @@ public final class DBService implements IService, AutoCloseable {
 					return null;
 			}
 		}
+
+        public Map<String, Object> queryFirstAdjust(String queryString, Object... args) throws SQLException {
+            try (DBCursor cursor = query(queryString, args)) {
+                if (cursor.next()) {
+                    return cursor.get(true);
+                } else
+                    return null;
+            }
+        }
 
 		public <T> T invoke(String procName, Class<T> returnType, Object... args)
 				throws SQLException {
@@ -1943,6 +1972,13 @@ public final class DBService implements IService, AutoCloseable {
 		}
 	}
 
+    public List<Map<String, Object>> queryListAdjust(String queryString,
+                                               Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            return session.queryListAdjust(queryString, args);
+        }
+    }
+
 	public <T> T queryFirst(String queryString,
 							 Class<T> type,
 							 Object... args) throws SQLException, InstantiationException, IllegalAccessException {
@@ -1957,6 +1993,13 @@ public final class DBService implements IService, AutoCloseable {
 			return session.queryFirst(queryString, args);
 		}
 	}
+
+    public Map<String, Object> queryFirstAdjust(String queryString,
+                                          Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            return session.queryFirstAdjust(queryString, args);
+        }
+    }
 
     public <T> T invoke(String procName, Class<T> returnType, Object... args)
             throws SQLException {

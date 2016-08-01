@@ -58,45 +58,34 @@
   </dependencies>
   <build>
     <plugins>
-
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <encoding>${project.build.sourceEncoding}</encoding>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <name>Sonatype Nexus Snapshots</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <name>Nexus Staging Repository</name>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
   <profiles>
     <profile>
       <id>Local</id>
       <modules>
         <module>test-website</module>
       </modules>
-    </profile>
-    <profile>
-      <id>cnooc</id>
-      <distributionManagement>
-        <repository>
-          <id>internal-releases</id>
-          <name>Internal Releases</name>
-          <url>${release.url}</url>
-        </repository>
-        <snapshotRepository>
-          <id>internal-snapshots</id>
-          <name>Internal Snapshots</name>
-          <url>${snapshot.url}</url>
-        </snapshotRepository>
-      </distributionManagement>
-    </profile>
-    <profile>
-      <id>simptrue</id>
-      <distributionManagement>
-        <repository>
-          <id>simptrue-releases</id>
-          <name>Simptrue Releases</name>
-          <url>${release.url}</url>
-        </repository>
-        <snapshotRepository>
-          <id>simptrue-snapshots</id>
-          <name>Simptrue Snapshots</name>
-          <url>${snapshot.url}</url>
-        </snapshotRepository>
-      </distributionManagement>
     </profile>
     <profile>
       <id>mobile-plat</id>
@@ -129,4 +118,5 @@
       </build>
     </profile>
   </profiles>
+
 </project>

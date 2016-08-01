@@ -106,6 +106,7 @@ public final class UploadManager {
 	public static class FileInfo extends FileBasicInfo {
 		public String fileName;
 		public String mimeType;
+        public String filePath;
 
 		public void setFileName(String name) {
             fileName = toFileName(name);
@@ -153,37 +154,9 @@ public final class UploadManager {
         return name.substring(0, name.length() - 5);
     }
 
-//    private String fileIdToPath(String fileId) {
-//        StringBuilder sb = new StringBuilder(40);
-//        int len = fileId.length(), i = 0, scan = 0;
-//        while (i < 7 && scan + 4 < len) {
-//            sb.append(fileId.substring(scan, scan + 4));
-//            sb.append('/');
-//            i++;
-//            scan += 4;
-//        }
-//        sb.append(fileId.substring(scan));
-//        return uploadDir + "/" + sb.toString();
-//    }
-//
-//    private String filePathToId(File file) {
-//        String path = file.getAbsoluteFile().getPath();
-//        String basePath = new File(uploadDir).getAbsoluteFile().getPath();
-//        if (!path.startsWith(basePath)) {
-//            return null;
-//        }
-//        path = path.substring(basePath.length());
-//        path = path.replaceAll("/|\\\\","");
-//        if (path.endsWith(".data")) {
-//            path = path.substring(0, path.length() - 5);
-//        }
-//        return path;
-//    }
-
 	public void deleteFile(String fileId) {
         String filePath = fileIdToPath(fileId);
         File jsonFile = new File(filePath + ".json");
-        File folder = jsonFile.getParentFile();
         if (jsonFile.exists()) {
             jsonFile.delete();
         }
@@ -297,6 +270,7 @@ public final class UploadManager {
             String jsonFile = filePath + ".json";
             Serializer.writeJsonFile(info, jsonFile);
         }
+        info.filePath = dataFile;
 		return info;
 	}
 
@@ -330,6 +304,7 @@ public final class UploadManager {
             String jsonFile = filePath + ".json";
             Serializer.writeJsonFile(info, jsonFile);
         }
+        info.filePath = dataFile;
         return info;
     }
 
@@ -454,15 +429,18 @@ public final class UploadManager {
 			return null;
 		}
         File jsonFile = new File(filePath + ".json");
-        if (jsonFile.exists())
-            return Serializer.readJsonFile(jsonFile, FileInfo.class);
-        else {
+        if (jsonFile.exists()) {
+            FileInfo fileInfo = Serializer.readJsonFile(jsonFile, FileInfo.class);
+            fileInfo.filePath = filePath;
+            return fileInfo;
+        } else {
             FileInfo fileInfo = new FileInfo();
             fileInfo.fileId = fileId;
             fileInfo.createTime = getCreationTime(dataFile);
             fileInfo.fileName = fileId + ".data";
             fileInfo.mimeType = MimeUtils.UNKNOWN_MIME;
             fileInfo.length = dataFile.length();
+            fileInfo.filePath = filePath;
             return fileInfo;
         }
 	}
@@ -513,7 +491,7 @@ public final class UploadManager {
             ServletUtils.send(response, HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        String filePath = fileIdToPath(fileId);
+        String filePath = info.filePath;
         File dataFile = new File(filePath + ".data");
         if (fileName == null)
             fileName = info.fileName;
