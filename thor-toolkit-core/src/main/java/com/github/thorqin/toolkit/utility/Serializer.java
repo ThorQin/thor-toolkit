@@ -16,6 +16,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.FormatUtils;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -136,6 +137,8 @@ public final class Serializer {
 			.registerTypeAdapter(DateTime.class, new DateTimeAdapter())
 			.setPrettyPrinting()
 			.create();
+    private static final ThreadLocal<Yaml> localYaml =
+            new ThreadLocal<>();
 	
 	public interface StringConverter {
 		Object parse(String value) throws IllegalArgumentException;
@@ -289,6 +292,16 @@ public final class Serializer {
 		}
 		return kryo;
 	}
+
+    private static Yaml getYaml() {
+        Yaml yaml = localYaml.get();
+        if (yaml == null) {
+            yaml = new Yaml();
+            localYaml.set(yaml);
+        }
+        return yaml;
+    }
+
 	public static <T> byte[] toKryo(T obj) {
 		Kryo kryo = getKryo();
 		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -458,13 +471,25 @@ public final class Serializer {
 			return fromJson(reader, type);
 		}
 	}
-	
+
 	public static <T> T readJsonFile(File file, Type type) throws IOException, ClassCastException {
 		try (InputStream in = new FileInputStream(file);
 				InputStreamReader reader = new InputStreamReader(in, "utf-8")) {
 			return fromJson(reader, type);
 		}
 	}
+
+    public static Object fromYaml(String yaml) {
+        Yaml yamlParser = getYaml();
+        Object obj = yamlParser.load(yaml);
+        return obj;
+    }
+
+    public static <T> T fromYaml(String yaml, Class<T> type) {
+        Yaml yamlParser = getYaml();
+        Object obj = yamlParser.load(yaml);
+        return fromJson(Serializer.toJsonElement(obj), type);
+    }
 	
 	// WWW FORM URL ENCODING ...
 

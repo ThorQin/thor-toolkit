@@ -3,7 +3,6 @@ package com.github.thorqin.toolkit.utility;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import org.joda.time.DateTime;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -110,8 +109,7 @@ public class ConfigManager {
             return;
         }
         if (resource.matches(".+\\.yml")) {
-            Yaml yaml = new Yaml();
-            Object obj = yaml.load(textContent);
+            Object obj = Serializer.fromYaml(textContent);
             defaultRoot = Serializer.toJsonElement(obj);
         } else
             defaultRoot = Serializer.fromJson(textContent, JsonElement.class);
@@ -187,8 +185,7 @@ public class ConfigManager {
             newRoot = null;
         } else {
             if (file != null && file.getName().matches(".+\\.yml")) {
-                Yaml yaml = new Yaml();
-                Object obj = yaml.load(rawContent);
+                Object obj = Serializer.fromYaml(rawContent);
                 newRoot = Serializer.toJsonElement(obj);
             } else
                 newRoot = Serializer.fromJson(rawContent, JsonElement.class);
