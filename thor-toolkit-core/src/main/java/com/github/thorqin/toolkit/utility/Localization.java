@@ -115,8 +115,14 @@ public class Localization {
 		locale = new Locale(language.toLowerCase(), country.toUpperCase());
         if (bundleName == null)
             bundle = null;
-        else
-            bundle = ResourceBundle.getBundle(bundleName, locale, this.getClass().getClassLoader(), new UTF8Control());
+        else {
+            try {
+                bundle = ResourceBundle.getBundle(bundleName, locale, this.getClass().getClassLoader(), new UTF8Control());
+            } catch (Exception e) {
+                bundle = null;
+                System.err.println("Initialize localization failed: " + e.getMessage());
+            }
+        }
 	}
 
     public Localization() {

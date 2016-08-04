@@ -8,6 +8,8 @@ import java.util.Map;
  */
 public final class MimeUtils {
     public static final Map<String, String> MIME;
+    public static final Map<String, String> MIME_SUFFIX;
+
     /**
      * Unknown mime type
      */
@@ -155,7 +157,7 @@ public final class MimeUtils {
         MIME.put("ram", "audio/x-pn-realaudio");
         MIME.put("ras", "image/x-cmu-raster");
         MIME.put("rgb", "image/x-rgb");
-        MIME.put("rmi", "audio/mid http://www.dreamdu.com");
+        MIME.put("rmi", "audio/mid");
         MIME.put("roff", "application/x-troff");
         MIME.put("rtf", "application/rtf");
         MIME.put("rtx", "text/richtext");
@@ -220,6 +222,145 @@ public final class MimeUtils {
         MIME.put("xwd", "image/x-xwindowdump");
         MIME.put("z", "application/x-compress");
         MIME.put("zip", "application/zip");
+
+        MIME_SUFFIX = new HashMap<>();
+        MIME_SUFFIX.put("application/envoy", "evy");
+        MIME_SUFFIX.put("application/fractals", "fif");
+        MIME_SUFFIX.put("application/futuresplash", "spl");
+        MIME_SUFFIX.put("application/hta", "hta");
+        MIME_SUFFIX.put("application/internet-property-stream", "acx");
+        MIME_SUFFIX.put("application/java-archive", "jar");
+        MIME_SUFFIX.put("application/json", "json");
+        MIME_SUFFIX.put("application/mac-binhex40", "hqx");
+        MIME_SUFFIX.put("application/msword", "dot");
+        MIME_SUFFIX.put("application/octet-stream", "bin");
+        MIME_SUFFIX.put("application/oda", "oda");
+        MIME_SUFFIX.put("application/olescript", "axs");
+        MIME_SUFFIX.put("application/pdf", "pdf");
+        MIME_SUFFIX.put("application/pics-rules", "prf");
+        MIME_SUFFIX.put("application/pkcs10", "p10");
+        MIME_SUFFIX.put("application/pkix-crl", "crl");
+        MIME_SUFFIX.put("application/postscript", "ai");
+        MIME_SUFFIX.put("application/rtf", "rtf");
+        MIME_SUFFIX.put("application/set-payment-initiation", "setpay");
+        MIME_SUFFIX.put("application/set-registration-initiation", "setreg");
+        MIME_SUFFIX.put("application/vnd.android.package-archive", "apk");
+        MIME_SUFFIX.put("application/vnd.ms-excel", "xls");
+        MIME_SUFFIX.put("application/vnd.ms-excel.sheet.macroEnabled.12", "xlsm");
+        MIME_SUFFIX.put("application/vnd.ms-pkicertstore", "sst");
+        MIME_SUFFIX.put("application/vnd.ms-pkiseccat", "cat");
+        MIME_SUFFIX.put("application/vnd.ms-pkistl", "stl");
+        MIME_SUFFIX.put("application/vnd.ms-powerpoint", "ppt");
+        MIME_SUFFIX.put("application/vnd.ms-powerpoint.presentation.macroEnabled.12", "ppat");
+        MIME_SUFFIX.put("application/vnd.ms-project", "mpp");
+        MIME_SUFFIX.put("application/vnd.ms-word", "doc");
+        MIME_SUFFIX.put("application/vnd.ms-word.document.macroEnabled.12", "docm");
+        MIME_SUFFIX.put("application/vnd.ms-works", "wcm");
+        MIME_SUFFIX.put("application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx");
+        MIME_SUFFIX.put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx");
+        MIME_SUFFIX.put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx");
+        MIME_SUFFIX.put("application/winhlp", "hlp");
+        MIME_SUFFIX.put("application/x-bcpio", "bcpio");
+        MIME_SUFFIX.put("application/x-cdf", "cdf");
+        MIME_SUFFIX.put("application/x-compress", "z");
+        MIME_SUFFIX.put("application/x-compressed", "tgz");
+        MIME_SUFFIX.put("application/x-cpio", "cpio");
+        MIME_SUFFIX.put("application/x-csh", "csh");
+        MIME_SUFFIX.put("application/x-director", "dir");
+        MIME_SUFFIX.put("application/x-dvi", "dvi");
+        MIME_SUFFIX.put("application/x-gtar", "gtar");
+        MIME_SUFFIX.put("application/x-gzip", "gz");
+        MIME_SUFFIX.put("application/x-hdf", "hdf");
+        MIME_SUFFIX.put("application/x-internet-signup", "isp");
+        MIME_SUFFIX.put("application/x-iphone", "iii");
+        MIME_SUFFIX.put("application/x-javascript", "js");
+        MIME_SUFFIX.put("application/x-latex", "latex");
+        MIME_SUFFIX.put("application/x-msaccess", "mdb");
+        MIME_SUFFIX.put("application/x-mscardfile", "crd");
+        MIME_SUFFIX.put("application/x-msclip", "clp");
+        MIME_SUFFIX.put("application/x-msdownload", "dll");
+        MIME_SUFFIX.put("application/x-msmediaview", "mvb");
+        MIME_SUFFIX.put("application/x-msmetafile", "wmf");
+        MIME_SUFFIX.put("application/x-msmoney", "mny");
+        MIME_SUFFIX.put("application/x-mspublisher", "pub");
+        MIME_SUFFIX.put("application/x-msschedule", "scd");
+        MIME_SUFFIX.put("application/x-msterminal", "trm");
+        MIME_SUFFIX.put("application/x-mswrite", "wri");
+        MIME_SUFFIX.put("application/x-perfmon", "pma");
+        MIME_SUFFIX.put("application/x-pkcs12", "p12");
+        MIME_SUFFIX.put("application/x-pkcs7-certificates", "p7b");
+        MIME_SUFFIX.put("application/x-pkcs7-certreqresp", "p7r");
+        MIME_SUFFIX.put("application/x-pkcs7-mime", "p7m");
+        MIME_SUFFIX.put("application/x-pkcs7-signature", "p7s");
+        MIME_SUFFIX.put("application/x-sh", "sh");
+        MIME_SUFFIX.put("application/x-shar", "shar");
+        MIME_SUFFIX.put("application/x-shockwave-flash", "swf");
+        MIME_SUFFIX.put("application/x-stuffit", "sit");
+        MIME_SUFFIX.put("application/x-sv4cpio", "sv4cpio");
+        MIME_SUFFIX.put("application/x-sv4crc", "sv4crc");
+        MIME_SUFFIX.put("application/x-tar", "tar");
+        MIME_SUFFIX.put("application/x-tcl", "tcl");
+        MIME_SUFFIX.put("application/x-tex", "tex");
+        MIME_SUFFIX.put("application/x-texinfo", "texi");
+        MIME_SUFFIX.put("application/x-troff", "roff");
+        MIME_SUFFIX.put("application/x-troff-man", "man");
+        MIME_SUFFIX.put("application/x-troff-me", "me");
+        MIME_SUFFIX.put("application/x-troff-ms", "ms");
+        MIME_SUFFIX.put("application/x-ustar", "ustar");
+        MIME_SUFFIX.put("application/x-wais-source", "src");
+        MIME_SUFFIX.put("application/x-x509-ca-cert", "crt");
+        MIME_SUFFIX.put("application/xhtml+xml", "xhtml");
+        MIME_SUFFIX.put("application/ynd.ms-pkipko", "pko");
+        MIME_SUFFIX.put("application/zip", "zip");
+        MIME_SUFFIX.put("audio/basic", "au");
+        MIME_SUFFIX.put("audio/mid", "mid");
+        MIME_SUFFIX.put("audio/mpeg", "mp3");
+        MIME_SUFFIX.put("audio/x-aiff", "aif");
+        MIME_SUFFIX.put("audio/x-mpegurl", "m3u");
+        MIME_SUFFIX.put("audio/x-pn-realaudio", "ra");
+        MIME_SUFFIX.put("audio/x-wav", "wav");
+        MIME_SUFFIX.put("image/bmp", "bmp");
+        MIME_SUFFIX.put("image/cis-cod", "cod");
+        MIME_SUFFIX.put("image/gif", "gif");
+        MIME_SUFFIX.put("image/ief", "ief");
+        MIME_SUFFIX.put("image/jpeg", "jpeg");
+        MIME_SUFFIX.put("image/pipeg", "jfif");
+        MIME_SUFFIX.put("image/png", "png");
+        MIME_SUFFIX.put("image/svg+xml", "svg");
+        MIME_SUFFIX.put("image/tiff", "tiff");
+        MIME_SUFFIX.put("image/x-cmu-raster", "ras");
+        MIME_SUFFIX.put("image/x-cmx", "cmx");
+        MIME_SUFFIX.put("image/x-emf", "emf");
+        MIME_SUFFIX.put("image/x-icon", "ico");
+        MIME_SUFFIX.put("image/x-portable-anymap", "pnm");
+        MIME_SUFFIX.put("image/x-portable-bitmap", "pbm");
+        MIME_SUFFIX.put("image/x-portable-graymap", "pgm");
+        MIME_SUFFIX.put("image/x-portable-pixmap", "ppm");
+        MIME_SUFFIX.put("image/x-rgb", "rgb");
+        MIME_SUFFIX.put("image/x-xbitmap", "xbm");
+        MIME_SUFFIX.put("image/x-xpixmap", "xpm");
+        MIME_SUFFIX.put("image/x-xwindowdump", "xwd");
+        MIME_SUFFIX.put("message/rfc822", "mht");
+        MIME_SUFFIX.put("text/css", "css");
+        MIME_SUFFIX.put("text/h323", "323");
+        MIME_SUFFIX.put("text/html", "html");
+        MIME_SUFFIX.put("text/iuls", "uls");
+        MIME_SUFFIX.put("text/plain", "txt");
+        MIME_SUFFIX.put("text/richtext", "rtx");
+        MIME_SUFFIX.put("text/scriptlet", "sct");
+        MIME_SUFFIX.put("text/tab-separated-values", "tsv");
+        MIME_SUFFIX.put("text/webviewhtml", "htt");
+        MIME_SUFFIX.put("text/x-component", "htc");
+        MIME_SUFFIX.put("text/x-setext", "etx");
+        MIME_SUFFIX.put("text/x-vcard", "vcf");
+        MIME_SUFFIX.put("text/xml", "xml");
+        MIME_SUFFIX.put("video/mpeg", "mpeg");
+        MIME_SUFFIX.put("video/quicktime", "mov");
+        MIME_SUFFIX.put("video/x-la-asf", "lsf");
+        MIME_SUFFIX.put("video/x-ms-asf", "asf");
+        MIME_SUFFIX.put("video/x-msvideo", "avi");
+        MIME_SUFFIX.put("video/x-sgi-movie", "movie");
+        MIME_SUFFIX.put("x-world/x-vrml", "vrml");
     }
 
     /**
@@ -228,6 +369,8 @@ public final class MimeUtils {
      * @return MIME type
      */
     public static String getFileMime(String suffix) {
+        if (suffix == null)
+            return UNKNOWN_MIME;
         int dotPos = suffix.lastIndexOf('.');
         if (dotPos >= 0)
             suffix = suffix.substring(dotPos+1);
@@ -236,5 +379,20 @@ public final class MimeUtils {
             return UNKNOWN_MIME;
         else
             return mime;
+    }
+
+    /**
+     * Get suffix name(without dot) by MIME type
+     * @param mime Mime type
+     * @return suffix name
+     */
+    public static String getFileSuffix(String mime) {
+        if (mime == null)
+            return "dat";
+        String suffix = MIME_SUFFIX.get(mime.toLowerCase());
+        if (suffix == null)
+            return "dat";
+        else
+            return suffix;
     }
 }

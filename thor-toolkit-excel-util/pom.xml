@@ -8,7 +8,7 @@
     <version>1.2-SNAPSHOT</version>
   </parent>
   <groupId>com.github.thorqin.thor-toolkit</groupId>
-  <artifactId>thor-toolkit-mq</artifactId>
+  <artifactId>thor-toolkit-excel-util</artifactId>
   <packaging>jar</packaging>
   <dependencies>
     <dependency>
@@ -17,16 +17,9 @@
       <version>${project.parent.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.qpid</groupId>
-      <artifactId>qpid-jms-client</artifactId>
-      <version>0.7.0</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.activemq</groupId>
-      <artifactId>activemq-client</artifactId>
-      <version>5.11.1</version>
-      <optional>true</optional>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <version>3.14</version>
     </dependency>
   </dependencies>
   <build>

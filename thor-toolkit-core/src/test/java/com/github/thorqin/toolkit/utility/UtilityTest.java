@@ -162,5 +162,12 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
     public void testSafeForamt() {
         System.out.println(StringUtils.toSafeFormat("{'0': abc}"));
     }
+
+    @Test
+    public void testSafeURL() throws UnsupportedEncodingException {
+        System.out.println(StringUtils.toSafeURL("http://10.152.71.33/MOA_Attachments/app_flowsupport/LC_2115520CD0ECB6D748257F260031D984_1451034269749/CB9FF2CCD167191E482580040040AE6A_1470224631276/新建 Microsoft Office Word 文档.docx"));
+    }
+
+
 }
 

@@ -502,9 +502,11 @@ public final class Serializer {
 			if (field.isAccessible()) {
 				if (sb.length() > 0)
 					sb.append("&");
-				sb.append(field.getName());
+				sb.append(URLEncoder.encode(field.getName(), "utf-8"));
 				sb.append("=");
-				sb.append(URLEncoder.encode(field.get(obj).toString(), "utf-8"));
+                Object value = field.get(obj);
+                if (value != null)
+                    sb.append(URLEncoder.encode(value.toString(), "utf-8"));
 			}
 		}
 		return sb.toString();
@@ -515,11 +517,15 @@ public final class Serializer {
             return "";
         StringBuilder sb = new StringBuilder();
         for (String key: obj.keySet()) {
+            if (key == null)
+                continue;
             if (sb.length() > 0)
                 sb.append("&");
             sb.append(URLEncoder.encode(key, "utf-8"));
             sb.append("=");
-            sb.append(URLEncoder.encode(obj.get(key), "utf-8"));
+            String value = obj.get(key);
+            if (value != null)
+                sb.append(URLEncoder.encode(value, "utf-8"));
         }
         return sb.toString();
     }
@@ -531,11 +537,14 @@ public final class Serializer {
         Map<String, String> map = new HashMap<>();
         for (String part : parts) {
             String[] pair = part.split("=");
-            if (pair.length != 2)
+            if (pair.length == 1) {
+                map.put(URLDecoder.decode(pair[0], "utf-8"), null);
                 continue;
-            String key = URLDecoder.decode(pair[0], "utf-8");
-            String val = URLDecoder.decode(pair[1], "utf-8");
-            map.put(key, val);
+            } else if (pair.length == 2) {
+                String key = URLDecoder.decode(pair[0], "utf-8");
+                String val = URLDecoder.decode(pair[1], "utf-8");
+                map.put(key, val);
+            }
         }
         return map;
     }

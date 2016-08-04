@@ -9,6 +9,8 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -179,5 +181,25 @@ public final class StringUtils {
         if (msg == null)
             return null;
         return msg.replaceAll("'", "''").replaceAll("(\\{|\\})","'$1'");
+    }
+
+    public static String toSafeURL(String url) throws UnsupportedEncodingException {
+        if (url == null)
+            return null;
+        char[] chars = url.toCharArray();
+        StringBuilder sb = new StringBuilder(url.length());
+        for (char c: chars) {
+            if (c > 20 && c < 127) {
+                if (c == ' ') {
+                    sb.append("%20");
+                } else if (c == '<' || c == '>' || c == '\'' || c == '"') {
+                    sb.append(URLEncoder.encode(c + "", "utf-8"));
+                } else
+                    sb.append(c);
+            } else {
+                sb.append(URLEncoder.encode(c + "", "utf-8"));
+            }
+        }
+        return sb.toString();
     }
 }

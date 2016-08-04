@@ -10,10 +10,13 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -383,4 +386,48 @@ public final class ServletUtils {
         }
     }
 
+    private final static Pattern filenamePattern = Pattern.compile("filename\\s*\\*?\\s*=\\s*(?:\"(?:utf-8'')?([^\"]+)\"|\\s*(?:utf-8'')?([^;\\s]+))");
+    public static String getFilenameFromContentDisposition(String contentDisposition) {
+        if (contentDisposition == null)
+            return null;
+        Matcher matcher = filenamePattern.matcher(contentDisposition);
+        if (matcher.find()) {
+            String fileName = matcher.group(1);
+            if (fileName == null)
+                fileName = matcher.group(2);
+            try {
+                return URLDecoder.decode(fileName, "utf-8");
+            } catch (Exception e) {
+                return fileName;
+            }
+        } else
+            return null;
+    }
+
+
+    private final static Pattern urlFilenamePattern = Pattern.compile("(?:/([^/]+))");
+    public static String getFilenameFromUrl(String url) {
+        if (url == null)
+            return null;
+        Matcher matcher = urlFilenamePattern.matcher(url);
+        String lastPath = null;
+        while (matcher.find()) {
+            String path = matcher.group(1);
+            if (path != null)
+                lastPath = path;
+        }
+        if (lastPath != null) {
+            String[] parts = lastPath.split("[?#]");
+            String fileName = parts[0];
+            if (fileName == null)
+                return null;
+            fileName = fileName.replaceAll("[\\r\\n]", "");
+            try {
+                return URLDecoder.decode(fileName, "utf-8");
+            } catch (Exception e) {
+                return fileName;
+            }
+        } else
+            return null;
+    }
 }

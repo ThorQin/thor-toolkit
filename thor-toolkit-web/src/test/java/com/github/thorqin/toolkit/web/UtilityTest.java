@@ -1,6 +1,8 @@
 package com.github.thorqin.toolkit.web;
 
+import com.github.thorqin.toolkit.utility.MimeUtils;
 import com.github.thorqin.toolkit.web.utility.RuleMatcher;
+import com.github.thorqin.toolkit.web.utility.ServletUtils;
 import org.junit.Test;
 
 import java.io.File;
@@ -82,4 +84,30 @@ public class UtilityTest {
 
     }
 
+    @Test
+    public void testGetFileName() {
+        System.out.println(ServletUtils.getFilenameFromContentDisposition(
+                "attachment; filename*=\"utf-8''中文.pdf\""));
+        System.out.println(ServletUtils.getFilenameFromContentDisposition(
+                "attachment; filename*=\"中文1.pdf\""));
+        System.out.println(ServletUtils.getFilenameFromContentDisposition(
+                "inline; filename= \"中文2 def.pdf\""));
+
+        System.out.println(ServletUtils.getFilenameFromUrl(
+                "http://10.152.71.33/MOA_Attachments/app_flowsupport/LC_2115520CD0ECB6D748257F260031D984_1451034269749/CB9FF2CCD167191E482580040040AE6A_1470224631276/%E6%96%B0%E5%BB%BA%20Microsoft%20Office%20PowerPoint%20%E6%BC%94%E7%A4%BA%E6%96%87%E7%A8%BF.pptx?abc"));
+
+    }
+
+    @Test
+    public void printMime() {
+        List<String> list = new LinkedList<>();
+        for ( HashMap.Entry<String, String> entry: MimeUtils.MIME.entrySet()) {
+            list.add("MIME_SUFFIX.put(\"" + entry.getValue() + "\", \"" + entry.getKey() + "\");");
+        }
+
+        Collections.sort(list);
+        for (String s: list) {
+            System.out.println(s);
+        }
+    }
 }
