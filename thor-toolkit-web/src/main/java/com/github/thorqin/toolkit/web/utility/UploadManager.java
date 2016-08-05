@@ -244,33 +244,37 @@ public final class UploadManager {
 		return store(in, fileName, null);
 	}
 
-	public FileInfo store(InputStream in, String fileName, String mimeType) throws IOException {
-		FileInfo info = new FileInfo();
-		info.fileId = UUID.randomUUID().toString().replaceAll("-", "");
-		info.fileName = fileName;
-		info.mimeType = (mimeType == null ? MimeUtils.getFileMime(info.getExtName()) : mimeType);
-		info.createTime = new Date().getTime();
+    public FileInfo createFileId(String fileName, String mimeType) throws IOException {
+        FileInfo info = new FileInfo();
+        info.fileId = UUID.randomUUID().toString().replaceAll("-", "");
+        info.fileName = fileName;
+        info.mimeType = (mimeType == null ? MimeUtils.getFileMime(info.getExtName()) : mimeType);
+        info.createTime = new Date().getTime();
 
         String filePath = fileIdToPath(info.fileId);
-		String dataFile = filePath + ".data";
+        String dataFile = filePath + ".data";
         // Make sure all parent folders are exist.
         File dir = new File(dataFile).getParentFile();
         Files.createDirectories(dir.toPath());
 
-		try (BufferedOutputStream bos = new BufferedOutputStream(
-				new FileOutputStream(dataFile))) {
-			int length;
-			byte[] buffer = new byte[4096];
-			while ((length = in.read(buffer)) != -1) {
-                info.length += length;
-				bos.write(buffer, 0, length);
-			}
-		}
         if (storeDetail) {
             String jsonFile = filePath + ".json";
             Serializer.writeJsonFile(info, jsonFile);
         }
         info.filePath = dataFile;
+        return info;
+    }
+
+    public FileInfo store(InputStream in, String fileName, String mimeType) throws IOException {
+		FileInfo info = createFileId(fileName, mimeType);
+		try (BufferedOutputStream bos = new BufferedOutputStream(
+				new FileOutputStream(info.filePath))) {
+			int length;
+			byte[] buffer = new byte[4096];
+			while ((length = in.read(buffer)) != -1) {
+				bos.write(buffer, 0, length);
+			}
+		}
 		return info;
 	}
 
@@ -432,6 +436,7 @@ public final class UploadManager {
         if (jsonFile.exists()) {
             FileInfo fileInfo = Serializer.readJsonFile(jsonFile, FileInfo.class);
             fileInfo.filePath = filePath;
+            fileInfo.length = dataFile.length();
             return fileInfo;
         } else {
             FileInfo fileInfo = new FileInfo();
