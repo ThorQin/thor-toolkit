@@ -377,7 +377,7 @@ public class Application {
         if (clazz == null)
             return;
         Object service = serviceMapping.get(key);
-        for (Field field : clazz.getDeclaredFields()) {
+        for (Field field : Serializer.getVisibleFields(clazz)) {
             try {
                 Service annotation = field.getAnnotation(Service.class);
                 if (annotation != null) {

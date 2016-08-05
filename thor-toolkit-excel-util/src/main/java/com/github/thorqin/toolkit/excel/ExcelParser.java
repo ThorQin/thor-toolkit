@@ -48,9 +48,9 @@ public class ExcelParser {
     }
 
     public interface ProcessHandler {
-        void onSheet(String sheetName);
+        void onSheet(Class<?> sheetType, String sheetName);
         void onRow(Object item, Map<String, String> errors, Map<String, String> rawData);
-        void onSheetError(String sheetName, String errorMessage);
+        void onSheetError(Class<?> sheetType, String sheetName, String errorMessage);
     }
 
     private static class SheetContentsHandler implements XSSFSheetXMLHandler.SheetContentsHandler {
@@ -88,7 +88,7 @@ public class ExcelParser {
 
         public static <T> Map<String, Field> getFieldMapping(Class<T> type) {
             Map<String, Field> result = new HashMap<>();
-            Field[] fields = type.getDeclaredFields();
+            Set<Field> fields = Serializer.getVisibleFields(type);
             for (Field field: fields) {
                 Column anno = field.getAnnotation(Column.class);
                 if (anno != null) {
@@ -293,13 +293,13 @@ public class ExcelParser {
                 stat.sheetName = sheetInfo.annotation.value();
                 try {
                     if (handler != null) {
-                        handler.onSheet(sheetInfo.annotation.value());
+                        handler.onSheet(sheetInfo.type, sheetInfo.annotation.value());
                     }
                     processSheet(styles, strings, contentsHandler, sheetInfo.stream);
                 } catch (Exception e) {
                     stat.fatalError = e.getMessage();
                     if (handler != null) {
-                        handler.onSheetError(sheetInfo.annotation.value(), e.getMessage());
+                        handler.onSheetError(sheetInfo.type, sheetInfo.annotation.value(), e.getMessage());
                     }
                 } finally {
                     stat.successCount = contentsHandler.getSuccessCount();

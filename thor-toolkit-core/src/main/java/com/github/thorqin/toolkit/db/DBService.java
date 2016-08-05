@@ -223,7 +223,7 @@ public final class DBService implements IService, AutoCloseable {
 			return null;
 		}
 		ArrayList<Object> attributes = new ArrayList<>(clazz.getFields().length);
-		for (Field field : clazz.getDeclaredFields()) {
+		for (Field field : Serializer.getVisibleFields(clazz)) {
 			if (field.isAnnotationPresent(UDTField.class)) {
 				try {
 					attributes.add(toSqlObject(conn, field.get(obj)));
@@ -428,12 +428,16 @@ public final class DBService implements IService, AutoCloseable {
 					| IllegalAccessException e) {
 				throw new SQLException("Parse java.sql.Struct failed.", e);
 			}
-			Field[] fields = destType.getDeclaredFields();
-			for (int i = 0, j = 0; i < fields.length && j < attributes.length; i++) {
-				if (fields[i].isAnnotationPresent(UDTField.class)) {
+
+            int j = 0;
+            Set<Field> fields = Serializer.getVisibleFields(destType);
+            for (Field field: fields) {
+                if (j >= attributes.length)
+                    break;
+				if (field.isAnnotationPresent(UDTField.class)) {
 					try {
-						fields[i].setAccessible(true);
-						fields[i].set(instance, fromSqlObject(attributes[j], fields[i].getType(), udtMapping));
+						field.setAccessible(true);
+						field.set(instance, fromSqlObject(attributes[j], field.getType(), udtMapping));
 					} catch (IllegalArgumentException | IllegalAccessException e) {
 						throw new SQLException("Parse java.sql.Struct failed.", e);
 					}
@@ -986,7 +990,7 @@ public final class DBService implements IService, AutoCloseable {
             if (resultSet == null)
                 return null;
             T obj = type.newInstance();
-            for (Field field : type.getDeclaredFields()) {
+            for (Field field : Serializer.getVisibleFields(type)) {
                 DBField anno = field.getAnnotation(DBField.class);
                 if (anno == null)
                     continue;

@@ -33,6 +33,7 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.regex.Pattern;
 import com.github.thorqin.toolkit.utility.Localization;
+import com.github.thorqin.toolkit.utility.Serializer;
 import javassist.Modifier;
 import com.github.thorqin.toolkit.validation.annotation.*;
 import org.joda.time.DateTime;
@@ -277,9 +278,7 @@ public final class Validator {
 	
 	private void validateObject(Object value, Class<?> type) throws ValidateException {
 		if (value != null) {
-			Set<Field> fieldsToCheck = new HashSet<>();
-			fieldsToCheck.addAll(Arrays.asList(type.getFields()));
-			fieldsToCheck.addAll(Arrays.asList(type.getDeclaredFields()));
+			Set<Field> fieldsToCheck = Serializer.getVisibleFields(type);
 			for (Field field : fieldsToCheck) {
 				if (Modifier.isStatic(field.getModifiers()))
 					continue;
@@ -402,9 +401,7 @@ public final class Validator {
 
             if (anno.asEntity()) {
                 Class<?> type = anno.type();
-                Set<Field> fieldsToCheck = new HashSet<>();
-                fieldsToCheck.addAll(Arrays.asList(type.getFields()));
-                fieldsToCheck.addAll(Arrays.asList(type.getDeclaredFields()));
+                Set<Field> fieldsToCheck = Serializer.getVisibleFields(type);
                 for (Field field : fieldsToCheck) {
                     if (Modifier.isStatic(field.getModifiers()))
                         continue;

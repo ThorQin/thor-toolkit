@@ -240,8 +240,7 @@ public final class WebBasicRouter extends WebRouterBase {
 		Object inst = WebApplication.createInstance(clazz, application);
         String localeMessage = classAnno.localeMessage();
 
-		for (Field field : clazz.getDeclaredFields()) {
-			// Class<?> fieldType = field.getType();
+		for (Field field : Serializer.getVisibleFields(clazz)) {
             Service annotation = field.getAnnotation(Service.class);
             if (annotation != null && application != null) {
                 field.setAccessible(true);

@@ -20,6 +20,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -824,6 +825,20 @@ public final class Serializer {
         return toJsonString(obj1).equals(toJsonString(obj2));
     }
 
+    private static void getAccessibleFields(Class<?> type, Set<Field> fieldSet) {
+        if (type == null || type.equals(Object.class) ||
+                type.isPrimitive() || type.equals(Void.class) ||
+                type.equals(void.class))
+            return;
+        for (Field field : type.getDeclaredFields()) {
+            int modifier = field.getModifiers();
+            if (Modifier.isStatic(modifier) || Modifier.isNative(modifier))
+                continue;
+            if (Modifier.isPublic(modifier) || Modifier.isProtected(modifier))
+                fieldSet.add(field);
+        }
+        getAccessibleFields(type.getSuperclass(), fieldSet);
+    }
 
     /**
      * Get all visible fields of the specified class which are the sum of
@@ -833,12 +848,12 @@ public final class Serializer {
      */
     public static Set<Field> getVisibleFields(Class<?> type) {
         Set<Field> fieldSet = new HashSet<>();
-        for (Field field : type.getFields()) {
-            fieldSet.add(field);
-        }
         for (Field field : type.getDeclaredFields()) {
             fieldSet.add(field);
         }
+        getAccessibleFields(type.getSuperclass(), fieldSet);
         return fieldSet;
     }
+
+
 }
