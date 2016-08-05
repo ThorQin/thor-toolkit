@@ -236,13 +236,17 @@ public final class UploadManager {
 
 	public FileInfo store(byte[] data, String fileName, String mimeType) throws IOException {
 		try (InputStream in = new ByteArrayInputStream(data)) {
-			return store(in, fileName, null);
+			return store(in, fileName, mimeType);
 		}
 	}
 
 	public FileInfo store(InputStream in, String fileName) throws IOException {
 		return store(in, fileName, null);
 	}
+
+    public FileInfo createFileId(String fileName) throws IOException {
+        return createFileId(fileName, null);
+    }
 
     public FileInfo createFileId(String fileName, String mimeType) throws IOException {
         FileInfo info = new FileInfo();
