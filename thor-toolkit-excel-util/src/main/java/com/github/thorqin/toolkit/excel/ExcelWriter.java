@@ -74,7 +74,7 @@ public class ExcelWriter implements AutoCloseable {
             return new Color(Integer.valueOf(textColor.substring(1), 16));
         }
     }
-    private Class<?> currentSheetType = null;
+
     private SXSSFWorkbook wb = null;
     private File targetFile = null;
     private SXSSFSheet currentSheet = null;
@@ -82,7 +82,9 @@ public class ExcelWriter implements AutoCloseable {
     private XSSFCellStyle cellStyle;
     private XSSFCellStyle errorStyle;
     private List<Column> currentColumns;
+    private Set<String> addedSheets = new HashSet<>();
     private int currentRow = 0;
+
 
     public ExcelWriter(String filePath) {
         this(new File(filePath), null);
@@ -146,9 +148,11 @@ public class ExcelWriter implements AutoCloseable {
         if (sheetAnno == null) {
             throw new IllegalArgumentException("Given class type has no annotation whit type 'Sheet'!");
         }
+        if (addedSheets.contains(sheetAnno.value()))
+            return;
         currentRow = 0;
-        currentSheetType = type;
         currentSheet = wb.createSheet(sheetAnno.value());
+        addedSheets.add(sheetAnno.value());
         SXSSFRow row = currentSheet.createRow(currentRow++);
         Set<Field> fields = Serializer.getVisibleFields(type);
         currentColumns = new ArrayList<>();
@@ -167,8 +171,9 @@ public class ExcelWriter implements AutoCloseable {
             cell.setCellStyle(headerStyle);
             if (column.width() >= 0) {
                 int width = column.width() * 256;
-                currentSheet.setColumnWidth(col++, Math.min(width, 65280));
+                currentSheet.setColumnWidth(col, Math.min(width, 65280));
             }
+            col++;
         }
     }
 
@@ -195,6 +200,15 @@ public class ExcelWriter implements AutoCloseable {
 
             cell.setCellValue(value);
         }
+    }
+
+    public void addErrorRow(String message) {
+        if (message == null)
+            return;
+        SXSSFRow row = currentSheet.createRow(currentRow++);
+        SXSSFCell cell = row.createCell(0);
+        cell.setCellStyle(errorStyle);
+        cell.setCellValue(message);
     }
 
     public void save() throws IOException {
