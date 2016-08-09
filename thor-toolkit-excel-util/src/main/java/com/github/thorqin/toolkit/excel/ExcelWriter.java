@@ -4,7 +4,6 @@ import com.github.thorqin.toolkit.excel.annotation.Column;
 import com.github.thorqin.toolkit.excel.annotation.Sheet;
 import com.github.thorqin.toolkit.utility.Serializer;
 import com.google.common.base.Strings;
-import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.xssf.model.StylesTable;
 import org.apache.poi.xssf.streaming.SXSSFCell;
@@ -31,11 +30,13 @@ public class ExcelWriter implements AutoCloseable {
         public String textColor = "#000000";
         public String fillColor = "#FFFFFF";
         public String font = "Microsoft Yahei";;
+        public boolean fill = false;
         public short fontSize = 11;
 
         public String headerTextColor = "#000000";
         public String headerFillColor = "#CCCCFF";
         public String headerFont = "Microsoft Yahei";
+        public boolean headerFill = true;
         public short headerFontSize = 11;
 
         public Color getHeaderFillColor() {
@@ -106,8 +107,13 @@ public class ExcelWriter implements AutoCloseable {
 
         StylesTable stylesTable = wb.getXSSFWorkbook().getStylesSource();
         headerStyle = stylesTable.createCellStyle();
-        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        headerStyle.setFillForegroundColor(new XSSFColor(option.getHeaderFillColor()));
+        if (option.headerFill) {
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setFillForegroundColor(new XSSFColor(option.getHeaderFillColor()));
+        } else {
+            headerStyle.setFillPattern(FillPatternType.NO_FILL);
+        }
+
         XSSFFont headerFont = wb.getXSSFWorkbook().createFont();
         headerFont.setFontHeightInPoints(option.headerFontSize);
         headerFont.setColor(new XSSFColor(option.getHeaderTextColor()));
@@ -115,8 +121,12 @@ public class ExcelWriter implements AutoCloseable {
         headerStyle.setFont(headerFont);
 
         cellStyle = stylesTable.createCellStyle();
-        cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        cellStyle.setFillForegroundColor(new XSSFColor(option.getFillColor()));
+        if (option.fill) {
+            cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            cellStyle.setFillForegroundColor(new XSSFColor(option.getFillColor()));
+        } else {
+            cellStyle.setFillPattern(FillPatternType.NO_FILL);
+        }
         XSSFFont cellFont = wb.getXSSFWorkbook().createFont();
         cellFont.setFontHeightInPoints(option.fontSize);
         cellFont.setColor(new XSSFColor(option.getTextColor()));
@@ -175,6 +185,31 @@ public class ExcelWriter implements AutoCloseable {
             }
             col++;
         }
+    }
+
+    public <T> void addRow(T object, Class<T> type) {
+        addRow(object, type, null);
+    }
+
+    public <T> void addRow(T object, Class<T> type, Map<String, String> errors) {
+        if (object == null || type == null || !type.isInstance(object))
+            return;
+        Set<Field> fields = Serializer.getVisibleFields(type);
+        Map<String, String> values = new HashMap<>();
+        for (Field field: fields) {
+            Column columnAnno = field.getAnnotation(Column.class);
+            if (columnAnno == null)
+                continue;
+            boolean accessible = field.isAccessible();
+            field.setAccessible(true);
+            try {
+                Object v = field.get(object);
+                if (v != null)
+                    values.put(columnAnno.value(), v.toString());
+            } catch (Exception e) {}
+            field.setAccessible(accessible);
+        }
+        addRow(values, errors);
     }
 
     public void addRow(Map<String, String> rowContent, Map<String, String> errors) {

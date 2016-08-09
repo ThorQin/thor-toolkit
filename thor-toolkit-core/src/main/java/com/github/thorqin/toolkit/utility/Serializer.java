@@ -155,6 +155,21 @@ public final class Serializer {
 		}
 	}
 
+    public static void fillObjectByMap(Object obj, Map<String, Object> map) throws IllegalAccessException {
+        if (obj == null || map == null)
+            return;
+        Class<?> type = obj.getClass();
+        Set<Field> fields = getVisibleFields(type);
+        for (Field field: fields) {
+            String key = field.getName();
+            Object value = map.get(key);
+            if (value != null) {
+                field.setAccessible(true);
+                field.set(obj, value);
+            }
+        }
+    }
+
 	@SuppressWarnings("unchecked")
 	public static <T> T parseString(String value, Class<T> type) {
 		StringConverter converter = convertMapping.get(type);
@@ -830,6 +845,7 @@ public final class Serializer {
                 type.isPrimitive() || type.equals(Void.class) ||
                 type.equals(void.class))
             return;
+        getAccessibleFields(type.getSuperclass(), fieldSet);
         for (Field field : type.getDeclaredFields()) {
             int modifier = field.getModifiers();
             if (Modifier.isStatic(modifier) || Modifier.isNative(modifier))
@@ -837,7 +853,6 @@ public final class Serializer {
             if (Modifier.isPublic(modifier) || Modifier.isProtected(modifier))
                 fieldSet.add(field);
         }
-        getAccessibleFields(type.getSuperclass(), fieldSet);
     }
 
     /**
