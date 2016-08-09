@@ -831,6 +831,10 @@ public final class DBService implements IService, AutoCloseable {
 		void make(T obj) throws SQLException;
 	}
 
+    public interface RowHandler<T> {
+        boolean process(T row);
+    }
+
     public interface TableAdjuster {
         String[] adjustHead(String[] head);
         Object[] adjustLine(Object[] line);
@@ -1918,6 +1922,56 @@ public final class DBService implements IService, AutoCloseable {
         }
     }
 
+    public <T> void query(String queryString, Class<T> type, RowHandler<T> handler, Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                while (cursor.next()) {
+                    T obj = cursor.get(type);
+                    if (!handler.process(obj))
+                        break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Make query call to handler on each row, keep column name in original form
+     * @param queryString SQL
+     * @param handler RowHandler
+     * @param args Parameters
+     * @throws SQLException
+     */
+    public void query(String queryString, RowHandler<Map<String, Object>> handler, Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                while (cursor.next()) {
+                    Map<String, Object> obj = cursor.get();
+                    if (!handler.process(obj))
+                        break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Make query call to handler on each row, change column name to camel-case form
+     * @param queryString SQL
+     * @param handler RowHandler
+     * @param args Parameters
+     * @throws SQLException
+     */
+    public void queryAdjust(String queryString, RowHandler<Map<String, Object>> handler, Object... args) throws SQLException {
+        try (DBSession session = getSession()) {
+            try (DBCursor cursor = session.query(queryString, args)) {
+                while (cursor.next()) {
+                    Map<String, Object> obj = cursor.get();
+                    if (!handler.process(obj))
+                        break;
+                }
+            }
+        }
+    }
+
     public DBTable queryTable(String queryString,
                          TableAdjuster adjuster,
                          Map<String, Class<?>> udtMapping,
@@ -1991,6 +2045,13 @@ public final class DBService implements IService, AutoCloseable {
 		}
 	}
 
+    /**
+     * Make query and return first row, keep column name in original form
+     * @param queryString SQL
+     * @param args Parameters
+     * @return Row
+     * @throws SQLException
+     */
 	public Map<String, Object> queryFirst(String queryString,
 							Object... args) throws SQLException {
 		try (DBSession session = getSession()) {
@@ -1998,6 +2059,13 @@ public final class DBService implements IService, AutoCloseable {
 		}
 	}
 
+    /**
+     * Make query and return first row, change column name to camel-case form
+     * @param queryString SQL
+     * @param args Parameters
+     * @return Row
+     * @throws SQLException
+     */
     public Map<String, Object> queryFirstAdjust(String queryString,
                                           Object... args) throws SQLException {
         try (DBSession session = getSession()) {
