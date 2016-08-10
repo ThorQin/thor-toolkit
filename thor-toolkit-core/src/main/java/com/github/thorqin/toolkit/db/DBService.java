@@ -1248,6 +1248,8 @@ public final class DBService implements IService, AutoCloseable {
 	}
 
 	private static String arrayToString(Object obj) {
+        if (obj == null)
+            return "null";
 		if (Iterable.class.isInstance(obj)) {
 			StringBuilder sb = new StringBuilder();
 			Iterator<?> it = ((Iterable<?>)obj).iterator();
@@ -1256,8 +1258,9 @@ public final class DBService implements IService, AutoCloseable {
 				if (!isFirst)
 					sb.append(",");
 				Object value = it.next();
-				Class<?> valueType = value.getClass();
-				if (valueType.isPrimitive()
+				Class<?> valueType = (value == null ? null : value.getClass());
+				if (value == null
+                        || valueType.isPrimitive()
 						|| valueType.equals(Integer.class)
 						|| valueType.equals(Long.class)
 						|| valueType.equals(Float.class)
@@ -1322,8 +1325,9 @@ public final class DBService implements IService, AutoCloseable {
 				for (Object value: (Object[])obj) {
 					if (!isFirst)
 						sb.append(",");
-					Class<?> valueType = value.getClass();
-					if (valueType.equals(Integer.class)
+                    Class<?> valueType = (value == null ? null : value.getClass());
+					if (valueType == null
+                            || valueType.equals(Integer.class)
 							|| valueType.equals(Long.class)
 							|| valueType.equals(Float.class)
 							|| valueType.equals(Double.class)
