@@ -509,64 +509,79 @@ public final class Serializer {
 	
 	// WWW FORM URL ENCODING ...
 
-	public static <T> String toUrlEncoding(T obj) throws IllegalAccessException, UnsupportedEncodingException {
+	public static <T> String toUrlEncoding(T obj) throws IllegalAccessException {
 		if (obj == null)
 			return "";
 		StringBuilder sb = new StringBuilder();
 		Class<?> type = obj.getClass();
-		for (Field field: getVisibleFields(type)) {
-			if (field.isAccessible()) {
-				if (sb.length() > 0)
-					sb.append("&");
-				sb.append(URLEncoder.encode(field.getName(), "utf-8"));
-				sb.append("=");
-                Object value = field.get(obj);
-                if (value != null)
-                    sb.append(URLEncoder.encode(value.toString(), "utf-8"));
-			}
-		}
+        try {
+            for (Field field : getVisibleFields(type)) {
+                if (field.isAccessible()) {
+                    if (sb.length() > 0)
+                        sb.append("&");
+                    sb.append(URLEncoder.encode(field.getName(), "utf-8"));
+                    sb.append("=");
+                    Object value = field.get(obj);
+                    if (value != null)
+                        sb.append(URLEncoder.encode(value.toString(), "utf-8"));
+                }
+            }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return "";
+        }
 		return sb.toString();
 	}
 
-    public static String toUrlEncoding(Map<String, String> obj) throws IllegalAccessException, UnsupportedEncodingException {
+    public static String toUrlEncoding(Map<String, String> obj) throws IllegalAccessException {
         if (obj == null)
             return "";
         StringBuilder sb = new StringBuilder();
-        for (String key: obj.keySet()) {
-            if (key == null)
-                continue;
-            if (sb.length() > 0)
-                sb.append("&");
-            sb.append(URLEncoder.encode(key, "utf-8"));
-            sb.append("=");
-            String value = obj.get(key);
-            if (value != null)
-                sb.append(URLEncoder.encode(value, "utf-8"));
+        try {
+            for (String key : obj.keySet()) {
+                if (key == null)
+                    continue;
+                if (sb.length() > 0)
+                    sb.append("&");
+                sb.append(URLEncoder.encode(key, "utf-8"));
+                sb.append("=");
+                String value = obj.get(key);
+                if (value != null)
+                    sb.append(URLEncoder.encode(value, "utf-8"));
+            }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return "";
         }
         return sb.toString();
     }
 
-    public static Map<String, String> fromUrlEncoding(String formData) throws UnsupportedEncodingException {
+    public static Map<String, String> fromUrlEncoding(String formData) {
         if (formData == null)
             return null;
         String[] parts = formData.split("&");
         Map<String, String> map = new HashMap<>();
-        for (String part : parts) {
-            String[] pair = part.split("=");
-            if (pair.length == 1) {
-                map.put(URLDecoder.decode(pair[0], "utf-8"), null);
-                continue;
-            } else if (pair.length == 2) {
-                String key = URLDecoder.decode(pair[0], "utf-8");
-                String val = URLDecoder.decode(pair[1], "utf-8");
-                map.put(key, val);
+        try {
+            for (String part : parts) {
+                String[] pair = part.split("=");
+                if (pair.length == 1) {
+                    map.put(URLDecoder.decode(pair[0], "utf-8"), null);
+                    continue;
+                } else if (pair.length == 2) {
+                    String key = URLDecoder.decode(pair[0], "utf-8");
+                    String val = URLDecoder.decode(pair[1], "utf-8");
+                    map.put(key, val);
+                }
             }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
         }
         return map;
     }
 
 	@SuppressWarnings("unchecked")
-	public static <T> T fromUrlEncoding(String formData, Class<T> type) throws InstantiationException, IllegalAccessException, UnsupportedEncodingException {
+	public static <T> T fromUrlEncoding(String formData, Class<T> type) throws InstantiationException, IllegalAccessException {
         Map<String, String> map = fromUrlEncoding(formData);
         if (map == null)
             return null;

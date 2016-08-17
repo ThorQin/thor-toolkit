@@ -183,22 +183,27 @@ public final class StringUtils {
         return msg.replaceAll("'", "''").replaceAll("(\\{|\\})","'$1'");
     }
 
-    public static String toSafeURL(String url) throws UnsupportedEncodingException {
+    public static String toSafeURL(String url) {
         if (url == null)
             return null;
         char[] chars = url.toCharArray();
         StringBuilder sb = new StringBuilder(url.length());
-        for (char c: chars) {
-            if (c > 20 && c < 127) {
-                if (c == ' ') {
-                    sb.append("%20");
-                } else if (c == '<' || c == '>' || c == '\'' || c == '"') {
+        try {
+            for (char c : chars) {
+                if (c > 20 && c < 127) {
+                    if (c == ' ') {
+                        sb.append("%20");
+                    } else if (c == '<' || c == '>' || c == '\'' || c == '"') {
+                        sb.append(URLEncoder.encode(c + "", "utf-8"));
+                    } else
+                        sb.append(c);
+                } else {
                     sb.append(URLEncoder.encode(c + "", "utf-8"));
-                } else
-                    sb.append(c);
-            } else {
-                sb.append(URLEncoder.encode(c + "", "utf-8"));
+                }
             }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
         }
         return sb.toString();
     }
