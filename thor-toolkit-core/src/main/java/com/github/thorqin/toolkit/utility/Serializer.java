@@ -451,9 +451,17 @@ public final class Serializer {
 	public static <T> T fromJson(Reader reader, Class<T> type) throws IOException, ClassCastException {
         return gson.fromJson(reader, type);
 	}
+    public static <T> T fromJson(Reader reader) throws IOException, ClassCastException {
+        Type typeOfT = new TypeToken<T>(){}.getType();
+        return gson.fromJson(reader, typeOfT);
+    }
 	public static <T> T fromJson(Reader reader, Type type) throws IOException, ClassCastException {
         return gson.fromJson(reader, type);
 	}
+    public static <T> T fromJson(JsonElement jsonElement) throws ClassCastException {
+        Type typeOfT = new TypeToken<T>(){}.getType();
+        return gson.fromJson(jsonElement, typeOfT);
+    }
 	public static <T> T fromJson(JsonElement jsonElement, Class<T> type) throws ClassCastException {
         return gson.fromJson(jsonElement, type);
 	}
@@ -473,6 +481,10 @@ public final class Serializer {
 			return fromJson(reader, type);
 		}
 	}
+    public static <T> T readJsonResource(String resource) throws IOException, ClassCastException {
+        Type typeOfT = new TypeToken<T>(){}.getType();
+        return readJsonResource(resource, typeOfT);
+    }
 	
 	public static <T> T readJsonFile(String filename, Class<T> type) throws IOException, ClassCastException {
 		try (InputStream in = new FileInputStream(filename);
@@ -480,6 +492,11 @@ public final class Serializer {
 			return fromJson(reader, type);
 		}
 	}
+
+    public static <T> T readJsonFile(String filename) throws IOException, ClassCastException {
+        Type typeOfT = new TypeToken<T>(){}.getType();
+        return readJsonFile(filename, typeOfT);
+    }
 	
 	public static <T> T readJsonFile(String filename, Type type) throws IOException, ClassCastException {
 		try (InputStream in = new FileInputStream(filename);
