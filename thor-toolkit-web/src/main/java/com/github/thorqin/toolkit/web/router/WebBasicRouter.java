@@ -374,7 +374,7 @@ public final class WebBasicRouter extends WebRouterBase {
 					"Cannot deserialize class ''{0}'' from HTTP body: Unsupported post encoding.", paramType.getName());
 				return null;
 			}
-		} catch (IOException | ClassCastException | IllegalAccessException | InstantiationException ex) {
+		} catch (ClassCastException | IllegalAccessException | InstantiationException ex) {
 			logger.log(Level.WARNING, 
 					"Cannot deserialize class ''{0}'' from HTTP body.", paramType.getName());
 			return null;
@@ -384,7 +384,7 @@ public final class WebBasicRouter extends WebRouterBase {
 	private Object parseFromQueryString(Class<?> paramType, MethodRuntimeInfo mInfo) {
 		try {
 			return Serializer.fromUrlEncoding(mInfo.request.getQueryString(), paramType);
-		} catch (UnsupportedEncodingException | IllegalAccessException | InstantiationException ex) {
+		} catch (IllegalAccessException | InstantiationException ex) {
 			logger.log(Level.WARNING, 
 					"Warning: Cannot deserialize class ''{0}'' from QueryString.", paramType.getName());
 			return null;
