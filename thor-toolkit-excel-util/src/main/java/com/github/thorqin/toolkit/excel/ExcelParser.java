@@ -48,9 +48,10 @@ public class ExcelParser {
     }
 
     public interface ProcessHandler {
-        void onSheet(Class<?> sheetType, String sheetName);
-        void onRow(Object item, Map<String, String> errors, Map<String, String> rawData);
+        void onSheetBegin(Class<?> sheetType, String sheetName);
+        void onSheetEnd(Class<?> sheetType, String sheetName);
         void onSheetError(Class<?> sheetType, String sheetName, String errorMessage);
+        void onRow(Object item, Map<String, String> errors, Map<String, String> rawData);
     }
 
     private static class SheetContentsHandler implements XSSFSheetXMLHandler.SheetContentsHandler {
@@ -293,9 +294,12 @@ public class ExcelParser {
                 stat.sheetName = sheetInfo.annotation.value();
                 try {
                     if (handler != null) {
-                        handler.onSheet(sheetInfo.type, sheetInfo.annotation.value());
+                        handler.onSheetBegin(sheetInfo.type, sheetInfo.annotation.value());
                     }
                     processSheet(styles, strings, contentsHandler, sheetInfo.stream);
+                    if (handler != null) {
+                        handler.onSheetEnd(sheetInfo.type, sheetInfo.annotation.value());
+                    }
                 } catch (Exception e) {
                     stat.fatalError = e.getMessage();
                     if (handler != null) {
