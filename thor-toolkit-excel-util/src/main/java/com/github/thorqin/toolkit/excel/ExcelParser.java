@@ -49,8 +49,8 @@ public class ExcelParser {
 
     public interface ProcessHandler {
         void onSheetBegin(Class<?> sheetType, String sheetName);
-        Stat onSheetEnd(Class<?> sheetType, String sheetName);
-        Stat onSheetError(Class<?> sheetType, String sheetName, String errorMessage);
+        void onSheetEnd(Class<?> sheetType, String sheetName, Stat stat);
+        void onSheetError(Class<?> sheetType, String sheetName, String errorMessage, Stat stat);
         void onRow(Object item, Map<String, String> errors, Map<String, String> rawData);
     }
 
@@ -291,30 +291,28 @@ public class ExcelParser {
             for (SheetInfo sheetInfo: sheetList) {
                 SheetContentsHandler contentsHandler = new SheetContentsHandler(sheetInfo.annotation, sheetInfo.type, handler, loc);
                 Stat stat = new Stat();
-                Stat statCustom = null;
                 stat.sheetName = sheetInfo.annotation.value();
                 try {
                     if (handler != null) {
                         handler.onSheetBegin(sheetInfo.type, sheetInfo.annotation.value());
                     }
                     processSheet(styles, strings, contentsHandler, sheetInfo.stream);
+                    stat.successCount = contentsHandler.getSuccessCount();
+                    stat.failedCount = contentsHandler.getFailedCount();
+                    stat.ignoreCount = contentsHandler.getIgnoreCount();
                     if (handler != null) {
-                        statCustom = handler.onSheetEnd(sheetInfo.type, sheetInfo.annotation.value());
+                        handler.onSheetEnd(sheetInfo.type, sheetInfo.annotation.value(), stat);
                     }
                 } catch (Exception e) {
+                    stat.successCount = contentsHandler.getSuccessCount();
+                    stat.failedCount = contentsHandler.getFailedCount();
+                    stat.ignoreCount = contentsHandler.getIgnoreCount();
                     stat.fatalError = e.getMessage();
                     if (handler != null) {
-                        statCustom = handler.onSheetError(sheetInfo.type, sheetInfo.annotation.value(), e.getMessage());
+                        handler.onSheetError(sheetInfo.type, sheetInfo.annotation.value(), e.getMessage(), stat);
                     }
                 } finally {
-                    if (statCustom != null) {
-                        stats.add(statCustom);
-                    } else {
-                        stat.successCount = contentsHandler.getSuccessCount();
-                        stat.failedCount = contentsHandler.getFailedCount();
-                        stat.ignoreCount = contentsHandler.getIgnoreCount();
-                        stats.add(stat);
-                    }
+                    stats.add(stat);
                     sheetInfo.stream.close();
                 }
             }
