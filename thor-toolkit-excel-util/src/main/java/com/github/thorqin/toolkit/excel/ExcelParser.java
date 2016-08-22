@@ -49,8 +49,8 @@ public class ExcelParser {
 
     public interface ProcessHandler {
         void onSheetBegin(Class<?> sheetType, String sheetName);
-        void onSheetEnd(Class<?> sheetType, String sheetName);
-        void onSheetError(Class<?> sheetType, String sheetName, String errorMessage);
+        Stat onSheetEnd(Class<?> sheetType, String sheetName);
+        Stat onSheetError(Class<?> sheetType, String sheetName, String errorMessage);
         void onRow(Object item, Map<String, String> errors, Map<String, String> rawData);
     }
 
@@ -291,6 +291,7 @@ public class ExcelParser {
             for (SheetInfo sheetInfo: sheetList) {
                 SheetContentsHandler contentsHandler = new SheetContentsHandler(sheetInfo.annotation, sheetInfo.type, handler, loc);
                 Stat stat = new Stat();
+                Stat statCustom = null;
                 stat.sheetName = sheetInfo.annotation.value();
                 try {
                     if (handler != null) {
@@ -298,18 +299,22 @@ public class ExcelParser {
                     }
                     processSheet(styles, strings, contentsHandler, sheetInfo.stream);
                     if (handler != null) {
-                        handler.onSheetEnd(sheetInfo.type, sheetInfo.annotation.value());
+                        statCustom = handler.onSheetEnd(sheetInfo.type, sheetInfo.annotation.value());
                     }
                 } catch (Exception e) {
                     stat.fatalError = e.getMessage();
                     if (handler != null) {
-                        handler.onSheetError(sheetInfo.type, sheetInfo.annotation.value(), e.getMessage());
+                        statCustom = handler.onSheetError(sheetInfo.type, sheetInfo.annotation.value(), e.getMessage());
                     }
                 } finally {
-                    stat.successCount = contentsHandler.getSuccessCount();
-                    stat.failedCount = contentsHandler.getFailedCount();
-                    stat.ignoreCount = contentsHandler.getIgnoreCount();
-                    stats.add(stat);
+                    if (statCustom != null) {
+                        stats.add(statCustom);
+                    } else {
+                        stat.successCount = contentsHandler.getSuccessCount();
+                        stat.failedCount = contentsHandler.getFailedCount();
+                        stat.ignoreCount = contentsHandler.getIgnoreCount();
+                        stats.add(stat);
+                    }
                     sheetInfo.stream.close();
                 }
             }
