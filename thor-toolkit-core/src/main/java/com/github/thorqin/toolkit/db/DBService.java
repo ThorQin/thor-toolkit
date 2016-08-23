@@ -1806,6 +1806,8 @@ public final class DBService implements IService, AutoCloseable {
 		@Override
 		public void close()	{
 			try {
+			    if (conn.isClosed())
+			        return;
 				if (!conn.getAutoCommit()) {
 					try {
 						conn.rollback();

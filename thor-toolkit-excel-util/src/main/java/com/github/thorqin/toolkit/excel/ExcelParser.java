@@ -292,6 +292,7 @@ public class ExcelParser {
                 SheetContentsHandler contentsHandler = new SheetContentsHandler(sheetInfo.annotation, sheetInfo.type, handler, loc);
                 Stat stat = new Stat();
                 stat.sheetName = sheetInfo.annotation.value();
+                boolean allRowsParsed = false;
                 try {
                     if (handler != null) {
                         handler.onSheetBegin(sheetInfo.type, sheetInfo.annotation.value());
@@ -300,13 +301,16 @@ public class ExcelParser {
                     stat.successCount = contentsHandler.getSuccessCount();
                     stat.failedCount = contentsHandler.getFailedCount();
                     stat.ignoreCount = contentsHandler.getIgnoreCount();
+                    allRowsParsed = true;
                     if (handler != null) {
                         handler.onSheetEnd(sheetInfo.type, sheetInfo.annotation.value(), stat);
                     }
                 } catch (Exception e) {
-                    stat.successCount = contentsHandler.getSuccessCount();
-                    stat.failedCount = contentsHandler.getFailedCount();
-                    stat.ignoreCount = contentsHandler.getIgnoreCount();
+                    if (!allRowsParsed) {
+                        stat.successCount = contentsHandler.getSuccessCount();
+                        stat.failedCount = contentsHandler.getFailedCount();
+                        stat.ignoreCount = contentsHandler.getIgnoreCount();
+                    }
                     stat.fatalError = e.getMessage();
                     if (handler != null) {
                         handler.onSheetError(sheetInfo.type, sheetInfo.annotation.value(), e.getMessage(), stat);
