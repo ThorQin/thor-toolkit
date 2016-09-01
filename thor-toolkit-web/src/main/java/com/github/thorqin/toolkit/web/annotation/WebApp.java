@@ -43,5 +43,5 @@ public @interface WebApp {
     Service[] services() default {};
 	Class<? extends WebSession> sessionType() default ClientSession.class;
     String appDataEnv() default "app.data.dir";
-	String configName() default "config.json";
+	String configName() default "config.yml";
 }

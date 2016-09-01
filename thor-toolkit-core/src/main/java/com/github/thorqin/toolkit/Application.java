@@ -1,5 +1,6 @@
 package com.github.thorqin.toolkit;
 
+import com.github.thorqin.toolkit.annotation.App;
 import com.github.thorqin.toolkit.annotation.Service;
 import com.github.thorqin.toolkit.service.IService;
 import com.github.thorqin.toolkit.trace.TraceRecorder;
@@ -99,6 +100,14 @@ public class Application {
     }
 
     protected Application() {
+        App appAnno = this.getClass().getAnnotation(App.class);
+        if (appAnno != null) {
+            setName(appAnno.name());
+            appDataEnv = appAnno.appDataEnv();
+            setServices(appAnno.services());
+            configName = appAnno.configName();
+            init();
+        }
     }
 
     protected void onConfigChanged() {}
@@ -163,7 +172,7 @@ public class Application {
         }
     }
 
-    protected void destroy() {
+    public void destroy() {
         for (String name : serviceMapping.keySet()) {
             Object service = serviceMapping.get(name);
             callServiceStop(service, name);
@@ -173,6 +182,8 @@ public class Application {
         logger.log(Level.INFO, "Application stopped!");
         if (logHandler != null)
             logHandler.close();
+        if (configManager != null)
+            configManager.stopWatch();
     }
 
     public static ClassLoader createAppClassLoader(ClassLoader parent, String searchPath) {
