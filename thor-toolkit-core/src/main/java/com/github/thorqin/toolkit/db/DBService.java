@@ -1201,7 +1201,7 @@ public final class DBService implements IService, AutoCloseable {
                 boneCP = null;
             }
             boneCPConfig = null;
-            logger.log(Level.INFO, "DBService stopped! (Service Name: {0})", serviceName);
+            logger.log(Level.FINE, "DBService stopped! (Service Name: {0})", serviceName);
 		} catch (Exception ex) {
 			logger.log(Level.SEVERE, "Shutdown boneCP failed!", ex);
 		}

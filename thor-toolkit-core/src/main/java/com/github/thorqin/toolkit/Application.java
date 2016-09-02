@@ -17,6 +17,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.*;
@@ -26,8 +27,9 @@ import java.util.regex.Pattern;
 /**
  * Created by thor on 9/23/15.
  */
-public class Application {
+public abstract class Application implements LifeCycleListener, Runnable {
     protected static Map<String, Application> applicationMap = new HashMap<>();
+    protected String[] args = null;
     protected Logger logger;
     protected String applicationName;
     protected String configName = "config.json";
@@ -69,15 +71,26 @@ public class Application {
         public String filter = null;
     }
 
+    @Override
+    public abstract void run();
+
+    @Override
+    public void onStartup() {}
+
+    @Override
+    public void onShutdown() {}
+
     public Application(String name) {
         setName(name);
         init();
+        onStartup();
     }
 
     public Application(String name, String appDataEnv) {
         setName(name);
         this.appDataEnv = appDataEnv;
         init();
+        onStartup();
     }
 
     public Application(String name, String appDataEnv, Service[] services) {
@@ -85,6 +98,7 @@ public class Application {
         this.appDataEnv = appDataEnv;
         setServices(services);
         init();
+        onStartup();
     }
 
     public Application(String name, String appDataEnv, Service[] services, String configName) {
@@ -93,6 +107,7 @@ public class Application {
         setServices(services);
         this.configName = configName;
         init();
+        onStartup();
     }
 
     public void setTraceRecorder(TraceRecorder recorder) {
@@ -179,11 +194,12 @@ public class Application {
         }
         traceService.stop();
         applicationMap.remove(applicationName);
-        logger.log(Level.INFO, "Application stopped!");
+        logger.log(Level.INFO, "Application stopped! ({0})", applicationName);
         if (logHandler != null)
             logHandler.close();
         if (configManager != null)
             configManager.stopWatch();
+        this.onShutdown();
     }
 
     public static ClassLoader createAppClassLoader(ClassLoader parent, String searchPath) {
@@ -307,6 +323,7 @@ public class Application {
     }
 
     protected final void inject() {
+        bindingField(this, getClass());
         for (String key : serviceTypes.keySet()) {
             bindingField(key);
         }
@@ -339,12 +356,12 @@ public class Application {
         createAllServiceInstance();
         inject();
         for (String key: serviceMapping.keySet()) {
-            logger.log(Level.FINE, "Register Service: " + key + " -> " + serviceMapping.get(key).getClass().getName());
+            logger.log(Level.INFO, "Register Service: " + key + " -> " + serviceMapping.get(key).getClass().getName());
         }
         configAllService();
         // 5. Start all services which need be started.
         startAllService();
-        logger.log(Level.INFO, "Application started!");
+        logger.log(Level.INFO, "Application started! ({0})", applicationName);
 
         configManager.addChangeListener(configChangeListener);
         configManager.startWatch();
@@ -388,6 +405,10 @@ public class Application {
         if (clazz == null)
             return;
         Object service = serviceMapping.get(key);
+        bindingField(service, clazz);
+    }
+
+    private void bindingField(Object service, Class<?> clazz) {
         for (Field field : Serializer.getVisibleFields(clazz)) {
             try {
                 Service annotation = field.getAnnotation(Service.class);
@@ -411,7 +432,7 @@ public class Application {
         if (service != null)
             callServiceStop(service, name);
         serviceTypes.remove(name);
-        logger.log(Level.FINE, "Un-Register Service: " + name);
+        logger.log(Level.INFO, "Un-Register Service: " + name);
         inject();
     }
 
@@ -419,7 +440,7 @@ public class Application {
         checkServiceName(name);
         serviceTypes.put(name, type);
         Object service = createServiceInstance(name);
-        logger.log(Level.FINE, "Register Service: " + name + " -> " + type.getName());
+        logger.log(Level.INFO, "Register Service: " + name + " -> " + type.getName());
         inject();
         callServiceStart(service, name);
     }
@@ -482,10 +503,9 @@ public class Application {
             IService service = (IService)serviceInstance;
             try {
                 service.start();
-                logger.log(Level.FINE, "Service started! (name: {0})", serviceName);
+                logger.log(Level.INFO, "Service start! ({0})", serviceName);
             } catch (Exception ex) {
-                LogRecord record = new LogRecord(Level.SEVERE, "Start service error. (Service name: {0})");
-                record.setParameters(new Object[]{serviceName});
+                LogRecord record = new LogRecord(Level.SEVERE, "Start service error! (" + serviceName + ")");
                 record.setThrown(ex);
                 logger.log(record);
             }
@@ -498,10 +518,9 @@ public class Application {
             if (service.isStarted()) {
                 try {
                     service.stop();
-                    logger.log(Level.FINE, "Service stopped! (name: {0})", serviceName);
+                    logger.log(Level.INFO, "Service stopped! ({0})", serviceName);
                 } catch (Exception ex) {
-                    LogRecord record = new LogRecord(Level.SEVERE, "Stop service error. (Service name: {0})");
-                    record.setParameters(new Object[]{serviceName});
+                    LogRecord record = new LogRecord(Level.SEVERE, "Stop service error. (" + serviceName + ")");
                     record.setThrown(ex);
                     logger.log(record);
                 }
@@ -510,10 +529,9 @@ public class Application {
             AutoCloseable closeable = (AutoCloseable)serviceInstance;
             try {
                 closeable.close();
-                logger.log(Level.FINE, "Service closed! (name: {0})", serviceName);
+                logger.log(Level.INFO, "Service closed! ({0})", serviceName);
             } catch (Exception ex) {
-                LogRecord record = new LogRecord(Level.SEVERE, "Close service error. (Service name: {0})");
-                record.setParameters(new Object[]{serviceName});
+                LogRecord record = new LogRecord(Level.SEVERE, "Close service error. (" + serviceName + ")");
                 record.setThrown(ex);
                 logger.log(record);
             }
@@ -528,11 +546,10 @@ public class Application {
                 if (needRestart && service.isStarted()) {
                     service.stop();
                     service.start();
-                    logger.log(Level.FINE, "Service restart! (name: {0})", serviceName);
+                    logger.log(Level.INFO, "Service restart! ({0})", serviceName);
                 }
             } catch (Exception ex) {
-                LogRecord record = new LogRecord(Level.SEVERE, "Service config exception. (Service name: {0})");
-                record.setParameters(new Object[]{serviceName});
+                LogRecord record = new LogRecord(Level.SEVERE, "Service config exception! (" + serviceName + ")");
                 record.setThrown(ex);
                 logger.log(record);
             }
@@ -758,4 +775,73 @@ public class Application {
         }
     }
 
+    private static void createApplication(File path, List<Application> appList) throws Exception {
+        if (path == null) {
+            return;
+        }
+        if (path.isDirectory()) {
+            File[] files = path.listFiles();
+            if (files != null) {
+                for (File item : files) {
+                    createApplication(item, appList);
+                }
+            }
+            return;
+        }
+        else if (!path.isFile() || !path.getName().endsWith(".class")) {
+            return;
+        }
+        try (DataInputStream fstream = new DataInputStream(new FileInputStream(path.getPath()))){
+            ClassFile cf = new ClassFile(fstream);
+            String className = cf.getName();
+            AnnotationsAttribute visible = (AnnotationsAttribute) cf.getAttribute(
+                    AnnotationsAttribute.visibleTag);
+            if (visible == null) {
+                return;
+            }
+            for (javassist.bytecode.annotation.Annotation ann : visible.getAnnotations()) {
+                if (!ann.getTypeName().equals(App.class.getName())) {
+                    continue;
+                }
+                Class<?> clazz = Class.forName(className);
+                if (clazz == null) {
+                    continue;
+                }
+                if (clazz.equals(Application.class))
+                    continue;
+                if (!Application.class.isAssignableFrom(clazz)) {
+                    continue;
+                }
+                Application app = (Application)clazz.newInstance();
+                appList.add(app);
+            }
+        }
+    }
+
+    public static void main(String args[]) throws Exception {
+        List<Application> appList = new LinkedList<>();
+        File file = new File(Application.class.getResource("/").toURI());
+        createApplication(file, appList);
+        for (Application app: appList) {
+            app.args = args;
+            app.onStartup();
+        }
+        if (appList.size() == 1) {
+            Application app = appList.get(0);
+            app.run();
+            app.destroy();
+        } else {
+            for (final Application app: appList) {
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        app.run();
+                        app.destroy();
+                    }
+                });
+                thread.setDaemon(false);
+                thread.start();
+            }
+        }
+    }
 }

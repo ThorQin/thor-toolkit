@@ -25,7 +25,7 @@ public class LogHandler extends Handler {
     private String name;
     private String fileDate = null;
     private boolean async;
-    private boolean alive = true;
+    private volatile boolean alive = true;
 
     private File realFile = null;
     private FileChannel channel = null;
@@ -149,6 +149,8 @@ public class LogHandler extends Handler {
 
     @Override
     public void close() throws SecurityException {
+        if (!alive)
+            return;
         alive = false;
         if (async) {
             try {

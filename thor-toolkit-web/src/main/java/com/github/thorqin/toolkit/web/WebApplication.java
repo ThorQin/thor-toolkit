@@ -47,7 +47,7 @@ import javax.servlet.http.HttpServletRequest;
  * @author nuo.qin
  */
 public abstract class WebApplication extends Application
-        implements ServletContextListener, LifeCycleListener {
+        implements ServletContextListener {
 
 
     public static class Setting {
@@ -118,6 +118,7 @@ public abstract class WebApplication extends Application
     private Class<? extends WebSession> sessionType = ClientSession.class;
     protected Setting setting;
 
+    public void run() {}
 
     public WebApplication() {
         WebApp appAnno = this.getClass().getAnnotation(WebApp.class);
@@ -142,12 +143,6 @@ public abstract class WebApplication extends Application
         setting = configManager.get("/web", Setting.class, new Setting());
     }
 
-    /**
-     * If
-     *
-     * @param servletContext
-     * @throws ServletException
-     */
     final void onStartup(ServletContext servletContext) throws ServletException {
         this.servletContext = servletContext;
         this.onStartup();
@@ -159,24 +154,11 @@ public abstract class WebApplication extends Application
 
     @Override
     public final synchronized void contextDestroyed(ServletContextEvent sce) {
-        try {
-            this.onShutdown();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
         super.destroy();
     }
 
     public final ServletContext getServletContext() {
         return servletContext;
-    }
-
-    @Override
-    public void onStartup() throws ServletException {
-    }
-
-    @Override
-    public void onShutdown() {
     }
 
     public final UploadManager createUploadManager(String uploadFolderName, boolean storeDetail) {

@@ -9,7 +9,7 @@ import com.github.thorqin.toolkit.utility.StringUtils;
 import com.github.thorqin.toolkit.validation.ValidateException;
 import com.github.thorqin.toolkit.validation.Validator;
 import com.github.thorqin.toolkit.web.HttpException;
-import com.github.thorqin.toolkit.web.LifeCycleListener;
+import com.github.thorqin.toolkit.LifeCycleListener;
 import com.github.thorqin.toolkit.web.MessageConstant;
 import com.github.thorqin.toolkit.web.WebApplication;
 import com.github.thorqin.toolkit.web.annotation.WebModule;
