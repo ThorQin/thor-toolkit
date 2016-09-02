@@ -1585,6 +1585,50 @@ public final class DBService implements IService, AutoCloseable {
 			}
 		}
 
+        public <T> void query(String queryString, Class<T> type, RowHandler<T> handler, Object... args) throws SQLException, InstantiationException, IllegalAccessException {
+            try (DBCursor cursor = query(queryString, args)) {
+                while (cursor.next()) {
+                    T obj = cursor.get(type);
+                    if (!handler.process(obj))
+                        break;
+                }
+            }
+        }
+
+        /**
+         * Make query call to handler on each row, keep column name in original form
+         * @param queryString SQL
+         * @param handler RowHandler
+         * @param args Parameters
+         * @throws SQLException
+         */
+        public void query(String queryString, RowHandler<Map<String, Object>> handler, Object... args) throws SQLException {
+            try (DBCursor cursor = query(queryString, args)) {
+                while (cursor.next()) {
+                    Map<String, Object> obj = cursor.get();
+                    if (!handler.process(obj))
+                        break;
+                }
+            }
+        }
+
+        /**
+         * Make query call to handler on each row, change column name to camel-case form
+         * @param queryString SQL
+         * @param handler RowHandler
+         * @param args Parameters
+         * @throws SQLException
+         */
+        public void queryAdjust(String queryString, RowHandler<Map<String, Object>> handler, Object... args) throws SQLException {
+            try (DBCursor cursor = query(queryString, args)) {
+                while (cursor.next()) {
+                    Map<String, Object> obj = cursor.get(true);
+                    if (!handler.process(obj))
+                        break;
+                }
+            }
+        }
+
 		public void query(String queryString, DBResultHanlder handler, Object... args) throws Exception {
 			long beginTime = System.currentTimeMillis();
 			boolean success = true;
@@ -1930,13 +1974,7 @@ public final class DBService implements IService, AutoCloseable {
 
     public <T> void query(String queryString, Class<T> type, RowHandler<T> handler, Object... args) throws SQLException, InstantiationException, IllegalAccessException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                while (cursor.next()) {
-                    T obj = cursor.get(type);
-                    if (!handler.process(obj))
-                        break;
-                }
-            }
+            session.query(queryString, type, handler, args);
         }
     }
 
@@ -1949,13 +1987,7 @@ public final class DBService implements IService, AutoCloseable {
      */
     public void query(String queryString, RowHandler<Map<String, Object>> handler, Object... args) throws SQLException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                while (cursor.next()) {
-                    Map<String, Object> obj = cursor.get();
-                    if (!handler.process(obj))
-                        break;
-                }
-            }
+            session.query(queryString, handler, args);
         }
     }
 
@@ -1968,13 +2000,7 @@ public final class DBService implements IService, AutoCloseable {
      */
     public void queryAdjust(String queryString, RowHandler<Map<String, Object>> handler, Object... args) throws SQLException {
         try (DBSession session = getSession()) {
-            try (DBCursor cursor = session.query(queryString, args)) {
-                while (cursor.next()) {
-                    Map<String, Object> obj = cursor.get();
-                    if (!handler.process(obj))
-                        break;
-                }
-            }
+            session.queryAdjust(queryString, handler, args);
         }
     }
 
