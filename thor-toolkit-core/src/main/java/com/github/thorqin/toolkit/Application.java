@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.*;
@@ -256,45 +257,16 @@ public abstract class Application implements LifeCycleListener, Runnable {
             return applicationName;
     }
 
-    private void scanClasses(File path) throws Exception {
-        if (path == null) {
-            return;
-        }
-        if (path.isDirectory()) {
-            File[] files = path.listFiles();
-            if (files != null) {
-                for (File item : files) {
-                    scanClasses(item);
-                }
-            }
-            return;
-        }
-        else if (!path.isFile() || !path.getName().endsWith(".class")) {
-            return;
-        }
-        try (DataInputStream fstream = new DataInputStream(new FileInputStream(path.getPath()))){
-            ClassFile cf = new ClassFile(fstream);
-            String className = cf.getName();
-            AnnotationsAttribute visible = (AnnotationsAttribute) cf.getAttribute(
-                    AnnotationsAttribute.visibleTag);
-            if (visible == null) {
-                return;
-            }
-            for (javassist.bytecode.annotation.Annotation ann : visible.getAnnotations()) {
-                if (!ann.getTypeName().equals(Service.class.getName())) {
-                    continue;
-                }
-                // Class<?> clazz = Class.forName(className);
-                Class<?> clazz = appClassLoader.loadClass(className);
-                if (clazz == null) {
-                    continue;
-                }
+    private void scanClasses() throws Exception {
+        ClassScanner.scanByAnnotation(Service.class.getName(), new ClassScanner.ClassHandler() {
+            @Override
+            public void handleClass(Class<?> clazz) throws Exception {
                 Service service = clazz.getAnnotation(Service.class);
                 if (service == null)
-                    continue;
+                    return;
                 String appName = service.application().trim();
                 if (!appName.isEmpty() && !appName.equals(applicationName)) {
-                    continue;
+                    return;
                 }
                 String serviceName = service.value();
                 synchronized (this) {
@@ -302,7 +274,7 @@ public abstract class Application implements LifeCycleListener, Runnable {
                     serviceTypes.put(serviceName, clazz);
                 }
             }
-        }
+        });
     }
 
     protected final void createAllServiceInstance() {
@@ -350,11 +322,15 @@ public abstract class Application implements LifeCycleListener, Runnable {
         traceService.start();
         // 4. Find and inject services
         try {
-            File file = new File(Application.class.getResource("/").toURI());
-            scanClasses(file);
-            File fileExtend = new File(getDataDir("lib"));
-            scanClasses(fileExtend);
+            scanClasses();
+//            File fileExtend = new File(getDataDir("lib"));
+//            scanClasses(fileExtend);
         } catch (Exception ex) {
+            traceService.stop();
+            if (configManager != null)
+                configManager.stopWatch();
+            if (logHandler != null)
+                logHandler.close();
             throw new RuntimeException(ex);
         }
         createAllServiceInstance();
@@ -779,53 +755,28 @@ public abstract class Application implements LifeCycleListener, Runnable {
         }
     }
 
-    private static void createApplication(File path, List<Application> appList) throws Exception {
-        if (path == null) {
-            return;
-        }
-        if (path.isDirectory()) {
-            File[] files = path.listFiles();
-            if (files != null) {
-                for (File item : files) {
-                    createApplication(item, appList);
-                }
-            }
-            return;
-        }
-        else if (!path.isFile() || !path.getName().endsWith(".class")) {
-            return;
-        }
-        try (DataInputStream fstream = new DataInputStream(new FileInputStream(path.getPath()))){
-            ClassFile cf = new ClassFile(fstream);
-            String className = cf.getName();
-            AnnotationsAttribute visible = (AnnotationsAttribute) cf.getAttribute(
-                    AnnotationsAttribute.visibleTag);
-            if (visible == null) {
-                return;
-            }
-            for (javassist.bytecode.annotation.Annotation ann : visible.getAnnotations()) {
-                if (!ann.getTypeName().equals(App.class.getName())) {
-                    continue;
-                }
-                Class<?> clazz = Class.forName(className);
-                if (clazz == null) {
-                    continue;
-                }
+
+
+
+    private static void createApplication(final List<Application> appList) throws Exception {
+        ClassScanner.scanByAnnotation(App.class.getName(), new ClassScanner.ClassHandler() {
+            @Override
+            public void handleClass(Class<?> clazz) throws Exception {
                 if (clazz.equals(Application.class))
-                    continue;
+                    return;
                 if (!Application.class.isAssignableFrom(clazz)) {
-                    continue;
+                    return;
                 }
-                Application app = (Application)clazz.newInstance();
+                Application app = (Application) clazz.newInstance();
                 appList.add(app);
             }
-        }
+        });
     }
+
 
     public static void main(String args[]) throws Exception {
         List<Application> appList = new LinkedList<>();
-        File file = new File(Application.class.getResource("/").toURI());
-        createApplication(file, appList);
+        createApplication(appList);
         for (Application app: appList) {
             app.args = args;
             app.onStartup();

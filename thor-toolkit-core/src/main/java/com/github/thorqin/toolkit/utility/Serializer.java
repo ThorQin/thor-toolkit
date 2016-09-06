@@ -36,6 +36,7 @@ public final class Serializer {
 
     public final static Type COMMON_MAP = new TypeToken<Map<String, Object>>(){}.getType();
     public final static Type COMMON_LIST = new TypeToken<List<Object>>(){}.getType();
+    public final static Type STRING_LIST = new TypeToken<List<String>>(){}.getType();
 
     public static <T> Type makeListType(Class<T> type) {
         return new TypeToken<List<T>>(){}.getType();
