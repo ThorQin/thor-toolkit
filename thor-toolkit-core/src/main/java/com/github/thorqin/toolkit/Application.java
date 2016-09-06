@@ -188,6 +188,11 @@ public abstract class Application implements LifeCycleListener, Runnable {
     }
 
     public void destroy() {
+        try {
+            this.onShutdown();
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Invoke shutdown hook failed!", e);
+        }
         for (String name : serviceMapping.keySet()) {
             Object service = serviceMapping.get(name);
             callServiceStop(service, name);
@@ -195,11 +200,10 @@ public abstract class Application implements LifeCycleListener, Runnable {
         traceService.stop();
         applicationMap.remove(applicationName);
         logger.log(Level.INFO, "Application stopped! ({0})", applicationName);
-        if (logHandler != null)
-            logHandler.close();
         if (configManager != null)
             configManager.stopWatch();
-        this.onShutdown();
+        if (logHandler != null)
+            logHandler.close();
     }
 
     public static ClassLoader createAppClassLoader(ClassLoader parent, String searchPath) {
