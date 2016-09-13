@@ -93,7 +93,7 @@ public class ExcelParser {
             for (Field field: fields) {
                 Column anno = field.getAnnotation(Column.class);
                 if (anno != null) {
-                    result.put(anno.value(), field);
+                    result.put(anno.value().trim(), field);
                 }
             }
             return result;
@@ -109,7 +109,9 @@ public class ExcelParser {
             if (sheetAnnotation.headerLine() == currentRow) {
                 for (Map.Entry<Integer, String> col: rowData.entrySet()) {
                     String value = col.getValue();
-                    Field field = allFields.get(value);
+                    if (value == null)
+                        continue;
+                    Field field = allFields.get(value.trim());
                     if (field != null) {
                         fieldMapping.put(value, col.getKey());
                     }
