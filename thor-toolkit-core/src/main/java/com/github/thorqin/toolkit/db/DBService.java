@@ -56,6 +56,9 @@ public final class DBService implements IService, AutoCloseable {
 		public int connectionTimeout = 0; // When get connection from pool exceed timeout value then exception
 		public boolean lazyInit = true;
 		public boolean trace = false;
+        public boolean disableConnectionTracking = false;
+        public int idleTestPeriod = 3; // in minutes
+        public int maxIdleAge = 30; // in minutes
 	}
 
 	@Service("logger")
@@ -1134,6 +1137,9 @@ public final class DBService implements IService, AutoCloseable {
             boneCPConfig.setMaxConnectionsPerPartition(setting.maxConnectionsPerPartition);
             boneCPConfig.setPartitionCount(setting.partitionCount);
             boneCPConfig.setConnectionTimeoutInMs(setting.connectionTimeout);
+            boneCPConfig.setIdleConnectionTestPeriodInMinutes(setting.idleTestPeriod);
+            boneCPConfig.setIdleMaxAgeInMinutes(setting.maxIdleAge);
+            boneCPConfig.setDisableConnectionTracking(setting.disableConnectionTracking);
             boneCPConfig.setLazyInit(false); // For some reason I didn't use this feature.
             if (!setting.lazyInit) {
                 init();

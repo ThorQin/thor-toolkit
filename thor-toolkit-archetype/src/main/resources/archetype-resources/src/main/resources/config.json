@@ -31,7 +31,10 @@
 	"minConnectionsPerPartition": 5,
 	"maxConnectionsPerPartition": 20,
 	"partitionCount": 1,
-	"trace": false
+	"idleTestPeriod": 3,
+    "maxIdleAge": 30,
+    "disableConnectionTracking": false,
+    "trace": false
   },
 
   "mq": {

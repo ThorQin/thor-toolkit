@@ -26,6 +26,9 @@ scheduler:
 #  minConnectionsPerPartition: 5
 #  maxConnectionsPerPartition: 20
 #  partitionCount: 1
+#  idleTestPeriod: 3 # in minutes
+#  maxIdleAge: 30 # in minutes
+#  disableConnectionTracking: false
 #  trace: false
 #
 #mq:
