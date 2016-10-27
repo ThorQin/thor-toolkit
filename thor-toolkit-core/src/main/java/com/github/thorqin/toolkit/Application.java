@@ -758,7 +758,7 @@ public abstract class Application implements LifeCycleListener, Runnable {
 
 
 
-    private static void createApplication(final List<Application> appList) throws Exception {
+    static void createApplication(final List<Application> appList) throws Exception {
         ClassScanner.scanByAnnotation(App.class.getName(), new ClassScanner.ClassHandler() {
             @Override
             public void handleClass(Class<?> clazz) throws Exception {

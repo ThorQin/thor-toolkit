@@ -120,7 +120,7 @@ public class Localization {
                 bundle = ResourceBundle.getBundle(bundleName, locale, this.getClass().getClassLoader(), new UTF8Control());
             } catch (Exception e) {
                 bundle = null;
-                System.err.println("Initialize localization failed: " + e.getMessage());
+                System.out.println("Initialize localization failed: " + e.getMessage());
             }
         }
 	}

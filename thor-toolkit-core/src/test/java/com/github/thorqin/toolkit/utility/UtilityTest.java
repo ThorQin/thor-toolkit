@@ -62,20 +62,6 @@ public class UtilityTest implements FileMonitor.FileChangeListener, ConfigManage
     }
 
     @Test
-    public void testConfigManager() throws IOException {
-        Application application = new Application("junit-test#service");
-        ConfigManager configManager = application.getConfigManager();
-        System.out.println(configManager.getJson("/", true));
-        configManager.addChangeListener(this);
-        System.out.println(application.getDataDir("\\abc"));
-        System.out.println(application.getDataDir("\\abc/def"));
-        System.out.println(application.getDataDir("abc/def\\"));
-        System.out.println(application.getDataDir("/abc"));
-        System.out.println(new File("c:/test\\abc/def\\").toString());
-                System.in.read();
-    }
-
-    @Test
     public void testTaskService() throws InterruptedException {
         TaskService<String> taskService = new TaskService<String>(new TaskService.TaskHandler<String>() {
             @Override
