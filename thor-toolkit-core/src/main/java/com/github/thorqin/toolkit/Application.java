@@ -73,7 +73,7 @@ public abstract class Application implements LifeCycleListener, Runnable {
     }
 
     @Override
-    public abstract void run();
+    public void run() {}
 
     @Override
     public void onStartup() {}
@@ -463,19 +463,22 @@ public abstract class Application implements LifeCycleListener, Runnable {
             Constructor<?> constructor = type.getConstructor(ConfigManager.class, String.class, Tracer.class);
             constructor.setAccessible(true);
             obj = constructor.newInstance(configManager, name, traceService);
+            serviceMapping.put(name, obj);
+            return obj;
         } catch (NoSuchMethodException ex) {
-            try {
-                Constructor<?> constructor = type.getConstructor();
-                constructor.setAccessible(true);
-                obj = constructor.newInstance();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            // have a next try
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
-        serviceMapping.put(name, obj);
-        return obj;
+        try {
+            Constructor<?> constructor = type.getConstructor();
+            constructor.setAccessible(true);
+            obj = constructor.newInstance();
+            serviceMapping.put(name, obj);
+            return obj;
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     private void callServiceStart(Object serviceInstance, String serviceName) {

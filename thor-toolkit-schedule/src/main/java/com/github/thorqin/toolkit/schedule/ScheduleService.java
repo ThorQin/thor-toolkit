@@ -74,19 +74,31 @@ public class ScheduleService implements IService {
         if (application == null)
             return;
 
+        Method[] methods = application.getClass().getDeclaredMethods();
+        for (Method method: methods) {
+            ScheduleJob scheduleJob = method.getAnnotation(ScheduleJob.class);
+            if (scheduleJob == null)
+                continue;
+            try {
+                addJob(scheduleJob.name(), "::" + method.getName(), scheduleJob.schedule());
+            } catch (SchedulerException e) {
+                logger.log(Level.WARNING, "Add job by service pre-definition.", e);
+            }
+        }
+
         Set<String> keys = application.getServiceKeys();
         for (String key: keys) {
             Object service = application.getService(key);
             if (service == this)
                 continue;
-            Method[] methods = service.getClass().getDeclaredMethods();
+            methods = service.getClass().getDeclaredMethods();
             for (Method method: methods) {
                 ScheduleJob scheduleJob = method.getAnnotation(ScheduleJob.class);
                 if (scheduleJob == null)
                     continue;
                 try {
                     addJob(scheduleJob.name(), key + "::" + method.getName(), scheduleJob.schedule());
-                }catch (SchedulerException e) {
+                } catch (SchedulerException e) {
                     logger.log(Level.WARNING, "Add job by service pre-definition.", e);
                 }
             }
@@ -193,7 +205,11 @@ public class ScheduleService implements IService {
                 }
                 logger = application.getLogger();
                 String[] arr = jobDefine.split("::");
-                Object serviceInstance = application.getService(arr[0]);
+                Object serviceInstance;
+                if (Strings.isNullOrEmpty(arr[0]))
+                    serviceInstance = application;
+                else
+                    serviceInstance = application.getService(arr[0]);
                 if (serviceInstance == null) {
                     logger.log(Level.WARNING, "Job target not found: no specified service found.");
                     return;
