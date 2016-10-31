@@ -29,10 +29,15 @@ public class TestExcel {
         }
 
         @Override
-        public void onSheet(Class<?> sheetType, String sheetName) {
+        public void onSheetBegin(Class<?> sheetType, String sheetName) {
             writer.addSheet(sheetType);
             System.out.println("Sheet: " + sheetName);
             System.out.println("-----------------------");
+        }
+
+        @Override
+        public void onSheetEnd(Class<?> sheetType, String sheetName, ExcelParser.Stat stat) {
+
         }
 
         @Override
@@ -47,7 +52,7 @@ public class TestExcel {
         }
 
         @Override
-        public void onSheetError(Class<?> sheetType, String sheetName, String errorMessage) {
+        public void onSheetError(Class<?> sheetType, String sheetName, String errorMessage, ExcelParser.Stat stat) {
             writer.addRow(new HashMap<String, String>(), Collections.singletonMap((String)null, errorMessage));
             System.out.println("Process sheet (" + sheetName + ") error: " + errorMessage);
         }
